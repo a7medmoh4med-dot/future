@@ -1170,7 +1170,7 @@ function openExt(id) {
   let rest = r2(Math.max(0, amt - contoFree));
   const others = p.src.filter(n => n !== 'Conto corrente').map(n => { const take = r2(Math.min(rest, Math.max(0, balance(n)))); rest = r2(rest - take); return {n, a: take, bal: balance(n)}; });
   const b = budgets().find(x => x.k === (g.cat || 'finanz') && !x.auto);
-  const w = openSheet(`<h3 class="sh-title">🏛️ Salda ${esc(g.n)}</h3><p class="sh-sub">Registra il pagamento che fai alla banca dal conto corrente. Non pesa sul budget del mese.</p>
+  const w = openSheet(`<h3 class="sh-title">${g.kind === 'person' ? '🤝 Restituisci tutto' : '🏛️ Salda ' + esc(g.n)}</h3><p class="sh-sub">${g.kind === 'person' ? `${esc(g.n)}: i soldi escono dal <b>Conto corrente</b>. Se lì non bastano (tolto il cuscinetto), prima li sposti dagli altri conti: gli importi qui sotto li puoi cambiare.` : 'Registra il pagamento che fai alla banca dal conto corrente.'} Non pesa sul budget del mese.</p>
     <label class="fld"><span>${g.kind === 'person' ? 'Importo da restituire' : 'Importo per saldare (chiedi il conteggio alla banca)'}</span><div class="amtin"><input id="ext-a" inputmode="decimal" value="${String(amt).replace('.', ',')}"><b>€</b></div></label>
     ${others.map(o => `<label class="fld"><span>Prima sposti da «${esc(o.n)}» al conto (ci sono ${eur0(o.bal)})</span><div class="amtin"><input data-extsrc="${esc(o.n)}" inputmode="decimal" value="${String(o.a).replace('.', ',')}"><b>€</b></div></label>`).join('')}
     <div class="vrule">Cosa succede:<br>• il debito va a zero${g.rata ? `<br>• la rata da ${eur0(g.rata)} si ferma` : ''}${b && g.rata ? `<br>• il budget ${esc(b.n)} scende da ${eur0(baseOf(b))} a ${eur0(Math.max(0, baseOf(b) - g.rata))}: i ${eur0(g.rata)} al mese vanno ${cfg().goals.some(x => x.type === 'debt' && x.cur > 0 && x.id !== g.id) ? 'al salvadanaio debiti, per il prossimo debito' : 'al fondo casa'}` : ''}</div>
@@ -3103,6 +3103,18 @@ function readGoalNew(w) { const g = w._g, v = id => { const e = $(id, w); return
   g.cat = picked(w, 'ng-cat') || g.cat; g.obj = picked(w, 'ng-obj') || g.obj; return g; }
 async function saveGoalEdit(w, id) {
   const c = clone(cfg()), g = c.goals.find(x => x.id === id); if (!g) return;
+  if (g.kind === 'person' && !($('#ge-fix', w) || {}).checked) {
+    const nv = parseAmt(($('#ge-cur', w) || {}).value), was = debtCur(g), diff = r2(was - nv);
+    if (nv >= 0 && diff > 0.009 && !w._paidAsked) {
+      const ans = await choiceSheet(`Hai restituito ${eur(diff)}?`, `Il residuo scende da ${eur(was)} a ${eur(nv)}. Se hai dato dei soldi a ${esc(g.n.replace(/^Debito con /, ''))}, li registro come uscita da un conto. Se invece l\u2019importo era sbagliato, è una correzione.`,
+        [['pay', `Sì, li ho restituiti`], ['fix', 'No, era sbagliato (correzione)']]);
+      if (!ans) return;
+      w._paidAsked = 1;
+      if (ans === 'fix') { const f = $('#ge-fix', w); if (f) f.checked = true; }
+      else { const acc = await pickAccountSheet(diff); if (!acc) { w._paidAsked = 0; return; }
+        if (await addTx({kind: 'out', a: diff, cat: '', note: 'Restituiti: ' + g.n, d: today(), acc, xb: true, src: 'extra', goal: g.id}) === false) return; }
+    }
+  }
   const old = clone(g), oldRec = (recs().find(x => x.id === g.recId) || {}).n || '';
   const num = sel => { const el = $(sel, w); return el ? parseAmt(el.value) : NaN; };
   const nm = $('#ge-n', w); if (nm && nm.value.trim()) g.n = nm.value.trim();
@@ -3121,6 +3133,19 @@ async function saveGoalEdit(w, id) {
     if (oldRec && oldRec !== old.n) await renameTxNotes(oldRec, g.n, t => g.recId && t.rec === g.recId);
   }
   toast('Aggiornato ✓'); closeSheet(w); S.anim = true; render();
+}
+function choiceSheet(title, msg, opts) {
+  return new Promise(res => {
+    const w = openSheet(`<h3 class="sh-title">${esc(title)}</h3><p class="sh-sub">${msg}</p>${opts.map(([v, l], i) => `<button class="btn ${i ? '' : 'primary'}" data-ch="${v}">${esc(l)}</button>`).join('')}<button class="btn ghost" data-ch="">Annulla</button>`);
+    let done = false; w.addEventListener('click', e => { const b = e.target.closest('[data-ch]'); if (!b || done) { if (e.target.closest('[data-act="close-sheet"]') && !done) { done = true; res(''); } return; } done = true; closeSheet(w); res(b.dataset.ch); });
+  });
+}
+function pickAccountSheet(a) {
+  return new Promise(res => {
+    const L = cfg().accounts.filter(x => !accLocked(x.n));
+    const w = openSheet(`<h3 class="sh-title">Da quale conto?</h3><p class="sh-sub">${eur(a)} escono da qui. Non pesano sul budget del mese.</p>${L.map(x => `<button class="btn" data-pa="${esc(x.n)}">${esc(x.n)} · ${eur(balance(x.n))}</button>`).join('')}<button class="btn ghost" data-pa="">Annulla</button>`);
+    let done = false; w.addEventListener('click', e => { const b = e.target.closest('[data-pa]'); if (!b || done) return; done = true; closeSheet(w); res(b.dataset.pa); });
+  });
 }
 function openGoalPay(id) {
   const g = cfg().goals.find(x => x.id === id); if (!g) return;
