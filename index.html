@@ -3065,6 +3065,7 @@ function openGoalEdit(id) {
          <div class="row2"><label class="fld"><span>TAEG (%)</span><input id="ge-taeg" inputmode="decimal" value="${String(rateOf(g)).replace('.', ',')}"></label><label class="fld"><span>Rata ricorrente collegata</span><select id="ge-rec"><option value="">Nessuna</option>${recs().filter(r => r.kind === 'out').map(r => `<option value="${esc(r.id)}" ${(linkedRec(cfg(), g) || {}).id === r.id ? 'selected' : ''}>${esc(r.n)} · ${eur(recAmount(r))}</option>`).join('')}</select></label></div>
          <div class="vrule">Niente extra mensili: paghi la rata, metti da parte e saldi tutto in un colpo. La data è quella che <b>desideri</b>: se non è fattibile l\u2019app ti propone quella possibile. Lasciala vuota e la calcola lei.</div>
          <div class="row2"><label class="fld"><span>Data per saldare (facoltativa)</span><input id="ge-plan" type="date" value="${esc(g.plan || '')}"></label><label class="fld"><span>Importo per saldare (facoltativo)</span><input id="ge-target" inputmode="decimal" value="${g.target ? String(g.target).replace('.', ',') : ''}" placeholder="dalla banca"></label></div>`}
+    ${g.type === 'debt' ? `<label class="check" style="margin:4px 0 10px"><input type="checkbox" id="ge-fix"> <span><b>È una correzione</b>: l\u2019importo che avevo scritto era sbagliato (non ho pagato niente). Il nuovo importo diventa quello di partenza.</span></label>` : ''}
     <button class="btn primary" data-act="ge-save" data-id="${g.id}">Salva</button>${g.id !== 'casa' ? `<button class="btn danger" data-act="ge-del" data-id="${esc(g.id)}">Elimina obiettivo</button>` : ''}`);
 }
 function openGoalNew(pre) { const w = openSheet('<div id="ng-body"></div>'); w._g = Object.assign({type: 'fund', n: '', target: '', monthly: '', acc: '__new', cur: '', rata: '', extra: '', cat: 'finanz', obj: '', by: ''}, pre || {}); if (pre) drawGoalNew(w); else drawGoalKind(w); }
@@ -3108,7 +3109,7 @@ async function saveGoalEdit(w, id) {
   if (g.type === 'fund' && g.id !== 'casa') { const t = num('#ge-target'); if (t > 0) g.target = t; g.acc = $('#ge-acc', w).value; g.monthly = num('#ge-monthly') || 0; }
   else if (g.type === 'fund') { const t = num('#ge-target'); if (t > 0) g.target = t; g.bonus = num('#ge-bonus') || 0; g.rate = num('#ge-rate') || 0; }
   else {
-    const cur = num('#ge-cur'); if (cur >= 0 && Math.abs(cur - debtCur(cfg().goals.find(x => x.id === id))) > 0.009) { g.cur = cur; g.curTs = Date.now(); if (cur > g.start) g.start = cur; }
+    const cur = num('#ge-cur'), fix = !!($('#ge-fix', w) || {}).checked; if (cur >= 0 && (fix || Math.abs(cur - debtCur(cfg().goals.find(x => x.id === id))) > 0.009)) { g.cur = cur; g.curTs = Date.now(); if (cur > g.start || fix) g.start = cur; }
     g.rata = num('#ge-rata') || 0; const rbv = num('#ge-rataB'); g.rataB = rbv > 0 ? rbv : 0; const tg = num('#ge-taeg'); g.taeg = tg >= 0 ? tg : 0;
     g.plan = $('#ge-plan', w).value || ''; const t = num('#ge-target'); g.target = t > 0 ? t : 0;
     g.extra = 0; g.bonus = 0; g.from = ''; const rs = $('#ge-rec', w); if (rs) g.recId = rs.value || '';
