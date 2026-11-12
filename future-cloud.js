@@ -458,6 +458,15 @@
     reloadAll(); return rows.length;
   }
 
+  async function quickToken() {
+    const {data, error} = await sb.from('quick_tokens').select('token').maybeSingle();
+    if (error) throw new Error(error.message); return (data && data.token) || '';
+  }
+  async function newQuickToken() {
+    const {data, error} = await sb.rpc('new_quick_token');
+    if (error) throw new Error(error.message); return data;
+  }
+
   async function logout() {
     try { await sb.auth.signOut(); } catch (e) {}
     LS.del(cacheKey()); location.reload();
@@ -466,7 +475,7 @@
   window.FutureCloud = {
     connect, logout, info, onMembers: cb => memberL.add(cb),
     createInvite, unlinkPartner, useCode, rename,
-    autoBackup, listBackups, restoreBackup, flushQueue, pending: () => readQ().length, onQueue: cb => qL.add(cb), isOffline: () => offlineStart && !navigator.onLine,
+    autoBackup, listBackups, restoreBackup, quickToken, newQuickToken, flushQueue, pending: () => readQ().length, onQueue: cb => qL.add(cb), isOffline: () => offlineStart && !navigator.onLine,
     pushState, enablePush, notify, isIOS, standalone,
     enabled: () => !!CFG.SUPABASE_URL, email: () => (session && session.user.email) || ''
   };
