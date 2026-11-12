@@ -1,6 +1,6 @@
 /* Future — service worker: l'app si apre anche senza rete.
    Quando pubblichi una nuova versione, cambia il numero qui sotto (v1 → v2): i telefoni scaricano tutto di nuovo. */
-const VERSION = 'future-v2';
+const VERSION = 'future-v3';
 const SHELL = ['./', 'index.html', 'config.js', 'future-cloud.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js'];
@@ -28,4 +28,22 @@ self.addEventListener('fetch', e => {
     if (res && (res.ok || res.type === 'opaque')) { const cp = res.clone(); caches.open(VERSION).then(c => c.put(req, cp)); }
     return res;
   })));
+});
+
+/* notifiche push: arrivano anche ad app chiusa */
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = {body: e.data ? e.data.text() : ''}; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Future', {
+    body: d.body || '', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png',
+    tag: d.tag || undefined, renotify: !!d.tag, data: {url: d.url || './'}
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({type: 'window', includeUncontrolled: true}).then(cs => {
+    for (const c of cs) { if ('focus' in c) { c.postMessage({type: 'open', url}); return c.focus(); } }
+    return self.clients.openWindow(url);
+  }));
 });
