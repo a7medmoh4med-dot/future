@@ -143,7 +143,7 @@
     id: async () => (session ? session.user.id : ''),
     can: async () => true,
     isOwner: () => false,           // ogni account la prima volta dice chi è (Ahmed o Miro), poi viene riconosciuto
-    me: async () => ({name: (session && session.user.user_metadata && session.user.user_metadata.name) || ''}),
+    me: async () => ({name: person()}),
     profiles: async () => ({})
   };
 
@@ -257,5 +257,10 @@
     location.reload();
   }
 
-  window.FutureCloud = {connect, logout, enabled: () => !!(CFG.SUPABASE_URL), email: () => (session && session.user.email) || ''};
+  // nome della persona scritto nell'utente Supabase (Display name): Ahmed o Miro
+  function person() {
+    const m = (session && session.user && session.user.user_metadata) || {};
+    return m.display_name || m.name || m.full_name || '';
+  }
+  window.FutureCloud = {connect, logout, person, enabled: () => !!(CFG.SUPABASE_URL), email: () => (session && session.user.email) || ''};
 })();

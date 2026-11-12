@@ -3576,6 +3576,7 @@ function openLoanRepay(pid) {
 /* ---------------- Ahmed / Miro ---------------- */
 const acctIds = () => cfg().ids || {};
 function acctSync() {
+  if (S.person && !S.preview) { S.authed[S.person] = true; if (!S.acctApplied || S.me !== S.person && !S.meManual) { S.acctApplied = true; S.me = S.person; render(); } return; }
   if (S.preview || B.kind !== 'db' || !S.uid || !S.real.config || S.mode === 'loading') return;
   const ids = acctIds(), mine = ids[S.uid], n = Object.keys(ids).length;
   if (!mine && S.isOwner === true && n && !S.acctSaving) {
@@ -3608,7 +3609,7 @@ function maybeAsk() {
   S.seenAsk[x.id] = 1;
   setTimeout(() => { if ($$('#sheets .wrap').length) { S.seenAsk[x.id] = 0; return; } openAsk(x.id); }, 600);
 }
-function setMe(p) { S.me = p; S.seenAsk = {}; toast(`Ora sei ${p} 👋`); S.anim = true; render(); }
+function setMe(p) { S.meManual = p !== S.person; S.me = p; S.seenAsk = {}; toast(`Ora sei ${p} 👋`); S.anim = true; render(); }
 async function savePin(p, hash) { const c = clone(cfg()); c.pins = Object.assign({}, pins(), {[p]: hash}); return saveConfig(c); }
 function askPin(p, mode) {
   return new Promise(res => {
@@ -5090,6 +5091,9 @@ async function boot() {
     let r = null; try { r = await window.FutureCloud.connect(); } catch (e) { console.error(e); }
     if (!r) return;
     db = r.db; user = r.user;
+    const pn = (window.FutureCloud.person() || '').trim().toLowerCase();
+    S.person = PEOPLE.find(x => x.toLowerCase() === pn) || '';
+    if (S.person) { S.me = S.person; S.authed[S.person] = true; S.acctApplied = true; }
   }
   let tries = 0; while (!db && !(window.claude && typeof window.claude.use === 'function') && tries < 15) { await sleep(100); tries++; }
   if (!db && window.claude && typeof window.claude.use === 'function') {
