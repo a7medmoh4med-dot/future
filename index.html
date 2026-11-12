@@ -607,20 +607,13 @@ const DEFAULT_CONFIG = {
     {k: 'fuori', n: 'Fuori budget', a: 0, l: 0, e: '📦', c: '#A7A7B8'}
   ],
   recurring: [],
-  cushion: {target: 1000, bal: 0},
+  cushion: {target: 0, bal: 0},
   cushionLog: [],
   closed: '',
   incomeCats: ['Stipendio', 'Entrate extra', 'Tredicesima', 'Quattordicesima', 'Altro'],
   extraCats: ['Entrate extra', 'Tredicesima', 'Quattordicesima'],
   accounts: [{n: 'Conto corrente', init: 0}, {n: 'Contanti', init: 0}, {n: 'Fondo casa', init: 0}],
-  rules: [
-    {n: 1, t: 'Il giorno dopo lo stipendio parte il versamento: prima i debiti, poi il fondo casa.', kw: []},
-    {n: 2, t: 'Il fondo casa non si tocca mai, per nessun motivo.', kw: []},
-    {n: 3, t: 'Se la voce è finita, è no. Per spendere di più devi togliere da un\u2019altra voce flessibile.', kw: []},
-    {n: 4, t: 'Fuori budget sopra 50 €: si aspettano 48 ore (e, se c\u2019è un partner collegato, decide anche lui).', kw: []},
-    {n: 5, t: 'Niente nuovi debiti né rate, mai.', kw: ['a rate', 'rateizz', 'klarna', 'scalapay', 'paypal in 3', 'in 3 rate', 'finanziament']},
-    {n: 6, t: 'Le entrate extra vanno ai debiti finché ce ne sono, poi al fondo casa.', kw: []}
-  ],
+  rules: [],
   goals: [
     {id: 'casa', type: 'fund', n: 'Fondo casa', sub: 'Il tuo obiettivo di risparmio', target: 10000, bonus: 0, rate: 0}
   ],
@@ -675,6 +668,15 @@ const DEMO_CONFIG = {
 /* ---------------- people ---------------- */
 // Le persone vengono dagli account: io (S.myName) ed eventualmente il partner collegato (S.partner).
 const DEMO_ME = 'Marco', DEMO_PARTNER = 'Giulia';
+const RULE_EXAMPLES = [
+  {t: 'Il fondo non si tocca mai, per nessun motivo.', kw: []},
+  {t: 'Se la voce è finita, è no. Per spendere di più devi togliere da un\u2019altra voce flessibile.', kw: []},
+  {t: 'Fuori budget sopra 50 €: si aspettano 48 ore (e, se c\u2019è un partner collegato, decide anche lui).', kw: []},
+  {t: 'Niente nuovi debiti né rate, mai.', kw: ['a rate', 'rateizz', 'klarna', 'scalapay', 'paypal in 3', 'in 3 rate', 'finanziament']},
+  {t: 'Niente nuovi prestiti finché i debiti non sono chiusi.', kw: ['prestit', 'prestare', 'presto a']},
+  {t: 'Niente vestiti o scarpe nuovi, se non per sostituire qualcosa di rotto.', kw: ['vestit', 'maglia', 'felpa', 'pantalon', 'jeans', 'giacca', 'scarpe', 'scarpa', 'sneaker']},
+  {t: 'Le entrate extra vanno ai debiti finché ce ne sono, poi al fondo.', kw: []}
+];
 function meNow() { return S.preview ? DEMO_ME : (S.myName || 'Io'); }
 function apprName() { return S.preview ? DEMO_PARTNER : (S.partner || ''); }
 const hasPartner = () => !!apprName();
@@ -710,7 +712,7 @@ function normConfig(c) {
   out.budgets = out.budgets.filter(b => b && b.k).map(b => ({k: String(b.k), n: String(b.n || b.k), a: +b.a || 0, l: b.l ? 1 : 0, auto: b.auto ? 1 : 0, e: String(b.e || '•'), c: String(b.c || '#999'), pct: Math.max(0, +b.pct || 0), rec: b.rec ? 1 : 0, bills: b.bills ? 1 : 0}));
   out.billEst = Math.max(0, +c.billEst || 105);
   out.hidden = Array.isArray(out.hidden) ? out.hidden.map(String) : [];
-  out.cushion = {target: Math.max(0, +((c.cushion || {}).target) || 700), bal: Math.max(0, r2((c.cushion || {}).bal))};
+  out.cushion = {target: Math.max(0, (c.cushion && c.cushion.target != null) ? +c.cushion.target || 0 : 0), bal: Math.max(0, r2((c.cushion || {}).bal))};
   out.cushionLog = Array.isArray(out.cushionLog) ? out.cushionLog.slice(-60) : [];
   out.closed = String(out.closed || '');
   delete out.pins; delete out.ids;
@@ -918,7 +920,7 @@ async function renameTxNotes(oldN, newN, match) {
 }
 function activeDebt() { return debtsInOrder().find(g => debtCur(g) > 0) || null; }
 const rateOf = g => { if (g.taeg !== undefined && g.taeg !== '' && g.taeg !== null) return +g.taeg || 0; const m = String(g.sub || '').match(/(\d+(?:[.,]\d+)?)\s*%/); return m ? +m[1].replace(',', '.') : 0; };
-// A cosa servono i soldi di ogni conto: lo decidete voi (Regole → A cosa servono i conti). Senza una scelta valgono i valori di sempre.
+// A cosa servono i soldi di ogni conto: lo decidete voi (Impostazioni → A cosa servono i conti). Senza una scelta valgono i valori di sempre.
 function accGoalOf(n) {
   if (n === 'Fondo casa') return cfg().goals.find(g => g.id === 'casa') || null;
   return cfg().goals.find(g => (g.type === 'fund' && g.id !== 'casa' && g.acc === n) || (isMort(g) && g.potAcc === n)) || null;
@@ -930,7 +932,7 @@ function accUse(n) {
 function accLock(n) {
   const a = cfg().accounts.find(x => x.n === n) || {}, L = a.lock;
   if (L && ['free', 'word', 'block'].includes(L.m)) return {m: L.m, w: String(L.w || '').trim(), when: L.when === 'afterDebts' ? 'afterDebts' : 'always'};
-  return n === 'Fondo casa' ? {m: 'word', w: 'ROGITO', when: 'always'} : {m: 'free', w: '', when: 'always'};
+  return {m: 'free', w: '', when: 'always'};
 }
 // la protezione che vale adesso (null = libero)
 function accLocked(n) { const L = accLock(n); if (L.m === 'free' || (L.m === 'word' && !L.w)) return null; if (L.when === 'afterDebts' && debtPhase()) return null; return L; }
@@ -958,7 +960,7 @@ const sitCustom = () => { const T = sitTh(); return Object.keys(SIT_TH0).some(k 
 const mesiTh = n => (n === 1 ? '1 mese' : `${String(n).replace('.', ',')} mesi`);
 function livTxt() {
   const T = sitTh();
-  return `<b>1</b>: il mese non si chiude. <b>2</b>: si chiude, ma le rate superano il ${pctTxt(T.r2)} delle entrate o la riserva è sotto ${mesiTh(T.v2)} di spese obbligate. <b>3</b>: rate sotto il ${pctTxt(T.r2)} e almeno ${mesiTh(T.v2)} di riserva. <b>4</b>: rate sotto il ${pctTxt(T.r4)}, niente debiti al consumo, avanzi almeno del ${pctTxt(T.m4)}, almeno ${mesiTh(T.v4)} di riserva. <b>5</b>: come il 4, più patrimonio netto positivo senza la casa e avanzi almeno del ${pctTxt(T.m5)}.${sitCustom() ? ' Sono soglie personalizzate: si cambiano in Regole → Soglie dei livelli.' : ''} Cosa conta nella riserva lo decidete in Regole → A cosa servono i conti.`;
+  return `<b>1</b>: il mese non si chiude. <b>2</b>: si chiude, ma le rate superano il ${pctTxt(T.r2)} delle entrate o la riserva è sotto ${mesiTh(T.v2)} di spese obbligate. <b>3</b>: rate sotto il ${pctTxt(T.r2)} e almeno ${mesiTh(T.v2)} di riserva. <b>4</b>: rate sotto il ${pctTxt(T.r4)}, niente debiti al consumo, avanzi almeno del ${pctTxt(T.m4)}, almeno ${mesiTh(T.v4)} di riserva. <b>5</b>: come il 4, più patrimonio netto positivo senza la casa e avanzi almeno del ${pctTxt(T.m5)}.${sitCustom() ? ' Sono soglie personalizzate: si cambiano in Impostazioni → Soglie dei livelli.' : ''} Cosa conta nella riserva lo decidete in Impostazioni → A cosa servono i conti.`;
 }
 // testi della guida e del tour che seguono le vostre scelte
 function gtxt(x) {
@@ -1298,7 +1300,7 @@ function evaluate(q) {
     if ((q.skip || []).includes(r.n)) continue;
     if (r.until && r.until < t) continue;
     const hit = matchKw(text, r.kw);
-    if (hit) return {q, v: 'no', kind: 'rule', rule: r, hit, msg: `Viola il comandamento ${r.n}.`};
+    if (hit) return {q, v: 'no', kind: 'rule', rule: r, hit, msg: `Viola la regola ${r.n}.`};
   }
   const st = catStats(ym), b = st.find(x => x.k === q.cat);
   if (!b) return {q, v: 'no', kind: 'cat', msg: 'Voce di budget non trovata.'};
@@ -1451,7 +1453,7 @@ const IC = {
   tx: '<svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>',
   bil: '<svg viewBox="0 0 24 24"><path d="M12 3v9h9"/><path d="M20.5 15.5A9 9 0 1 1 8.5 3.7"/></svg>',
   goals: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>',
-  rules: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.6 8-8 9-4.4-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>',
+  rules: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   logo: '<svg viewBox="0 0 24 24" fill="none" stroke="#04140D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l5-5 4 3 7-8"/><path d="M15 7h5v5"/></svg>'
 };
 
@@ -1472,7 +1474,7 @@ function headerHTML() {
 }
 function meBtnHTML() { if (S.mode === 'loading') return ''; const m = S.me; return `<button class="me ${m ? '' : 'none'}" data-act="who" aria-label="Il tuo account" ${m ? `style="background:${pcolOf(m)}"` : ''}>${m ? m[0] : '👤'}</button>`; }
 function tabbarHTML() {
-  const tabs = [['home', 'Home'], ['tx', 'Movimenti'], ['bil', 'Bilancio'], ['goals', 'Obiettivi'], ['rules', 'Regole']];
+  const tabs = [['home', 'Home'], ['tx', 'Movimenti'], ['bil', 'Bilancio'], ['goals', 'Obiettivi'], ['rules', 'Impostazioni']];
   return tabs.map(([k, l]) => `<button class="tab ${S.tab === k ? 'on' : ''}" data-act="tab" data-tab="${k}">${IC[k]}<span>${l}</span>${k === 'home' && pendingAsks().length ? '<i class="dot"></i>' : ''}</button>`).join('');
 }
 function bannersHTML() {
@@ -1745,9 +1747,11 @@ function firstStepsHTML() {
     ['set-accounts', !!cfg().accountsSet, 'Saldi dei conti', 'Quanto hai oggi su ogni conto'],
     ['set-budgets', budgets().some(b => !b.auto && b.a > 0), 'Budget del mese', 'Quanto puoi spendere per ogni voce'],
     ['rec-list', recs().length > 0, 'Pagamenti ricorrenti', 'Affitto, bollette, abbonamenti, rate'],
+    ['cushion', cushion().target > 0, 'Cuscinetto di emergenza', 'Quanto tenere da parte per i mesi scarsi'],
+    ['goal-casa', fundName() !== 'Fondo casa' || (((cfg().goals || []).find(g => g.id === 'casa') || {}).target || 10000) !== 10000, 'Il tuo obiettivo', 'Dagli un nome e una cifra (casa, viaggio, auto…)'],
     ['who', hasPartner(), 'Invita il partner (facoltativo)', 'Per decidere insieme le spese importanti']
   ];
-  if (steps.slice(0, 4).every(x => x[1])) return '';
+  if (steps.slice(0, 6).every(x => x[1])) return '';
   const n = steps.filter(x => x[1]).length;
   return `<div class="card" style="--i:0"><div class="h-label">Configura Future · ${n} di ${steps.length}</div>` + steps.map(([act, done, t, d]) =>
     `<div class="todo ${done ? 'done' : ''}" data-act="${act}"><div class="ck">${done ? '✓' : ''}</div><div><div class="tl">${t}</div><div class="ts">${d}</div></div><div class="go">›</div></div>`).join('') +
@@ -2001,7 +2005,7 @@ function goalsHTML() {
     <div class="gbar"><i style="width:${r2(cp * 100)}%;background:linear-gradient(90deg,#FFB547,#2EE59D)"></i></div>
     <div class="gd"><span>Si riempie con gli avanzi di fine mese</span></div>
     <div class="row2" style="margin-top:6px"><button class="btn" data-act="cushion">Usa o ricarica</button><button class="btn" data-act="close-open" data-m="${addMonths(curYM(), -1)}">Chiusura mese</button></div></div>`;
-  return `<div class="grid2b">` + cushionCard + `<div class="card" style="--i:0"><div class="h-label">Ordine di attacco</div><p class="muted" style="font-size:13px;margin:6px 0 6px">I debiti nell\u2019ordine in cui li saldi, come li calcola il piano. ${activeMort() ? 'Chiusi i debiti, il risparmio va al mutuo e al fondo casa secondo la strada scelta.' : 'Chiusi i debiti parte il fondo per l\u2019appartamento.'}</p><div class="steps">${steps}</div></div></div>
+  return `<div class="grid2b">` + cushionCard + `<div class="card" style="--i:0"><div class="h-label">Ordine di attacco</div><p class="muted" style="font-size:13px;margin:6px 0 6px">I debiti nell\u2019ordine in cui li saldi, come li calcola il piano. ${activeMort() ? 'Chiusi i debiti, il risparmio va al mutuo e al fondo casa secondo la strada scelta.' : 'Chiusi i debiti parte il versamento al fondo casa.'}</p><div class="steps">${steps}</div></div></div>
     <div class="grid2b gcards">${cards}</div>
     <div class="card goal"><div class="top"><div><div class="gt">📅 Entrate in arrivo ogni anno</div><div class="gs">Contano nei piani dei debiti: finché ci sono debiti vanno lì, poi al fondo casa</div></div></div>
       ${(cfg().yearly || []).map(y => `<div class="pr" style="display:flex;justify-content:space-between;font-size:14px;padding:5px 0"><span>${esc(y.n)} · ${MONTHS[+y.mm - 1].toLowerCase()}</span><b class="num">${eur0(y.a)}</b></div>`).join('') || '<p class="muted">Nessuna</p>'}
@@ -2012,19 +2016,8 @@ function yearlyTxt() { const L = (cfg().yearly || []).map(y => y.n.toLowerCase()
 function rulesHTML() {
   const t = today();
   const rules = cfg().rules.slice().sort((a, b) => a.n - b.n);
-  return `<div class="card" style="--i:0"><div class="h-label" style="margin-bottom:4px">I 10 comandamenti</div>
-    <p class="muted" style="font-size:13px;margin:0 0 6px">Le parole chiave fanno scattare il NO su "Posso comprarlo?". Tocca una regola per modificarla.</p>
-    ${rules.map(r => { const off = r.until && r.until < t; return `<div class="rule ${off ? 'off' : ''}" data-act="rule-edit" data-n="${r.n}"><div class="n">${r.n}</div><div><div class="rt">${esc(r.t)}</div>${r.kw.length || r.until ? `<div class="rk">${r.kw.length ? 'Parole: ' + esc(r.kw.slice(0, 7).join(', ')) + (r.kw.length > 7 ? '…' : '') : ''}${r.until ? ` · valida fino al ${dateShort(r.until)}` : ''}${off ? ' · scaduta' : ''}</div>` : '<div class="rk">Applicata in automatico dall\u2019app</div>'}</div></div>`; }).join('')}
-    <button class="btn" data-act="rule-edit" data-n="new">+ Aggiungi regola</button></div>
-    <div class="sec-title">Le scelte del piano</div>
-    <div class="card tight" style="--i:1">
-      <div class="setrow" data-act="acc-uses"><span>A cosa servono i conti<br><small>${accUsesSummary()}</small></span><span class="chev">›</span></div>
-      <div class="setrow" data-act="set-share"><span>Quota di ${esc(shareN())}<br><small>${pctTxt(shareFp())} delle entrate fisse${shareFp() > 0 ? ' (' + eur(baseOf(shareB())) + ' al mese)' : ''} · ${pctTxt(shareXp())} delle extra</small></span><span class="chev">›</span></div>
-      <div class="setrow" data-act="set-dord"><span>Ordine dei debiti<br><small>Prima quelli con una data, poi ${DORD[dOrd()][1]}</small></span><span class="chev">›</span></div>
-      <div class="setrow" data-act="set-sitth"><span>Soglie dei livelli<br><small>${sitCustom() ? 'Personalizzate' : 'Standard'} · rate ${pctTxt(sitTh().r2)} / ${pctTxt(sitTh().r4)} · riserva ${mesiTh(sitTh().v2)} / ${mesiTh(sitTh().v4)}</small></span><span class="chev">›</span></div>
-    </div>
-    <div class="sec-title">Impostazioni</div>
-    <div class="card tight" style="--i:1">
+  return `<div class="sec-title" style="margin-top:0">Generali</div>
+    <div class="card tight" style="--i:0">
       <div class="setrow" data-act="who"><span>Account e partner<br><small>${esc(meNow())} · ${hasPartner() ? 'partner: ' + esc(apprName()) : 'nessun partner collegato'}</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-income"><span>Entrate previste<br><small>${eur0(incomeTotal())} al mese</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-budgets"><span>Budget del mese<br><small>${budgets().length} voci · ${debtPhase() ? 'salvadanaio debiti' : 'fondo casa'} automatico ${eur0(baseOf(bud('fondo')))}</small></span><span class="chev">›</span></div>
@@ -2032,10 +2025,22 @@ function rulesHTML() {
       <div class="setrow" data-act="set-icats"><span>Tipi di entrata<br><small>${cfg().incomeCats.slice(0, 4).map(esc).join(' · ')}${cfg().incomeCats.length > 4 ? '…' : ''}</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-accounts"><span>Conti<br><small>${cfg().accounts.map(a => esc(a.n)).join(' · ')}</small></span><span class="chev">›</span></div>
     </div>
-    <div class="sec-title">Dati</div>
-    <div class="card tight" style="--i:2">
-      <div class="setrow" data-act="export"><span>Esporta JSON<br><small>Backup di tutti i movimenti</small></span><span class="chev">›</span></div>
-      <div class="setrow" data-act="import"><span>Importa JSON<br><small>Ripristina da un backup</small></span><span class="chev">›</span></div>
+    <div class="sec-title">Regole di spesa</div>
+    <div class="card" style="--i:1"><div class="h-label" style="margin-bottom:4px">Le tue regole</div>
+    <p class="muted" style="font-size:13px;margin:0 0 6px">Le parole chiave fanno scattare il NO su "Posso comprarlo?". Tocca una regola per modificarla.</p>
+    ${rules.map(r => { const off = r.until && r.until < t; return `<div class="rule ${off ? 'off' : ''}" data-act="rule-edit" data-n="${r.n}"><div class="n">${r.n}</div><div><div class="rt">${esc(r.t)}</div>${r.kw.length || r.until ? `<div class="rk">${r.kw.length ? 'Parole: ' + esc(r.kw.slice(0, 7).join(', ')) + (r.kw.length > 7 ? '…' : '') : ''}${r.until ? ` · valida fino al ${dateShort(r.until)}` : ''}${off ? ' · scaduta' : ''}</div>` : '<div class="rk">Applicata in automatico dall\u2019app</div>'}</div></div>`; }).join('')}
+    ${rules.length ? '' : '<p class="muted" style="font-size:13px;margin:6px 0">Non hai ancora regole. Parti da un esempio e cambialo come vuoi:</p>' + RULE_EXAMPLES.map((x, i) => `<div class="rule" data-act="rule-example" data-i="${i}"><div class="n">＋</div><div><div class="rt">${esc(x.t)}</div></div></div>`).join('')}<button class="btn" data-act="rule-edit" data-n="new">+ Aggiungi regola</button>${rules.length ? '<button class="btn ghost" data-act="rule-examples">Vedi regole di esempio</button>' : ''}</div>
+    <div class="sec-title">Le scelte del piano</div>
+    <div class="card tight" style="--i:1">
+      <div class="setrow" data-act="acc-uses"><span>A cosa servono i conti<br><small>${accUsesSummary()}</small></span><span class="chev">›</span></div>
+      <div class="setrow" data-act="set-share"><span>${shareB() ? 'Quota di ' + esc(shareN()) : 'Quota personale (facoltativa)'}<br><small>${shareB() ? '' : 'Una paghetta fissa per te o per il partner · '}${pctTxt(shareFp())} delle entrate fisse${shareFp() > 0 ? ' (' + eur(baseOf(shareB())) + ' al mese)' : ''} · ${pctTxt(shareXp())} delle extra</small></span><span class="chev">›</span></div>
+      <div class="setrow" data-act="set-dord"><span>Ordine dei debiti<br><small>Prima quelli con una data, poi ${DORD[dOrd()][1]}</small></span><span class="chev">›</span></div>
+      <div class="setrow" data-act="set-sitth"><span>Soglie dei livelli<br><small>${sitCustom() ? 'Personalizzate' : 'Standard'} · rate ${pctTxt(sitTh().r2)} / ${pctTxt(sitTh().r4)} · riserva ${mesiTh(sitTh().v2)} / ${mesiTh(sitTh().v4)}</small></span><span class="chev">›</span></div>
+    </div>
+    <div class="sec-title">Backup</div>
+    <div class="card tight" style="--i:3">
+      <div class="setrow" data-act="backup-save"><span>Scarica un backup<br><small>Una copia di tutti i dati in un file (su iPhone: salvalo in File o iCloud Drive)${(S.real.state || {}).lastBackup ? ' · ultimo: ' + esc((S.real.state || {}).lastBackup) : ''}</small></span><span class="chev">›</span></div>
+      <div class="setrow" data-act="import"><span>Ripristina da un backup<br><small>Carica un file di backup di Future</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="toggle-preview"><span>${S.preview ? 'Esci dall\u2019anteprima' : 'Mostra anteprima con dati di esempio'}<br><small>${S.preview ? 'Torna ai vostri dati veri' : 'Prova l\u2019app senza toccare i dati'}</small></span><span class="chev">›</span></div>
       <div class="setrow" style="cursor:default"><span>Sincronizzazione<br><small>${S.mode === 'db' ? 'Condivisa in tempo reale tra i vostri dispositivi' : 'Solo questo dispositivo'}</small></span><span class="pill ${statusInfo().cls}"><i></i>${esc(statusInfo().t)}</span></div>
     </div>`;
@@ -2282,7 +2287,7 @@ function verdictHTML(r, pre) {
   if (r.v === 'yes') return mk('v-yes', '✓', 'SÌ', r.msg, miro + `<div class="vacts"><button class="btn primary" data-act="ck-save">${pre.pid ? 'Registra il prestito' : 'Registra la spesa'}</button></div>`);
   if (r.v === 'wait48') return mk('v-wait', '⏳', 'ASPETTA 48 ORE', r.msg, `<div class="vacts"><button class="btn amber" data-act="ck-wait48">Avvia il timer di 48 ore</button><button class="btn ghost" data-act="ck-drop">Lascio perdere</button></div>`);
   if (r.v === 'next') return mk('v-wait', '🗓️', 'ASPETTA IL MESE PROSSIMO', r.msg, `<div class="vacts"><button class="btn amber" data-act="ck-next">Rimando al mese prossimo</button><button class="btn ghost" data-act="ck-need">In realtà è necessaria</button></div>`);
-  if (r.kind === 'lock') return mk('v-no', '🔐', 'NO', r.msg, `<div class="vrule">La protezione dei conti la decidete voi: <b>Regole → A cosa servono i conti</b>.</div><div class="vacts"><button class="btn" data-act="acc-use" data-n="${esc(r.q.acc)}">🔐 Cambia la protezione</button><button class="btn ghost" data-act="ck-drop">Ok, lascio perdere</button></div>`);
+  if (r.kind === 'lock') return mk('v-no', '🔐', 'NO', r.msg, `<div class="vrule">La protezione dei conti la decidete voi: <b>Impostazioni → A cosa servono i conti</b>.</div><div class="vacts"><button class="btn" data-act="acc-use" data-n="${esc(r.q.acc)}">🔐 Cambia la protezione</button><button class="btn ghost" data-act="ck-drop">Ok, lascio perdere</button></div>`);
   if (r.kind === 'rule') return mk('v-no', '✕', 'NO', r.msg, `<div class="vrule"><b>Comandamento ${r.rule.n}</b><br>${esc(r.rule.t)}${r.hit ? `<br><small class="m">Parola che l\u2019ha fatto scattare: “${esc(r.hit)}”</small>` : ''}</div><div class="vacts">${r.rule.ex ? `<button class="btn" data-act="ck-ex" data-n="${r.rule.n}">${esc(r.rule.ex)} → rivaluta</button>` : ''}${pre.pid || pre.waitId ? '' : '<button class="btn" data-act="ck-straord">🧾 È una spesa straordinaria obbligata</button>'}<button class="btn ghost" data-act="ck-drop">Ok, lascio perdere</button></div>`);
   if (r.kind === 'big') return mk('v-no', '✕', 'NO', r.msg, `<div class="vrule">${debtPhase() ? 'Le spese grandi non si pagano con il budget di un mese, e finché ci sono debiti non si mette da parte per altro. Se non si può evitare, è una <b>spesa straordinaria obbligata</b>.' : `Le spese grandi non si pagano con il budget di un mese: <b>si mettono da parte</b>. Con ${eur0(r.monthly)} al mese ci arrivi a <b>${ymLabel(r.ym)}</b>, senza toccare il resto.`}</div>
     <div class="vacts">${pre.pid || debtPhase() ? '' : `<button class="btn primary" data-act="ck-goal">🎯 Crea obiettivo «${esc(r.q.desc || 'Acquisto')}» da ${eur0(r.q.a)}</button>`}${pre.pid || pre.waitId ? '' : '<button class="btn" data-act="ck-straord">🧾 È una spesa straordinaria obbligata</button>'}<button class="btn ghost" data-act="ck-drop">Lascio perdere</button></div>`);
@@ -2345,7 +2350,7 @@ function straordPrevHTML(a, acc) {
 }
 function openStraord(pre = {}) {
   const accs = straordAccs(), acc0 = accs.includes(pre.acc) ? pre.acc : 'Conto corrente';
-  const w = openSheet(`<h3 class="sh-title">🧾 Spesa straordinaria obbligata</h3><p class="sh-sub">Per quello che non si può evitare: rientro a casa, medico, un guasto. Nessun comandamento la blocca e niente 48 ore, ${hasPartner() ? 'ma serve il sì di <b>' + esc(apprName()) + '</b>' : 'senza partner collegato hai subito il via libera'}.</p>
+  const w = openSheet(`<h3 class="sh-title">🧾 Spesa straordinaria obbligata</h3><p class="sh-sub">Per quello che non si può evitare: rientro a casa, medico, un guasto. Nessuna regola la blocca e niente 48 ore, ${hasPartner() ? 'ma serve il sì di <b>' + esc(apprName()) + '</b>' : 'senza partner collegato hai subito il via libera'}.</p>
     <label class="fld"><span>Cos\u2019è</span><input id="so-desc" placeholder="es. Voli per tornare in Italia" value="${esc(pre.desc || '')}" autocomplete="off"></label>
     <label class="fld"><span>Importo</span><div class="amtin"><input id="so-a" inputmode="decimal" placeholder="0,00" value="${pre.a > 0 ? esc(String(pre.a).replace('.', ',')) : ''}"><b>€</b></div></label>
     <label class="fld"><span>Conto</span><select id="so-acc">${accs.map(n => `<option ${n === acc0 ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
@@ -2503,7 +2508,7 @@ async function saveTx(w, coverFrom, asOver) {
   const fromAcc = t.kind === 'out' || t.kind === 'move' ? t.acc : '';
   const wasAcc = ex && (ex.kind === 'out' || ex.kind === 'move') && ex.acc === fromAcc;
   if (fromAcc && !wasAcc && !w._unlocked && accLocked(fromAcc)) { if (!(await lockGate(fromAcc))) return; w._unlocked = true; }
-  if (t.kind === 'move' && !ex && debtPhase() && poolAccs().includes(t.acc) && !poolAccs().includes(t.to) && !w._fondoOk) { if (!(await confirmSheet(`«${t.to}» non conta per i debiti`, `Questi ${eur(a)} non andrebbero ai debiti. Li sposti lo stesso? Si cambia in Regole → A cosa servono i conti.`, 'Sì, sposta'))) return; w._fondoOk = true; }
+  if (t.kind === 'move' && !ex && debtPhase() && poolAccs().includes(t.acc) && !poolAccs().includes(t.to) && !w._fondoOk) { if (!(await confirmSheet(`«${t.to}» non conta per i debiti`, `Questi ${eur(a)} non andrebbero ai debiti. Li sposti lo stesso? Si cambia in Impostazioni → A cosa servono i conti.`, 'Sì, sposta'))) return; w._fondoOk = true; }
   const recTx = w._rec || (ex && ex.rec) || '';
   if (t.kind === 'in' && t.cat === 'Rientro prestito' && !recTx) {
     if (!t.pid) { toast('Scegli chi ti ha reso i soldi'); return; }
@@ -3045,7 +3050,7 @@ function openGoalEdit(id) {
   const g = cfg().goals.find(x => x.id === id); if (!g) return;
   const fund = g.type === 'fund', custom = fund && g.id !== 'casa';
   const w = openSheet(`<h3 class="sh-title">${esc(g.n)}</h3><p class="sh-sub">${custom ? 'Il valore arriva dal conto collegato.' : fund ? 'Il saldo arriva in automatico dal conto Fondo casa.' : 'Aggiorna il residuo quando lo vedi nell\u2019app della banca.'}</p>
-    ${g.id !== 'casa' ? `<label class="fld"><span>Nome</span><input id="ge-n" value="${esc(g.n)}"></label>` : ''}
+    <label class="fld"><span>Nome</span><input id="ge-n" value="${esc(g.n)}"></label>${g.id === 'casa' ? '<p class="muted" style="font-size:12px;margin:-4px 0 10px">È il tuo obiettivo principale di risparmio: il nome che scegli compare in tutta l\u2019app.</p>' : ''}
     ${custom ? `<label class="fld"><span>Obiettivo (€)</span><input id="ge-target" inputmode="decimal" value="${g.target}"></label><label class="fld"><span>Conto collegato</span><select id="ge-acc">${accOpts(g.acc)}</select></label><label class="fld"><span>Quanto metti da parte al mese</span><input id="ge-monthly" inputmode="decimal" value="${g.monthly || 0}"></label>`
     : fund ? `<label class="fld"><span>Obiettivo (€)</span><input id="ge-target" inputmode="decimal" value="${g.target}"></label><label class="fld"><span>Interesse conto deposito (%)</span><input id="ge-rate" inputmode="decimal" value="${String(g.rate || 0).replace('.', ',')}"></label>`
       : g.kind === 'person' ? `<div class="row2"><label class="fld"><span>Devi ancora (€)</span><input id="ge-cur" inputmode="decimal" value="${String(debtCur(g)).replace('.', ',')}"></label><label class="fld"><span>Restituisci entro (facoltativo)</span><input id="ge-plan" type="date" value="${esc(g.plan || '')}"></label></div><p class="muted" style="font-size:12.5px">Senza data l\u2019app calcola quando puoi restituirli.</p>`
@@ -3154,13 +3159,13 @@ function openIncome() {
 function drawIncome(w) { $('#inc-rows', w).innerHTML = w._rows.map((r, i) => `<div class="edrow"><input data-i="${i}" data-f="n" value="${esc(r.n)}" placeholder="Nome"><input data-i="${i}" data-f="a" inputmode="decimal" value="${r.a}"><button class="tg" data-act="inc-del" data-i="${i}" aria-label="Rimuovi">✕</button></div>`).join(''); }
 function syncRows(w) { $$('[data-i][data-f]', w).forEach(el => { const r = w._rows[+el.dataset.i]; if (!r) return; if (el.dataset.f === 'a') r.a = parseAmt(el.value) || 0; else r[el.dataset.f] = el.value.trim(); }); }
 function openIncTypes() {
-  const w = openSheet(`<h3 class="sh-title">Tipi di entrata</h3><p class="sh-sub">I nomi che vedi quando registri un\u2019entrata. 💸 = entrata extra: dopo averla registrata l\u2019app ti propone di mandarla al fondo o ai debiti (comandamento 9).</p><div id="it-rows"></div>
+  const w = openSheet(`<h3 class="sh-title">Tipi di entrata</h3><p class="sh-sub">I nomi che vedi quando registri un\u2019entrata. 💸 = entrata extra: dopo averla registrata l\u2019app ti propone di mandarla al fondo o ai debiti (regola 9).</p><div id="it-rows"></div>
     <button class="btn" data-act="it-add">+ Aggiungi tipo</button><button class="btn primary" data-act="it-save">Salva</button>`);
   w._rows = cfg().incomeCats.map(n => ({n, x: (cfg().extraCats || []).includes(n) ? 1 : 0})); drawIncTypes(w);
 }
 function drawIncTypes(w) { $('#it-rows', w).innerHTML = w._rows.map((r, i) => `<div class="edrow3"><input class="plain" data-i="${i}" data-f="n" value="${esc(r.n)}" placeholder="es. Rimborso spese"><button class="tg ${r.x ? 'on' : ''}" data-act="it-x" data-i="${i}" aria-label="Entrata extra">💸</button><button class="tg" data-act="it-del" data-i="${i}" aria-label="Elimina">✕</button></div>`).join(''); }
 function openBudgets() {
-  const w = openSheet(`<h3 class="sh-title">Budget del mese</h3><p class="sh-sub">Importo mensile per voce. 🔒 = intoccabile.${shareFp() > 0 ? ` ${esc(shareN())} è il ${pctTxt(shareFp())} delle entrate previste (si cambia in Regole → Quota di ${esc(shareN())}).` : ''} Mutuo, Finanziamenti, Carta, Condominio e Utenze sono la somma dei loro pagamenti ricorrenti: l\u2019importo si cambia lì. Le Bollette compaiono solo nel mese in cui le registri (qui sotto il totale conta la media). Il fondo casa (finché ci sono debiti: salvadanaio debiti) si calcola da solo: entrate previste meno tutte le altre voci.</p><div id="bud-rows"></div>
+  const w = openSheet(`<h3 class="sh-title">Budget del mese</h3><p class="sh-sub">Importo mensile per voce. 🔒 = intoccabile.${shareFp() > 0 ? ` ${esc(shareN())} è il ${pctTxt(shareFp())} delle entrate previste (si cambia in Impostazioni → Quota di ${esc(shareN())}).` : ''} Mutuo, Finanziamenti, Carta, Condominio e Utenze sono la somma dei loro pagamenti ricorrenti: l\u2019importo si cambia lì. Le Bollette compaiono solo nel mese in cui le registri (qui sotto il totale conta la media). Il fondo casa (finché ci sono debiti: salvadanaio debiti) si calcola da solo: entrate previste meno tutte le altre voci.</p><div id="bud-rows"></div>
     <button class="btn" data-act="bud-add">+ Aggiungi voce</button><div id="bud-tot" class="banner" style="margin-top:12px"></div><button class="btn primary" data-act="bud-save">Salva</button>`);
   w._rows = clone(cfg().budgets); drawBudgets(w);
 }
@@ -3192,13 +3197,23 @@ function backupHTML() {
   if (((S.real.state || {}).lastBackup || '').slice(0, 7) >= curYM()) return '';
   return `<div class="banner stag" style="--i:5"><div class="ic">💾</div><div><b>Backup del mese</b>Un tocco per salvare una copia di tutti i dati.<div class="acts"><button class="btn sm" data-act="export">Esporta ora</button><button class="btn sm ghost" data-act="backup-skip">Non ora</button></div></div></div>`;
 }
+async function saveBackup() {
+  const d = D(), day = today();
+  const data = JSON.stringify({app: 'Future', exportedAt: new Date().toISOString(), config: cfg(), tx: d.tx, shifts: d.shifts, waits: d.waits, state: S.real.state || {}}, null, 1);
+  const name = `future-backup-${day}.json`, blob = new Blob([data], {type: 'application/json'});
+  let done = false;
+  try { const file = new File([blob], name, {type: 'application/json'}); if (navigator.canShare && navigator.canShare({files: [file]})) { await navigator.share({files: [file], title: name}); done = true; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  if (!done) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+  if (!S.preview) saveStateField({lastBackup: day});
+  toast('Backup pronto ✓'); render();
+}
 function openExport() {
   const data = JSON.stringify({app: 'Future', exportedAt: new Date().toISOString(), config: cfg(), tx: D().tx, shifts: D().shifts, waits: D().waits}, null, 1);
   const w = openSheet(`<h3 class="sh-title">Esporta</h3><p class="sh-sub">${D().tx.length} movimenti. Copia il testo e salvalo in una nota o in un file.</p><label class="fld"><textarea id="ex-t" readonly>${esc(data)}</textarea></label><button class="btn primary" data-act="ex-copy">Copia</button>`);
   w._data = data;
 }
 function openImport() {
-  openSheet(`<h3 class="sh-title">Importa</h3><p class="sh-sub">Incolla un backup di Future oppure scegli il file. I movimenti con lo stesso codice vengono sovrascritti, gli altri aggiunti.</p>
+  openSheet(`<h3 class="sh-title">Ripristina da un backup</h3><p class="sh-sub">Scegli il file di backup di Future (o incolla il testo). I movimenti con lo stesso codice vengono sovrascritti, gli altri aggiunti.</p>
     <label class="fld"><span>File</span><input type="file" id="im-f" accept=".json,application/json"></label>
     <label class="fld"><span>Oppure incolla</span><textarea id="im-t" placeholder='{"app":"Future", ...}'></textarea></label>
     <label class="check"><input type="checkbox" id="im-cfg" checked> Importa anche regole, budget e obiettivi</label>
@@ -3224,13 +3239,13 @@ async function doImport(w) {
 /* ---------------- guide / faq ---------------- */
 const FAQ = [
   ['Primi passi', [
-    ['Da dove comincio?', 'Controlla una volta saldi dei conti (Regole → Conti), entrate previste, budget e pagamenti ricorrenti. Poi registra ogni spesa con <b>＋ Registra</b> e chiudi il mese il primo del mese successivo: il resto (rate, piano debiti, avvisi) lo fa l\u2019app.'],
-    ['Cos\u2019è l\u2019anteprima?', 'Sono dati finti per provare l\u2019app senza rischi: niente di quello che fai viene salvato. La riattivi o la spegni da <b>Regole → Dati → Mostra anteprima</b>.'],
-    ['Come correggo i saldi dei conti?', 'Bilancio → riquadro <b>Saldi</b> in alto → <b>Dettaglio</b> → <b>Correggi i saldi</b> (oppure Regole → Conti). Scrivi quanto c\u2019è <b>oggi</b>: l\u2019app ricalcola da sola, i movimenti già registrati restano.'],
+    ['Da dove comincio?', 'Controlla una volta saldi dei conti (Impostazioni → Conti), entrate previste, budget e pagamenti ricorrenti. Poi registra ogni spesa con <b>＋ Registra</b> e chiudi il mese il primo del mese successivo: il resto (rate, piano debiti, avvisi) lo fa l\u2019app.'],
+    ['Cos\u2019è l\u2019anteprima?', 'Sono dati finti per provare l\u2019app senza rischi: niente di quello che fai viene salvato. La riattivi o la spegni da <b>Impostazioni → Dati → Mostra anteprima</b>.'],
+    ['Come correggo i saldi dei conti?', 'Bilancio → riquadro <b>Saldi</b> in alto → <b>Dettaglio</b> → <b>Correggi i saldi</b> (oppure Impostazioni → Conti). Scrivi quanto c\u2019è <b>oggi</b>: l\u2019app ricalcola da sola, i movimenti già registrati restano.'],
     ['Come riapro questa guida o il tour?', 'Dal <b>?</b> in alto a destra, sempre. In cima alla guida c\u2019è <b>Rifai il tour dell\u2019app</b>: ti porta pezzo per pezzo, con Spiegamelo o Avanti.']
   ]],
   ['Budget del mese', [
-    ['Cos\u2019è il budget del mese?', 'Il totale del mese è fisso e uguale alle <b>entrate previste</b> (Regole → Entrate previste). Ogni voce ha il suo budget e la somma delle voci è quel totale: non si supera.'],
+    ['Cos\u2019è il budget del mese?', 'Il totale del mese è fisso e uguale alle <b>entrate previste</b> (Impostazioni → Entrate previste). Ogni voce ha il suo budget e la somma delle voci è quel totale: non si supera.'],
     ['Che differenza c\u2019è tra intoccabili e flessibili?', 'Le <b>intoccabili 🔒</b> (mutuo, rate, carta, condominio, utenze, quota di {QN}, fondo casa) non si usano mai per coprire altro. Le <b>flessibili</b> (spesa, macchina, svago…) sì: se una voce finisce, togli da un\u2019altra flessibile.'],
     ['Come viene calcolato il fondo casa?', 'Da solo: <b>entrate previste − tutte le altre voci</b>. Finché ci sono debiti questa quota si chiama <b>Salvadanaio debiti</b>: resta sul conto e va ai debiti. I versamenti al fondo casa ripartono dopo l\u2019ultimo debito, con questa quota più tutte le rate liberate. I soldi già nel fondo casa non si toccano mai.'],
     ['Come sposto soldi da una voce all\u2019altra?', '<b>Bilancio → Sposta budget tra le voci</b>. Togli solo da voci flessibili con soldi liberi. Gli spostamenti del mese sono elencati sotto e si annullano con ✕.'],
@@ -3239,12 +3254,12 @@ const FAQ = [
     ['Posso vedere i mesi passati?', 'Sì, con le frecce <b>‹ ›</b> accanto al mese in alto. In <b>Bilancio</b> c\u2019è anche lo storico degli ultimi 6 mesi, speso contro budget.']
   ]],
   ['Posso comprarlo?', [
-    ['Come funziona?', 'Scrivi cosa, quanto, da quale voce e se è <b>necessaria</b> o <b>rinviabile</b>, poi <b>Verifica</b>. L\u2019app controlla nell\u2019ordine:<ol><li>i comandamenti (parole vietate)</li><li>il budget della voce e delle flessibili</li><li>la regola delle 48 ore</li></ol>'],
+    ['Come funziona?', 'Scrivi cosa, quanto, da quale voce e se è <b>necessaria</b> o <b>rinviabile</b>, poi <b>Verifica</b>. L\u2019app controlla nell\u2019ordine:<ol><li>le regole (parole vietate)</li><li>il budget della voce e delle flessibili</li><li>la regola delle 48 ore</li></ol>'],
     ['Cosa significano le risposte?', '<b>SÌ</b>: rientra, puoi registrarla subito. <b>NO</b>: con il motivo e, se possibile, da dove coprire. <b>ASPETTA 48 ORE</b>: fuori budget sopra 50 €. <b>ASPETTA IL MESE PROSSIMO</b>: è rinviabile e porterebbe la voce oltre l\u201980%.'],
-    ['Come funzionano le 48 ore?', 'Avvii il timer: la spesa compare in Home sotto <b>In attesa</b> con il conto alla rovescia e parte la <b>richiesta all’altra persona</b> (comandamento 4). Si compra solo quando le 48 ore sono passate <b>e</b> è arrivato il sì: allora tocchi <b>Procedi</b>. Con ✕ lasci perdere.'],
+    ['Come funzionano le 48 ore?', 'Avvii il timer: la spesa compare in Home sotto <b>In attesa</b> con il conto alla rovescia e parte la <b>richiesta all’altra persona</b> (regola 4). Si compra solo quando le 48 ore sono passate <b>e</b> è arrivato il sì: allora tocchi <b>Procedi</b>. Con ✕ lasci perdere.'],
     ['E se la spesa è più grande di tutto il budget?', 'È un <b>NO</b> immediato: non si paga con il budget di un mese. L\u2019app ti propone di creare un <b>obiettivo di risparmio</b> con quella cifra e ti dice entro quando ci arrivi.'],
     ['Una regola mi blocca, ma è un\u2019eccezione', 'Se la regola ha un\u2019eccezione (per esempio “Sostituisce qualcosa di rotto” sui vestiti), sotto il NO trovi il pulsante per rivalutare senza quella regola.'],
-    ['E se è una spesa che non posso evitare?', 'Rientro a casa, medico, un guasto: è una <b>spesa straordinaria obbligata</b>. In <b>Posso comprarlo?</b> tocca <b>🧾 È una spesa straordinaria obbligata</b> (c\u2019è anche sotto ogni NO). Nessun comandamento la blocca e niente 48 ore, ma serve il sì dell\u2019altra persona. Prima di chiedere vedi da dove escono i soldi e di quanto si spostano le date dei debiti. Dopo il sì tocchi <b>Procedi</b> in Home e registri quanto hai pagato davvero (non oltre l\u2019importo autorizzato).'],
+    ['E se è una spesa che non posso evitare?', 'Rientro a casa, medico, un guasto: è una <b>spesa straordinaria obbligata</b>. In <b>Posso comprarlo?</b> tocca <b>🧾 È una spesa straordinaria obbligata</b> (c\u2019è anche sotto ogni NO). Nessuna regola la blocca e niente 48 ore, ma serve il sì dell\u2019altra persona. Prima di chiedere vedi da dove escono i soldi e di quanto si spostano le date dei debiti. Dopo il sì tocchi <b>Procedi</b> in Home e registri quanto hai pagato davvero (non oltre l\u2019importo autorizzato).'],
     ['Da dove escono i soldi di una straordinaria?', 'Prima dal <b>cuscinetto</b> (se paghi dal conto corrente), il resto dai soldi che andrebbero ai debiti. <b>Mai dal fondo casa</b> e non pesa sul budget del mese. Il cuscinetto si ricarica con gli avanzi dei mesi dopo, prima che vadano ai debiti: per questo il piano di saldo conta l\u2019intera spesa.'],
     ['Perché non vedo Mutuo e le altre intoccabili?', 'Per non comprare per sbaglio “dal mutuo”, di base vedi solo le voci flessibili. Se ti serve, tocca <b>Mostra anche le voci intoccabili</b>.']
   ]],
@@ -3261,7 +3276,7 @@ const FAQ = [
   ['Prestiti', [
     ['Dove vedo i soldi che ho prestato?', 'Nei <b>Saldi</b>, riga <b>Soldi prestati</b>: il totale è fuori dal totale dei conti. Toccala per vedere ogni persona, quanto ti deve e la storia.'],
     ['Già prestato o nuovo prestito?', '<b>Già prestato</b>: soldi dati prima di usare Future. Vanno solo nel registro, i saldi di oggi non cambiano. <b>Nuovo prestito</b>: escono da un conto, dal Fuori budget (se non basta, da una voce flessibile) e serve il <b>sì del partner</b> (se collegato), senza attese di 48 ore.'],
-    ['Quanto posso prestare?', 'Al massimo quello che resta questo mese in Fuori budget più le voci flessibili. Oltre è un NO (comandamento 7).'],
+    ['Quanto posso prestare?', 'Al massimo quello che resta questo mese in Fuori budget più le voci flessibili. Oltre è un NO (regola sui prestiti).'],
     ['Posso dire quando penso che mi renderà i soldi?', 'Sì: apri la persona e scrivi il <b>Rientro previsto</b>. Il piano debiti ti mostra “con i rientri alle date previste” quando saldi ogni debito. Non li conta come sicuri; se la data passa senza rientro, la persona diventa <b>In ritardo</b>.'],
     ['Quando qualcuno mi rende i soldi?', 'Apri la persona e tocca <b>Ha reso</b>. È un\u2019entrata fuori dal budget e senza la quota di {QN}: va ai debiti, e le date del piano si avvicinano da sole.'],
     ['Ho un debito con una persona: dove lo metto?', 'Prestiti → <b>Aggiungi prestito → Gli devo io</b> (oppure Obiettivi → Nuovo obiettivo → Verso una persona). Scrivi persona, importo e, se c\u2019è, la data per restituire. Niente rata e niente interessi: entra nel <b>piano debiti</b> in ordine con gli altri e l\u2019app tiene i soldi da parte. Quando paghi tocca <b>Ho restituito</b>, tutto o una parte.'],
@@ -3277,10 +3292,10 @@ const FAQ = [
     ['Come modifico o elimino un movimento?', 'In <b>Movimenti</b> toccalo per modificarlo. <b>Tienilo premuto</b> (sul PC tasto destro) per le altre azioni: per un bonifico o un\u2019entrata segnati per sbaglio <b>↩︎ Rimetti in Da fare</b>, poi <b>Salta questo mese</b>, <b>Duplica</b> con la data di oggi, <b>Elimina</b>, e per le bollette <b>Pagata</b> o <b>Rimetti da pagare</b>. Le stesse azioni sono anche in fondo alla scheda di modifica.'],
     ['Cosa succede con le entrate extra?', 'Registrala come <b>Entrata</b> con un tipo segnato 💸 (Entrate extra, Tredicesima, Quattordicesima). Il budget del mese non cambia; il {QX} va a {QN} e il resto resta sul conto per i debiti: il piano lo conta subito e le date si avvicinano. I soldi che ti rendono si registrano da <b>Soldi prestati → Ha reso</b>, senza quota.'],
     ['Dove possono andare le entrate extra?', 'Finché ci sono debiti restano <b>sul conto per i debiti</b>: l\u2019app li conta nel piano di saldo. Chiusi i debiti vanno nel <b>fondo casa</b>. Puoi anche scegliere <b>Decido dopo</b>: restano in Home come “da destinare”.'],
-    ['Come registro una busta paga con tredicesima o quattordicesima?', 'Entrata → <b>＋ Dividi in più voci</b>. Scrivi per esempio Stipendio 2.250 € e Tredicesima 2.000 €: il totale si calcola da solo e l\u2019app registra due entrate collegate. Così la tredicesima resta disponibile per “Pagata con la tredicesima” e la quattordicesima fa partire il comandamento 9. A dicembre e a luglio la seconda voce è già proposta. Se scrivi tutto insieme, l\u2019app ti chiede se dentro c\u2019è la tredicesima e la divide lei.'],
+    ['Come registro una busta paga con tredicesima o quattordicesima?', 'Entrata → <b>＋ Dividi in più voci</b>. Scrivi per esempio Stipendio 2.250 € e Tredicesima 2.000 €: il totale si calcola da solo e l\u2019app registra due entrate collegate. Così la tredicesima resta disponibile per “Pagata con la tredicesima” e la quattordicesima fa partire la regola 9. A dicembre e a luglio la seconda voce è già proposta. Se scrivi tutto insieme, l\u2019app ti chiede se dentro c\u2019è la tredicesima e la divide lei.'],
     ['Cos\u2019è “Pagata con la tredicesima”?', 'Se avete registrato una tredicesima, nelle uscite compare questa spunta: la spesa viene pagata da lì e resta <b>escluso dal budget del mese</b>, fino a esaurimento della tredicesima.'],
     ['Come verso nel fondo casa?', 'Finché ci sono debiti i versamenti sono fermi: la quota del mese resta sul conto come <b>salvadanaio debiti</b>. Chiuso l\u2019ultimo debito torna <b>Versa nel fondo</b> in Home e in Obiettivi, con la quota più tutte le rate liberate.'],
-    ['Come funziona il cuscinetto?', 'Sono 700 € dentro il conto corrente per i mesi scarsi, non soldi da spendere: “Puoi ancora spendere” guarda solo il budget flessibile e il piano debiti conta solo i soldi oltre il cuscinetto. Si usa solo alla chiusura di un mese in rosso (sforamenti o entrate sotto il budget), per una spesa straordinaria obbligata o a mano, e poi si ricarica con gli avanzi prima di mandare soldi ai debiti. In Home compare un avviso <b>giallo</b> quando il mese è sotto (con <b>Copri da una voce flessibile</b>) e uno <b>rosso</b> se, dopo i pagamenti del mese, sul conto restano meno dei 700 €.'],
+    ['Come funziona il cuscinetto?', 'È una somma che scegli tu, dentro il conto corrente, per i mesi scarsi, non soldi da spendere: “Puoi ancora spendere” guarda solo il budget flessibile e il piano debiti conta solo i soldi oltre il cuscinetto. Si usa solo alla chiusura di un mese in rosso (sforamenti o entrate sotto il budget), per una spesa straordinaria obbligata o a mano, e poi si ricarica con gli avanzi prima di mandare soldi ai debiti. In Home compare un avviso <b>giallo</b> quando il mese è sotto (con <b>Copri da una voce flessibile</b>) e uno <b>rosso</b> se, dopo i pagamenti del mese, sul conto restano meno dei 700 €.'],
     ['E per un\u2019entrata futura?', 'In <b>📉 Prevedi</b> scegli <b>Entrata</b> e il tipo: <b>Entrata extra</b> (toglie il {QX} di {QN}), <b>Rientro prestito</b> (scegli da chi, senza quota) o <b>Altro</b>. Vedi quanto arriva ai debiti, debito per debito quanto si anticipa, la nuova data di <b>Libero dai debiti</b>, quanto avanza per il fondo casa e quando arriva al traguardo. Se è in un mese futuro la puoi mettere come <b>entrata prevista</b>: conta nel piano e quel mese la trovi in Da fare con <b>Arrivata</b>.'],
     ['Come vedo quanto pesa una spesa sui debiti?', 'In Home tocca <b>📉 Prevedi</b>: scrivi importo, voce e quando (oggi o un mese nei prossimi 24). Vedi subito quanto copre la voce, quanto esce dai soldi per i debiti, debito per debito la data prima e dopo, e se cambia <b>Libero dai debiti</b>. Non registra niente: se vuoi, da lì la registri o la metti come prevista. La stessa riga compare anche nella risposta di <b>Posso comprarlo?</b>.'],
     ['Posso vedere i mesi futuri?', 'Sì: con la freccia <b>›</b> vai avanti fino a 24 mesi. Ogni mese futuro è una <b>previsione</b>: entrate previste (con tredicesima e quattordicesima nel loro mese), voci del budget, ricorrenti, cosa succede ai debiti e il <b>Da fare</b> di quel mese. Quando il piano chiude un finanziamento, dal mese dopo la sua rata sparisce e va ai debiti. Indietro si arriva al primo mese dell\u2019app.'],
@@ -3290,7 +3305,7 @@ const FAQ = [
   ]],
   ['Fine mese e cuscinetto', [
     ['Cosa succede ai soldi non spesi a fine mese?', 'Nessun avanzo resta nelle voci: il mese dopo ogni voce riparte dal suo budget. La prima volta che aprite l\u2019app nel mese nuovo compare la <b>chiusura del mese</b>: quanto è avanzato, voce per voce, e dove va.'],
-    ['Dove vanno gli avanzi?', 'Prima al <b>cuscinetto</b>, fino al tetto (700 €). Il resto resta sul conto per i debiti finché ce ne sono: l\u2019app lo conta nel piano di saldo. Chiusi i debiti, va nel fondo casa.'],
+    ['Dove vanno gli avanzi?', 'Prima al <b>cuscinetto</b>, fino al tetto che hai scelto. Il resto resta sul conto per i debiti finché ce ne sono: l\u2019app lo conta nel piano di saldo. Chiusi i debiti, va nel fondo casa.'],
     ['Cos\u2019è il cuscinetto?', 'Una parte del <b>conto corrente</b> messa da parte, non un conto separato. Serve per i mesi con lo stipendio più basso, l\u2019assicurazione dell\u2019auto e i conguagli. Nei Saldi vedi “di cui cuscinetto” e quanto è davvero spendibile.'],
     ['Come uso il cuscinetto in un mese scarso?', 'Obiettivi → <b>Cuscinetto → Usa o ricarica</b> (o tocca la riga dell\u2019avanzo in Home): scrivi l\u2019importo e <b>Uso il cuscinetto</b>. Si ricarica da solo con gli avanzi dei mesi dopo.'],
     ['Perché la chiusura chiede il saldo della banca?', 'Per tenere il piano vero. Se in banca c\u2019è meno che nell\u2019app, la differenza sono spese non registrate: l\u2019app le registra e le toglie dagli avanzi. Se c\u2019è di più, lo registra come entrata non registrata senza contarlo negli avanzi. Il campo è facoltativo.'],
@@ -3299,11 +3314,11 @@ const FAQ = [
     ['Cosa vuol dire “Se il mese finisce così avanzano…”?', 'È una previsione prudente: considera le voci intoccabili come pagate per intero (sono impegni) e conta solo quello che resta nelle voci flessibili, meno eventuali sforamenti. Ti dice anche dove andrà alla chiusura: cuscinetto, estinzione, debito o fondo casa.']
   ]],
   ['Pagamenti ricorrenti', [
-    ['Cosa sono?', 'Spese ed entrate che si ripetono ogni mese (iCloud, SIM, ADSL, mutuo, stipendio). Le imposti una volta e nel budget contano subito come <b>previste</b>. Gli <b>addebiti automatici</b> (carta, iCloud, SIM, ADSL, Claude) si registrano da soli il giorno stabilito. I <b>bonifici che fai tu</b> (mutuo, rate, condominio, quote) e le <b>entrate</b> restano in Home → <b>Da fare</b> finché non premi Fatto o Arrivata.'],
+    ['Cosa sono?', 'Spese ed entrate che si ripetono ogni mese (affitto, bollette, abbonamenti, rate, stipendio). Le imposti una volta e nel budget contano subito come <b>previste</b>. Gli <b>addebiti automatici</b> (carta, abbonamenti, bollette) si registrano da soli il giorno stabilito. I <b>bonifici che fai tu</b> (mutuo, rate, condominio, quote) e le <b>entrate</b> restano in Home → <b>Da fare</b> finché non premi Fatto o Arrivata.'],
     ['Cosa c\u2019è in Da fare?', 'Solo le cose che devi fare tu, in ordine di data: i bonifici del mese (da inizio mese, rossi se in ritardo), le entrate dal giorno in cui sono attese, le bollette da pagare, le estinzioni del piano debiti nel loro mese, i prestiti con la data di rientro passata, le spese previste, il mese da chiudere, gli sforamenti e il backup. Gli addebiti automatici non ci sono: partono da soli.'],
     ['Come segno un bonifico come fatto?', 'In Home → Da fare tocca <b>Fatto</b>: ti chiede conferma con importo e data già scritti (la quota di {QN} con il suo {QF}), che puoi correggere. Se l\u2019hai segnato per sbaglio: Movimenti → tieni premuto → <b>↩︎ Rimetti in Da fare</b>. Se un mese non va pagato, la ✕ lo salta.'],
     ['Perché non posso cambiare il budget di Mutuo, Finanziamenti, Carta, Condominio e Utenze?', 'Perché è la somma dei loro pagamenti ricorrenti: l\u2019importo esiste in un posto solo. Cambi la rata nel ricorrente (o nel debito collegato) e si aggiornano da soli budget, debito e piano.'],
-    ['Come ne aggiungo uno?', '<b>Regole → Pagamenti ricorrenti → + Aggiungi ricorrente</b> (o 🔁 in Movimenti). Oppure, quando registri una spesa, spunta <b>Si ripete ogni mese</b>: diventa ricorrente dal mese dopo.'],
+    ['Come ne aggiungo uno?', '<b>Impostazioni → Pagamenti ricorrenti → + Aggiungi ricorrente</b> (o 🔁 in Movimenti). Oppure, quando registri una spesa, spunta <b>Si ripete ogni mese</b>: diventa ricorrente dal mese dopo.'],
     ['E se l\u2019importo cambia ogni mese?', 'Spunta <b>Importo variabile</b>. Quel giorno non si registra da solo: compare in Home sotto <b>Da fare</b> con l\u2019importo previsto, che puoi correggere prima di registrare.'],
     ['E luce e gas?', 'Non sono ricorrenti: quando arriva la bolletta la registri come uscita sulla voce <b>Bollette</b>. La voce compare solo in quel mese, con l\u2019importo vero, e non sfora mai: quel mese scende il salvadanaio debiti. Nei mesi senza bollette la voce non si vede. Il piano debiti, per i mesi futuri, conta una media (all\u2019inizio 105 € al mese, poi la vostra media vera).'],
     ['Ho già pagato un ricorrente prima del giorno previsto: come lo registro?', 'In <b>Movimenti</b> tocca la riga <b>🔜 In arrivo questo mese</b>, poi il pagamento → <b>✓ Pagato adesso</b>. I bonifici tuoi li trovi anche in Home → Da fare. Si registra con la data di oggi e il giorno previsto non viene ripetuto. Per quelli variabili (quote, stipendio) confermi l\u2019importo vero. Non usare ＋ Registra: verrebbe registrato due volte.'],
@@ -3314,13 +3329,13 @@ const FAQ = [
   ['Saldi e conti', [
     ['Dove vedo i saldi?', 'In Home, riquadro <b>Saldi</b>: totale e saldo di ogni conto. Con <b>Dettaglio</b> vedi per ogni conto quanto è entrato e uscito nel mese e gli ultimi movimenti.'],
     ['Come nascondo un conto dal totale?', 'Tocca l\u2019<b>occhio</b> accanto al conto: il saldo diventa ••••• e non conta più nel totale. Ritocca l\u2019occhio per rimetterlo. La scelta vale per entrambi i telefoni.'],
-    ['A cosa servono i soldi di ogni conto?', 'Lo decidete voi: <b>Regole → A cosa servono i conti</b>. Per ogni conto: se si usa per chiudere i debiti, se conta come riserva e la protezione (libero, con una parola da scrivere, bloccato; sempre o solo dopo i debiti). Per ogni bene: solo patrimonio, riserva per super emergenze, riserva, o da vendere per i debiti. Dopo ogni scelta l\u2019app ti mostra cosa cambia nel piano.'],
-    ['Come cambio la quota di {QN}?', 'Regole → <b>Quota di {QN}</b>: la percentuale sulle entrate fisse (diventa il budget intoccabile e il bonifico del mese) e quella sulle entrate extra (oggi {QX}). Puoi cambiare anche il nome.'],
-    ['Come cambio l\u2019ordine dei debiti?', 'Regole → <b>Ordine dei debiti</b>: rata più alta, tasso più alto o residuo più piccolo. Prima vengono sempre i debiti con una data. Ti mostra subito come cambiano le date.'],
-    ['Come aggiungo, rinomino o elimino un conto?', '<b>Regole → Conti</b>. Puoi aggiungere conti (anche “Contanti”), rinominarli e correggere il saldo. Un conto con movimenti non si elimina: si nasconde. Il Fondo casa è fisso.']
+    ['A cosa servono i soldi di ogni conto?', 'Lo decidete voi: <b>Impostazioni → A cosa servono i conti</b>. Per ogni conto: se si usa per chiudere i debiti, se conta come riserva e la protezione (libero, con una parola da scrivere, bloccato; sempre o solo dopo i debiti). Per ogni bene: solo patrimonio, riserva per super emergenze, riserva, o da vendere per i debiti. Dopo ogni scelta l\u2019app ti mostra cosa cambia nel piano.'],
+    ['Come cambio la quota di {QN}?', 'Impostazioni → <b>Quota di {QN}</b>: la percentuale sulle entrate fisse (diventa il budget intoccabile e il bonifico del mese) e quella sulle entrate extra (oggi {QX}). Puoi cambiare anche il nome.'],
+    ['Come cambio l\u2019ordine dei debiti?', 'Impostazioni → <b>Ordine dei debiti</b>: rata più alta, tasso più alto o residuo più piccolo. Prima vengono sempre i debiti con una data. Ti mostra subito come cambiano le date.'],
+    ['Come aggiungo, rinomino o elimino un conto?', '<b>Impostazioni → Conti</b>. Puoi aggiungere conti (anche “Contanti”), rinominarli e correggere il saldo. Un conto con movimenti non si elimina: si nasconde. Il Fondo casa è fisso.']
   ]],
   ['Obiettivi', [
-    ['Cos\u2019è l\u2019ordine di attacco?', 'La sequenza del piano. Prima i debiti con una data promessa (verso una persona) e quelli a cui hai messo una data per saldarli, in ordine di data. Poi gli altri: {ORD} Si cambia in Regole → Ordine dei debiti. I debiti verso persone senza data vengono per ultimi. Chiusi i debiti parte il fondo per l\u2019appartamento.'],
+    ['Cos\u2019è l\u2019ordine di attacco?', 'La sequenza del piano. Prima i debiti con una data promessa (verso una persona) e quelli a cui hai messo una data per saldarli, in ordine di data. Poi gli altri: {ORD} Si cambia in Impostazioni → Ordine dei debiti. I debiti verso persone senza data vengono per ultimi. Chiusi i debiti parte il fondo per l\u2019appartamento.'],
     ['Il residuo dei debiti si aggiorna da solo?', 'Sì: quando parte la rata collegata (Aggiorna → Rata ricorrente collegata) il residuo scende della quota di capitale, calcolata con il TAEG. Quando arriva a zero la rata si ferma e il budget si riduce. Se la banca ti dà un residuo diverso, scrivilo in Aggiorna: si riparte da lì.'],
     ['Come segue l\u2019app i debiti?', 'Niente extra mensili: paghi la rata e intanto metti da parte, poi saldi tutto in un colpo. Ogni euro libero va ai debiti: salvadanaio (la quota che dopo andrà al fondo casa), rate liberate, avanzi, entrate in arrivo ogni anno, conto (tolto il cuscinetto) e cassaforte. Mai il fondo casa. L\u2019ordine:<ol><li><b>Debiti verso persone con una data</b>: è una promessa, vengono prima di tutto e i soldi si tengono da parte.</li><li><b>Finanziamenti</b>: prima quelli con una data che desideri, in ordine di data; poi gli altri, prima l\u2019importo più basso (si chiude prima), a parità quello con più interessi. Ognuno si salda appena si può, purché restino i soldi per le date promesse.</li><li><b>Debiti verso persone senza data</b>: per ultimi.</li></ol>Se la data che desideri non è fattibile l\u2019app ti dice quella possibile; se entrano soldi e la data si avvicina, o diventa <b>saldabile ora</b>, te lo dice in Home.'],
     ['Come aggiorno un debito?', 'Obiettivi → <b>Aggiorna residuo</b>: scrivi il residuo che vedi nell\u2019app della banca. <b>Bonifico mensile</b> è quello che versi (lo usa il budget e il pagamento ricorrente); <b>Rata della banca</b> è quella vera del piano di ammortamento: il residuo scende di quella. Le date si ricalcolano.'],
@@ -3341,15 +3356,15 @@ const FAQ = [
     ['Ho versato un extra o la banca ha cambiato tasso: cosa faccio?', '<b>Aggiorna dati</b> sulla scheda del mutuo. Il versamento extra diventa un movimento (se sbagli lo annulli da Movimenti e il mutuo torna com’era); con il nuovo tasso o la nuova rata l’app ricalcola tutto. Se la rata scende ti propone di abbassare anche il bonifico.']
   ]],
   ['Regole e impostazioni', [
-    ['Come modifico i comandamenti?', '<b>Regole</b> → tocca un comandamento. Le <b>parole chiave</b> fanno scattare il NO: basta l\u2019inizio della parola (“vestit” prende vestito e vestiti), con <b>=</b> davanti vale solo la parola esatta (“=oro”). Puoi dare una data di scadenza e un\u2019eccezione. Con <b>+ Aggiungi regola</b> ne crei di nuove.'],
-    ['Come cambio le entrate previste?', '<b>Regole → Entrate previste</b>: solo le entrate certe. Il totale diventa il budget del mese e il fondo casa si ricalcola.'],
-    ['Come aggiungo o tolgo una voce di budget?', '<b>Regole → Budget del mese</b>: emoji, nome, importo, 🔒 per renderla intoccabile, ✕ per eliminarla, <b>+ Aggiungi voce</b> per crearne una.'],
-    ['Come aggiungo un tipo di entrata?', '<b>Regole → Tipi di entrata</b>: aggiungi, rinomina o elimina. Con 💸 la segni come entrata extra.']
+    ['Come modifico le regole?', '<b>Regole</b> → tocca una regola. Le <b>parole chiave</b> fanno scattare il NO: basta l\u2019inizio della parola (“vestit” prende vestito e vestiti), con <b>=</b> davanti vale solo la parola esatta (“=oro”). Puoi dare una data di scadenza e un\u2019eccezione. Con <b>+ Aggiungi regola</b> ne crei di nuove.'],
+    ['Come cambio le entrate previste?', '<b>Impostazioni → Entrate previste</b>: solo le entrate certe. Il totale diventa il budget del mese e il fondo casa si ricalcola.'],
+    ['Come aggiungo o tolgo una voce di budget?', '<b>Impostazioni → Budget del mese</b>: emoji, nome, importo, 🔒 per renderla intoccabile, ✕ per eliminarla, <b>+ Aggiungi voce</b> per crearne una.'],
+    ['Come aggiungo un tipo di entrata?', '<b>Impostazioni → Tipi di entrata</b>: aggiungi, rinomina o elimina. Con 💸 la segni come entrata extra.']
   ]],
   ['Dati e sincronizzazione', [
     ['Io e il partner vediamo gli stessi dati?', 'Sì, in tempo reale: quello che registra uno compare subito sull\u2019altro telefono e sul PC.'],
     ['Funziona senza internet?', 'In parte. Senza rete Future si apre e mostra i dati dell’ultima volta, ma non salva: se registri vedi “Connessione instabile: riprova”. Quando torna la rete i dati si aggiornano da soli; controlla che il movimento ci sia.'],
-    ['Come faccio un backup?', '<b>Regole → Dati → Esporta JSON → Copia</b> e salvalo in una nota. Con <b>Importa JSON</b> lo ripristini.'],
+    ['Come faccio un backup?', '<b>Impostazioni → Dati → Esporta JSON → Copia</b> e salvalo in una nota. Con <b>Importa JSON</b> lo ripristini.'],
     ['Come metto un\u2019icona bella sulla schermata Home?', 'Con <b>Comandi Rapidi</b>: crea un comando “Apri URL” con il link di Future, poi Aggiungi alla schermata Home e scegli l\u2019immagine dell\u2019icona dalle Foto.'],
     ['Cosa arriverà nei prossimi aggiornamenti?', 'Coda offline (registrare senza rete) e la possibilità di rinominare il fondo casa in un obiettivo qualsiasi.']
   ]]
@@ -3398,8 +3413,8 @@ function tourSteps() {
     {tab: 'bil', sel: '.bil-saldi', t: '🏦 Saldi', s: 'Tutti i conti, il cuscinetto e i soldi prestati.', l: li(`Nel conto corrente vedi <b>di cui cuscinetto ${eur0(c.bal)}</b> e <b>per i debiti oggi</b>: il cuscinetto non si spende, serve per i mesi scarsi.`, 'Con l’<b>occhio</b> nascondi un conto dal totale.', '<b>Soldi prestati</b>: chi ti deve cosa, diviso per motivo, con lo storico.')},
     {tab: 'bil', sel: '.bil-budget', t: '⚖️ Budget del mese', s: 'Il totale è uguale alle entrate: intoccabili + flessibili + salvadanaio debiti.', l: li('<b>Intoccabili 🔒</b> (mutuo, rate, bollette, quota di {QN}): non si toccano.', '<b>Flessibili</b>: se una finisce, togli da un’altra con <b>Sposta budget tra le voci</b>.', 'Quello che avanza va ai debiti finché ci sono, poi al fondo casa.')},
     {tab: 'bil', sel: '.bil-income', t: '💶 Entrate e budget', s: 'Quali entrate sono arrivate, quali mancano e quanto avanza per i debiti.'},
-    {tab: 'goals', t: '🎯 Obiettivi', s: 'Il piano per chiudere i debiti, poi il fondo casa.', l: li('Ogni debito ha la sua data, calcolata dall’app.', 'Ordine: prima le date promesse, poi {ORDS} (Regole → Ordine dei debiti).', 'Le rate dei debiti chiusi passano ai successivi.', 'Qui c’è anche il <b>cuscinetto</b>: Usa o ricarica, e la chiusura del mese.')},
-    {tab: 'rules', t: '🛡️ Regole', s: 'I comandamenti e tutte le impostazioni.', l: li('I <b>comandamenti</b> li controlla da solo Posso comprarlo?.', 'Qui cambi entrate, budget, conti e <b>pagamenti ricorrenti</b>: bonifico tuo o addebito automatico, a carico di qualcuno.', 'Qui fai anche il <b>backup</b> dei dati.')},
+    {tab: 'goals', t: '🎯 Obiettivi', s: 'Il piano per chiudere i debiti, poi il fondo casa.', l: li('Ogni debito ha la sua data, calcolata dall’app.', 'Ordine: prima le date promesse, poi {ORDS} (Impostazioni → Ordine dei debiti).', 'Le rate dei debiti chiusi passano ai successivi.', 'Qui c’è anche il <b>cuscinetto</b>: Usa o ricarica, e la chiusura del mese.')},
+    {tab: 'rules', t: '⚙️ Impostazioni', s: 'Account, regole di spesa e tutte le impostazioni.', l: li('I <b>regole</b> li controlla da solo Posso comprarlo?.', 'Qui cambi entrate, budget, conti e <b>pagamenti ricorrenti</b>: bonifico tuo o addebito automatico, a carico di qualcuno.', 'Qui fai anche il <b>backup</b> dei dati.')},
     {tab: 'home', sel: '[data-act="who"]', t: '👤 Il tuo account', s: 'La tua iniziale.', l: 'Da qui inviti il partner, attivi le notifiche ed esci dall\u2019account.'},
     {tab: 'home', sel: '[data-act="intro"]', t: '❔ Il punto di domanda', s: 'Qui rifai questo tour e trovi tutte le domande frequenti.'},
     {tab: 'home', t: 'Fatto! 🎉', s: 'Adesso sapete dove sta tutto. Quando volete, dal ? rifate il tour.', last: true}
@@ -3460,10 +3475,10 @@ const INTRO = () => [
     vis: `<div class="stats" style="margin:0"><div class="stat"><span>Entrate</span><b>${eur0(incomeTotal())}</b></div><div class="stat"><span>Budget</span><b>${eur0(incomeTotal())}</b></div><div class="stat"><span>${debtPhase() ? 'Ai debiti' : 'Fondo casa'}</span><b class="g">${eur0(baseOf(bud('fondo')))}</b></div></div>`},
   {ic: '⚖️', t: 'Intoccabili e flessibili', d: 'Mutuo, rate, bollette e quota di {QN} sono <b>intoccabili 🔒</b>. Macchina, svago e il resto sono <b>flessibili</b>: se una voce finisce, togli da un\u2019altra flessibile. Quello che avanza va ai <b>debiti</b> finché ci sono, poi al <b>fondo casa</b>.',
     vis: `<div class="card tight" style="margin:0">${catStats(curYM()).filter(b => ['mutuo', 'spesa', 'fondo'].includes(b.k)).map((b, i) => budgetRow(b, i)).join('')}</div>`},
-  {ic: '❓', t: 'Prima di spendere: “Posso comprarlo?”', d: 'Scrivi cosa, quanto e da quale voce. L\u2019app controlla budget e comandamenti e risponde in un secondo:',
+  {ic: '❓', t: 'Prima di spendere: “Posso comprarlo?”', d: 'Scrivi cosa, quanto e da quale voce. L\u2019app controlla budget e regole e risponde in un secondo:',
     vis: `<div class="vpills"><span class="vpill" style="background:rgba(46,229,157,.15);color:var(--green)">✓ SÌ</span><span class="vpill" style="background:rgba(255,107,94,.15);color:var(--red)">✕ NO + motivo</span><span class="vpill" style="background:rgba(255,181,71,.15);color:var(--amber)">⏳ ASPETTA 48 ORE</span><span class="vpill" style="background:rgba(255,181,71,.15);color:var(--amber)">🗓️ MESE PROSSIMO</span></div>`},
   {ic: '＋', t: 'Registrate ogni movimento', d: 'Dopo ogni acquisto toccate <b>＋ Registra</b>: <b>Uscita</b> per le spese, <b>Entrata</b> per i soldi in arrivo, <b>Trasferimento</b> tra conti, per esempio nel fondo casa. L\u2019app impara i nomi: la seconda volta “Esselunga” ve la propone lei.<br>Le spese fisse (iCloud, SIM, mutuo) le impostate una volta come <b>pagamenti ricorrenti</b>: si registrano da sole.'},
-  {ic: '🎯', t: 'Saldi, obiettivi e regole', d: 'Nel riquadro <b>Saldi</b> vedete tutti i conti e potete nasconderne uno dal totale con l\u2019occhio. In <b>Obiettivi</b> c\u2019è l\u2019ordine di attacco: finanziamenti, carta, poi l\u2019appartamento. In <b>Regole</b> ci sono i comandamenti e tutte le impostazioni, che potete cambiare quando volete.<br>La <b>guida completa</b> con le domande frequenti è sempre nel <b>?</b> in alto.'},
+  {ic: '🎯', t: 'Saldi, obiettivi e regole', d: 'Nel riquadro <b>Saldi</b> vedete tutti i conti e potete nasconderne uno dal totale con l\u2019occhio. In <b>Obiettivi</b> c\u2019è l\u2019ordine di attacco: i debiti, poi il fondo casa. In <b>Impostazioni</b> ci sono le regole e tutte le impostazioni, che potete cambiare quando volete.<br>La <b>guida completa</b> con le domande frequenti è sempre nel <b>?</b> in alto.'},
   {ic: '🚀', t: 'Primi passi', d: S.preview ? 'Ora siete in <b>anteprima</b>: dati finti, niente viene salvato. Esplorate quanto volete, poi toccate “Inizia con i tuoi dati”.' : 'Tre minuti e siete operativi.',
     acts: S.preview ? [['in-go-explore', 'Esploro l\u2019anteprima', 'primary'], ['in-go-real', 'Inizia subito con i nostri dati', '']] : [['in-go-acc', '1 · Scrivi i saldi di oggi', 'primary'], ['in-go-add', '2 · Registra la prima spesa', ''], ['in-close', 'Esploro da solo', 'ghost']]}
 ];
@@ -3608,7 +3623,7 @@ async function saveLoan(w) {
   if (l.type === 'new') {
     const st = catStats(curYM()), f = st.find(b => b.k === 'fuori');
     const free = r2(Math.max(0, f ? f.left : 0) + st.filter(b => !b.l && !b.auto && b.k !== 'fuori').reduce((v, b) => v + Math.max(0, b.left), 0));
-    if (a > free + 0.001) { $('#la-res', w).innerHTML = `<div class="verdict v-no" style="margin-top:10px"><div class="vbadge">✕</div><div class="vtitle">NO</div><div class="vmsg">Questo mese puoi prestare al massimo <b>${eur(free)}</b>: quello che resta in Fuori budget più le voci flessibili (comandamento 7).</div></div>`; return; }
+    if (a > free + 0.001) { $('#la-res', w).innerHTML = `<div class="verdict v-no" style="margin-top:10px"><div class="vbadge">✕</div><div class="vtitle">NO</div><div class="vmsg">Questo mese puoi prestare al massimo <b>${eur(free)}</b>: quello che resta in Fuori budget più le voci flessibili (regola sui prestiti).</div></div>`; return; }
   }
   let pid = l.pid;
   if (pid === '__new') { const c = clone(cfg()); pid = 'p' + newId().slice(-7); c.people = (c.people || []).concat({id: pid, n: l.n.trim()}); if (await saveConfig(c) === false) return; }
@@ -3712,7 +3727,7 @@ function openAsk(id) {
   const b = bud(x.cat), req = reqOf(x), running = Date.now() < x.until;
   openSheet(`<div class="ask-hd"><span class="pav" style="background:${pcolOf(req)}">${req[0]}</span><div><div class="h-label">Richiesta di autorizzazione</div><h3 class="sh-title" style="margin:2px 0 0">${esc(req)} ${x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'deve fare una spesa straordinaria' : 'vuole spendere'}</h3><div class="sh-sub" style="margin:2px 0 0">Decide ${esc(x.appr)}</div></div></div>
     <div class="ask-amt num">${eur(x.a)}</div><div class="ask-desc">${esc(x.desc || 'Spesa')}</div>
-    ${x.type === 'extra' ? straordPrevHTML(x.a, x.acc) : ''}<div class="vrule">${x.type === 'extra' ? `🧾 Spesa obbligata: nessun comandamento la blocca e niente 48 ore.<br>Se dici sì, ${esc(req)} può pagarla subito. Se dici no, la richiesta si chiude.` : x.type === 'loan' ? `🤝 Esce dal Fuori budget; se non basta, da una voce flessibile.<br>Se dici sì, ${esc(req)} può prestarli subito. Se dici no, la richiesta si chiude.${cronicoMsg(x.pid, true) ? `<br><b class="r">${esc(cronicoMsg(x.pid, true))}</b>` : ''}` : `${b ? esc(b.e) + ' ' + esc(b.n) + ' · ' : ''}${running ? 'timer: ' + waitLabel(x).toLowerCase() : 'le 48 ore sono già passate'}<br>Se dici sì, ${esc(req)} potrà comprarlo ${running ? 'quando finiscono le 48 ore' : 'subito'}. Se dici no, la richiesta si chiude.`}</div>
+    ${x.type === 'extra' ? straordPrevHTML(x.a, x.acc) : ''}<div class="vrule">${x.type === 'extra' ? `🧾 Spesa obbligata: nessuna regola la blocca e niente 48 ore.<br>Se dici sì, ${esc(req)} può pagarla subito. Se dici no, la richiesta si chiude.` : x.type === 'loan' ? `🤝 Esce dal Fuori budget; se non basta, da una voce flessibile.<br>Se dici sì, ${esc(req)} può prestarli subito. Se dici no, la richiesta si chiude.${cronicoMsg(x.pid, true) ? `<br><b class="r">${esc(cronicoMsg(x.pid, true))}</b>` : ''}` : `${b ? esc(b.e) + ' ' + esc(b.n) + ' · ' : ''}${running ? 'timer: ' + waitLabel(x).toLowerCase() : 'le 48 ore sono già passate'}<br>Se dici sì, ${esc(req)} potrà comprarlo ${running ? 'quando finiscono le 48 ore' : 'subito'}. Se dici no, la richiesta si chiude.`}</div>
     <div class="row2" style="margin-top:14px"><button class="btn danger mt0" data-act="ask-no" data-id="${x.id}">✕ No</button><button class="btn primary mt0" data-act="ask-ok" data-id="${x.id}">✓ Sì, autorizzo</button></div>
     <button class="btn ghost" data-act="close-sheet">Decido dopo</button>`);
   buzz([20, 40, 20]);
@@ -3771,6 +3786,10 @@ const ACT = {
   'wait-reval': el => { const w = D().waits.find(x => x.id === el.dataset.id); if (!w) return; if (w.type === 'extra') { if (w.st !== 'ok') { toast('Serve prima il sì di ' + w.appr); return; } openStraordPay(w.id); return; } if (w.type !== 'next' && !(w.st === 'ok' && (w.type === 'loan' || Date.now() >= w.until))) { toast(w.st === 'ok' ? 'Le 48 ore non sono ancora passate' : 'Serve prima il sì di ' + w.appr); return; } const sh = openCheck({desc: w.desc, a: w.a, cat: w.cat, acc: w.acc, need: w.need, waitId: w.id, pid: w.pid, due: w.due}); if (sh) setTimeout(() => runCheck(sh), 420); },
   'wait-arch': async el => { const w = D().waits.find(x => x.id === el.dataset.id); if (!w) return; if (!(await confirmSheet('Archiviare la richiesta?', `${esc(w.desc || 'Spesa')} · ${eur(w.a)}: sparisce dalla lista.`, 'Archivia'))) return; if (await del('waits', w.id) !== false) { toast(`Archiviata: ${eur(w.a)} restano a voi 💪`); render(); } },
   who: () => openAccount(),
+  'rule-example': async el => { const x = RULE_EXAMPLES[+el.dataset.i]; if (!x) return; const c = clone(cfg()); const n = c.rules.reduce((m, r) => Math.max(m, r.n), 0) + 1; c.rules.push({n, t: x.t, kw: x.kw.slice(), until: '', ex: ''}); await saveConfig(c); toast('Regola aggiunta ✓'); render(); },
+  'rule-examples': () => { const have = new Set(cfg().rules.map(r => r.t)); const list = RULE_EXAMPLES.map((x, i) => [x, i]).filter(([x]) => !have.has(x.t)); openSheet(`<h3 class="sh-title">Regole di esempio</h3><p class="sh-sub">Tocca per aggiungerla, poi puoi cambiarla.</p>${list.length ? list.map(([x, i]) => `<div class="rule" data-act="rule-example" data-i="${i}"><div class="n">＋</div><div><div class="rt">${esc(x.t)}</div></div></div>`).join('') : '<p class="muted">Le hai già tutte.</p>'}`); },
+  'backup-save': () => saveBackup(),
+  'goal-casa': () => openGoalEdit('casa'),
   'setup-done': async () => { const c = clone(cfg()); c.setupDone = 1; await saveConfig(c); S.anim = true; render(); },
   'wait-nudge': el => { const w = D().waits.find(x => x.id === el.dataset.id); if (w) pushAsk(w.id, w, true); },
   'ask-open': el => openAsk(el.dataset.id),
@@ -4978,7 +4997,7 @@ function openSit() {
   const nxObb = e => { const i = x.fut.months.findIndex(m => m.ym === e.ym), n = x.fut.months[i + 1]; return n ? n.obb : e.obb; };
   const evH = ev.map(e => `<div class="sitev"><span>${ymShort(e.ym)}</span><div>${e.closed.length ? `chiusi: ${e.closed.map(esc).join(', ')} · ` : ''}${esc(e.short)} → <b style="color:${SIT_LV[e.lv - 1][1]}">livello ${e.lv}</b>${e.lv < e.from && e.reserveM < T.v2 ? `<small>Per restare al livello ${e.from} servono altri ${eur(r2(Math.max(0, T.v2 * nxObb(e) - e.reserve)))} di riserva: ${mesiTh(T.v2)} di spese obbligate ${T.v2 === 1 ? 'è' : 'sono'} ${eur(r2(T.v2 * nxObb(e)))}.</small>` : ''}</div></div>`).join('');
   const after = x.dEnd && x.dEnd < '9999' ? x.fut.months.find(m => m.ym > x.dEnd && m.cdebt <= 0.5) : null, miss = after && after.lv < 4 ? sitMiss4(after) : null, SP = sitSeries();
-  openSheet(`<h3 class="sh-title">📊 La tua situazione</h3><p class="sh-sub">Dati ${alD(today())} · ${sitCustom() ? 'soglie personalizzate (Regole → Soglie dei livelli)' : 'regole fisse, uguali per tutti'}. Niente giudizi: numeri e soglie.</p>
+  openSheet(`<h3 class="sh-title">📊 La tua situazione</h3><p class="sh-sub">Dati ${alD(today())} · ${sitCustom() ? 'soglie personalizzate (Impostazioni → Soglie dei livelli)' : 'regole fisse, uguali per tutti'}. Niente giudizi: numeri e soglie.</p>
     <div class="h-label">Livello ${x.lv} di 5</div><div class="sitn" style="font-size:28px;margin:2px 0 10px">${L[0]}</div>${sitBarHTML(x.lv, 8)}
     <div class="sitlab">${SIT_LV.map((l, i) => `<span ${i + 1 === x.lv ? 'class="on"' : ''}>${l[0]}</span>`).join('')}</div>
     <div class="vrule" style="margin:12px 0 6px">${esc(x.why)}</div>
@@ -4987,7 +5006,7 @@ function openSit() {
       ${miss && miss.length ? `<div class="ss" style="margin-top:8px">Dopo i debiti (${ymShort(after.ym)}), per il livello 4 manca: ${esc(miss.join(', '))}.</div>` : ''}</div>
     ${sitChartHTML(SP, x)}
     <div class="plan"><div class="ph"><span>Beni · ${eur(assetsTot())}</span><button class="btn sm" data-act="asset-edit">＋ Aggiungi</button></div>${assets().map(assetRowHTML2).join('') || '<div class="ss">Casa, terreni, oro, gioielli, auto: contano nel patrimonio netto, non nella riserva.</div>'}</div>
-    <details class="faq" style="margin-top:12px"><summary>Come si decide il livello</summary><div class="fa">${SIT_LV.map((l, i) => `<b>${i + 1} · ${l[0]}</b>: ${['il mese non si chiude', `il mese si chiude, ma le rate superano il ${pctTxt(T.r2)} delle entrate o la riserva è sotto ${mesiTh(T.v2)} di spese obbligate`, `rate sotto il ${pctTxt(T.r2)} e almeno ${mesiTh(T.v2)} di riserva`, `rate sotto il ${pctTxt(T.r4)}, niente debiti al consumo, avanzi almeno del ${pctTxt(T.m4)}, almeno ${mesiTh(T.v4)} di riserva`, `come il 4, più patrimonio netto positivo senza la casa e avanzi almeno del ${pctTxt(T.m5)}`][i]}.`).join('<br>')}<br>${sitCustom() ? 'Sono soglie personalizzate: si cambiano in Regole → Soglie dei livelli.' : 'Il 33% è il limite che usano le banche per concedere un mutuo; 3–6 mesi di riserva è la regola comune.'} Cosa conta nella riserva lo decidete in Regole → A cosa servono i conti. Rate e avanzi sono quelli previsti per un mese normale.</div></details>
+    <details class="faq" style="margin-top:12px"><summary>Come si decide il livello</summary><div class="fa">${SIT_LV.map((l, i) => `<b>${i + 1} · ${l[0]}</b>: ${['il mese non si chiude', `il mese si chiude, ma le rate superano il ${pctTxt(T.r2)} delle entrate o la riserva è sotto ${mesiTh(T.v2)} di spese obbligate`, `rate sotto il ${pctTxt(T.r2)} e almeno ${mesiTh(T.v2)} di riserva`, `rate sotto il ${pctTxt(T.r4)}, niente debiti al consumo, avanzi almeno del ${pctTxt(T.m4)}, almeno ${mesiTh(T.v4)} di riserva`, `come il 4, più patrimonio netto positivo senza la casa e avanzi almeno del ${pctTxt(T.m5)}`][i]}.`).join('<br>')}<br>${sitCustom() ? 'Sono soglie personalizzate: si cambiano in Impostazioni → Soglie dei livelli.' : 'Il 33% è il limite che usano le banche per concedere un mutuo; 3–6 mesi di riserva è la regola comune.'} Cosa conta nella riserva lo decidete in Impostazioni → A cosa servono i conti. Rate e avanzi sono quelli previsti per un mese normale.</div></details>
     <button class="btn ghost" data-act="close-sheet">Chiudi</button>`)._sitP = SP;
 }
 /* ---------------- beni: quello che possiedi oltre ai conti ---------------- */
@@ -5171,8 +5190,20 @@ function paintSigns(root) {
     if (t[0] === '−' || t[0] === '-') el.classList.add('o'); else if (t[0] === '+') el.classList.add('g');
   });
 }
+function fundName() { const g = (cfg().goals || []).find(x => x.id === 'casa'); return (g && g.n && g.n.trim()) || 'Fondo casa'; }
+function renameFund(root) {
+  const nm = fundName(); if (nm === 'Fondo casa') return;
+  const low = nm.charAt(0).toLowerCase() + nm.slice(1);
+  const w = document.createTreeWalker(root || document.body, NodeFilter.SHOW_TEXT);
+  const todo = []; let n; while ((n = w.nextNode())) if (/[Ff]ondo casa/.test(n.nodeValue)) todo.push(n);
+  todo.forEach(t => {
+    const p = t.parentNode; if (!p || /^(SCRIPT|STYLE|TEXTAREA)$/.test(p.nodeName)) return;
+    if (p.nodeName === 'OPTION' && !p.hasAttribute('value')) p.setAttribute('value', p.textContent);
+    t.nodeValue = t.nodeValue.replace(/Fondo casa/g, nm).replace(/fondo casa/g, low);
+  });
+}
 let paintRq = 0;
-new MutationObserver(() => { if (paintRq) return; paintRq = requestAnimationFrame(() => { paintRq = 0; paintSigns(document); }); }).observe(document.body, {childList: true, subtree: true, characterData: true});
+new MutationObserver(() => { if (paintRq) return; paintRq = requestAnimationFrame(() => { paintRq = 0; paintSigns(document); renameFund(document.body); }); }).observe(document.body, {childList: true, subtree: true, characterData: true});
 boot();
 })();
 </script>
