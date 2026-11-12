@@ -15,7 +15,7 @@
   };
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
-  let sb = null, session = null, spaceId = '', members = [], channel = null;
+  let sb = null, session = null, spaceId = '', members = [], channel = null, offlineStart = false;
   const memberL = new Set();
   const cache = {}, loaded = {}, collL = {}, docL = {}, errL = {};
   const cacheKey = () => 'future_cache_v2_' + (session ? session.user.id : '');
@@ -73,7 +73,7 @@
     return loading[coll];
   }
   function watched() { const s = new Set(Object.keys(collL)); Object.keys(docL).forEach(k => s.add(k.split('/')[0])); return [...s]; }
-  function reloadAll() { watched().forEach(load); loadMembers(); }
+  function reloadAll() { if (!navigator.onLine) return; flushQueue(); watched().forEach(load); loadMembers(); }
 
   /* ---------- membri dello spazio ---------- */
   async function loadMembers() {
@@ -126,13 +126,39 @@
     const q = data === null
       ? sb.from(TABLE).delete().eq('space_id', spaceId).eq('coll', coll).eq('id', id)
       : sb.from(TABLE).upsert({space_id: spaceId, coll, id, data: clone(data), updated_at: new Date().toISOString()}, {onConflict: 'space_id,coll,id'});
-    const {error} = await q;
+    let error = null;
+    try { ({error} = await q); } catch (e) { error = e; }
+    if (error && isNetErr(error)) { enqueue(coll, id, data); return true; }   // senza rete: resta sul telefono e parte dopo
     if (error) {
       if (prev === undefined) delete cache[coll][id]; else cache[coll][id] = prev;
       emit(coll, false);
       const e = new Error(error.message || 'errore'); e.code = errCode(error); throw e;
     }
     return true;
+  }
+  /* ---------- coda offline ---------- */
+  const qKey = () => 'future_queue_' + (session ? session.user.id : '');
+  const isNetErr = e => !navigator.onLine || /fetch|network|load failed|timeout|offline/i.test(String((e && (e.message || e)) || ''));
+  function readQ() { try { return JSON.parse(LS.get(qKey()) || '[]') || []; } catch (e) { return []; } }
+  function writeQ(q) { LS.set(qKey(), JSON.stringify(q)); qL.forEach(cb => { try { cb(q.length); } catch (e) {} }); }
+  const qL = new Set();
+  function enqueue(coll, id, data) { const q = readQ().filter(x => !(x.coll === coll && x.id === id)); q.push({coll, id, data, sp: spaceId, ts: Date.now()}); writeQ(q); }
+  let flushing = false;
+  async function flushQueue() {
+    if (flushing || !sb || !navigator.onLine) return; const q = readQ(); if (!q.length) return;
+    flushing = true;
+    try {
+      const left = [];
+      for (const x of q) {
+        if (x.sp !== spaceId) continue;
+        const req = x.data === null ? sb.from(TABLE).delete().eq('space_id', spaceId).eq('coll', x.coll).eq('id', x.id)
+          : sb.from(TABLE).upsert({space_id: spaceId, coll: x.coll, id: x.id, data: x.data, updated_at: new Date(x.ts).toISOString()}, {onConflict: 'space_id,coll,id'});
+        let error = null; try { ({error} = await req); } catch (e) { error = e; }
+        if (error && isNetErr(error)) { left.push(x); continue; }
+      }
+      writeQ(left);
+      if (!left.length) reloadAll();
+    } finally { flushing = false; }
   }
 
   /* ---------- interfaccia dati per l'app ---------- */
@@ -315,9 +341,13 @@
     try { const r = await sb.auth.getSession(); session = r.data.session; } catch (e) { session = null; }
     if (!session) await showAuth();
     overlay('<h1>Future</h1><p>Apro il tuo spazio…</p>');
-    try { await ensureSpace(); } catch (e) {
-      console.error(e);
-      showConfigError('Non riesco ad aprire il tuo spazio.<br>Controlla la connessione e che in Supabase sia stato eseguito <b>4-multiutente.sql</b>.<br><small>' + esc(e.message || e) + '</small>'); return null;
+    try { await ensureSpace(); LS.set('future_members_' + session.user.id, JSON.stringify({spaceId, members})); } catch (e) {
+      const saved = (() => { try { return JSON.parse(LS.get('future_members_' + session.user.id) || 'null'); } catch (x) { return null; } })();
+      if (saved && saved.spaceId && isNetErr(e)) { spaceId = saved.spaceId; members = saved.members || []; offlineStart = true; }
+    }
+    if (!spaceId) {
+      const e = {message: 'spazio non disponibile'};
+      showConfigError('Non riesco ad aprire il tuo spazio.<br>Controlla la connessione e riprova.<br><small>' + esc(e.message || e) + '</small>'); return null;
     }
     closeOverlay();
     const c = readCache();
@@ -328,7 +358,8 @@
     let last = Date.now();
     const refresh = () => { if (Date.now() - last < 3000) return; last = Date.now(); reloadAll(); };
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
-    window.addEventListener('online', refresh);
+    window.addEventListener('online', () => { flushQueue(); refresh(); });
+    setTimeout(flushQueue, 1500);
     window.addEventListener('pageshow', e => { if (e.persisted) refresh(); });
     refreshPushSub();
     return {db, user};
@@ -396,6 +427,37 @@
     } catch (e) { return {ok: false, sent: 0}; }
   }
 
+  /* ---------- backup automatici (uno a settimana, tenuti gli ultimi 8) ---------- */
+  async function autoBackup(force) {
+    if (!sb || !spaceId || !navigator.onLine) return {ok: false};
+    try {
+      if (!force) {
+        const {data: last} = await sb.from('backups').select('created_at').eq('space_id', spaceId).order('created_at', {ascending: false}).limit(1);
+        if (last && last[0] && Date.now() - new Date(last[0].created_at).getTime() < 7 * 864e5) return {ok: true, skipped: true};
+      }
+      const all = {}; for (const c of ['app', 'tx', 'shifts', 'waits']) { if (!loaded[c]) await load(c); all[c] = cache[c] || {}; }
+      const {error} = await sb.from('backups').insert({space_id: spaceId, data: all, by_user: session.user.id, docs: Object.values(all).reduce((n, m) => n + Object.keys(m).length, 0)});
+      if (error) return {ok: false, error: error.message};
+      const {data: list} = await sb.from('backups').select('id').eq('space_id', spaceId).order('created_at', {ascending: false});
+      const old = (list || []).slice(8).map(x => x.id);
+      if (old.length) await sb.from('backups').delete().in('id', old);
+      return {ok: true};
+    } catch (e) { return {ok: false, error: String(e.message || e)}; }
+  }
+  async function listBackups() {
+    const {data, error} = await sb.from('backups').select('id,created_at,docs').eq('space_id', spaceId).order('created_at', {ascending: false});
+    return error ? [] : (data || []);
+  }
+  async function restoreBackup(id) {
+    const {data, error} = await sb.from('backups').select('data').eq('id', id).eq('space_id', spaceId).single();
+    if (error || !data) throw new Error((error && error.message) || 'backup non trovato');
+    await autoBackup(true);   // prima salva lo stato attuale, così il ripristino si può annullare
+    const rows = []; const now = new Date().toISOString();
+    for (const [coll, m] of Object.entries(data.data || {})) for (const [did, d] of Object.entries(m || {})) rows.push({space_id: spaceId, coll, id: did, data: d, updated_at: now});
+    for (let i = 0; i < rows.length; i += 200) { const {error: e2} = await sb.from(TABLE).upsert(rows.slice(i, i + 200), {onConflict: 'space_id,coll,id'}); if (e2) throw new Error(e2.message); }
+    reloadAll(); return rows.length;
+  }
+
   async function logout() {
     try { await sb.auth.signOut(); } catch (e) {}
     LS.del(cacheKey()); location.reload();
@@ -404,6 +466,7 @@
   window.FutureCloud = {
     connect, logout, info, onMembers: cb => memberL.add(cb),
     createInvite, unlinkPartner, useCode, rename,
+    autoBackup, listBackups, restoreBackup, flushQueue, pending: () => readQ().length, onQueue: cb => qL.add(cb), isOffline: () => offlineStart && !navigator.onLine,
     pushState, enablePush, notify, isIOS, standalone,
     enabled: () => !!CFG.SUPABASE_URL, email: () => (session && session.user.email) || ''
   };

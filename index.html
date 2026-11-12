@@ -77,7 +77,7 @@ input,select,textarea{font-family:inherit}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px}
 .stat{padding:11px 12px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--stroke)}
 .stat b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px;font-weight:700;margin-top:3px;letter-spacing:-.02em}
-.stat span{font-size:11px;color:var(--muted);font-weight:600}
+.stat span{font-size:12px;color:var(--muted);font-weight:600}
 
 .ring{width:124px;height:124px;flex:none}
 .ring circle{fill:none;stroke-width:12}
@@ -115,7 +115,7 @@ input,select,textarea{font-family:inherit}
 .anim .bar i{animation:barfill 1.1s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 45ms + 150ms)}
 @keyframes barfill{from{transform:scaleX(0)}}
 .bsub{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-weight:500}
-.lock{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--dim);margin-left:6px}
+.lock{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--dim);margin-left:6px}
 .g{color:var(--green)}.a{color:var(--amber)}.r{color:var(--red)}.m{color:var(--muted)}.o{color:var(--out)}.v{color:var(--mov)}
 .num.g,.amt.g{color:var(--green)!important}.num.o,.amt.o{color:var(--out)!important}.num.v,.amt.v{color:var(--mov)!important}.num.r,.amt.r{color:var(--red)!important}.num.a,.amt.a{color:var(--amber)!important}
 
@@ -157,8 +157,8 @@ input,select,textarea{font-family:inherit}
 .txr .t1{font-weight:650;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .txr .t2{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .txr .amt{margin-left:auto;font-weight:700;font-size:15px;white-space:nowrap;text-align:right}
-.txr .amt small{display:block;font-size:11px;font-weight:600;color:var(--muted)}
-.who{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:6px;font-size:10px;font-weight:800;color:#000;margin-right:5px;vertical-align:-3px}
+.txr .amt small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
+.who{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:6px;font-size:12px;font-weight:800;color:#000;margin-right:5px;vertical-align:-3px}
 .empty{text-align:center;color:var(--muted);padding:34px 10px;font-size:14px}
 .empty .e{font-size:38px;margin-bottom:8px}
 
@@ -214,7 +214,7 @@ input,select,textarea{font-family:inherit}
 .check.two{align-items:flex-start;color:var(--text);margin-bottom:10px}
 .check.two input{flex:none;margin-top:1px}
 .check.two small{display:block;color:var(--muted);font-size:12.5px;font-weight:500;margin-top:3px;line-height:1.35}
-.auch{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.auch .badge{font-size:11px;padding:3px 8px}
+.auch{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.auch .badge{font-size:12px;padding:3px 8px}
 .lnk{color:var(--mov);font-weight:700;cursor:pointer;white-space:nowrap}
 
 /* verdict */
@@ -255,7 +255,7 @@ input,select,textarea{font-family:inherit}
 .ask-desc{font-size:17px;font-weight:650;margin:2px 0 12px}
 .lrow{display:flex;align-items:center;gap:12px;padding:11px 2px;cursor:pointer}
 .lrow+.lrow{border-top:1px solid rgba(255,255,255,.05)}
-.flag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;margin:2px 4px 0 0;background:rgba(255,107,94,.15);color:var(--red)}
+.flag{display:inline-block;font-size:12px;font-weight:700;padding:2px 7px;border-radius:999px;margin:2px 4px 0 0;background:rgba(255,107,94,.15);color:var(--red)}
 .flag.a{background:rgba(255,181,71,.15);color:var(--amber)}
 .plan{margin-top:12px;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid var(--stroke)}
 .plan .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:700}
@@ -269,7 +269,7 @@ input,select,textarea{font-family:inherit}
 /* table */
 .trow{display:grid;grid-template-columns:minmax(0,1.75fr) .8fr .7fr .8fr;gap:6px;align-items:center;padding:10px 2px;font-size:13.5px}
 .trow+.trow{border-top:1px solid rgba(255,255,255,.05)}
-.trow.h{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.trow.h{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .trow span:not(:first-child){text-align:right}
 .trow .nm{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -309,7 +309,7 @@ input,select,textarea{font-family:inherit}
 
 /* charts */
 .chart{width:100%;height:auto;display:block}
-.chart text{font-family:var(--font);fill:var(--muted);font-size:10px;font-weight:600}
+.chart text{font-family:var(--font);fill:var(--muted);font-size:12px;font-weight:600}
 .anim .chart .cb{animation:grow 1s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 80ms + 150ms);transform-box:fill-box;transform-origin:bottom}
 @keyframes grow{from{transform:scaleY(0)}}
 .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:12px;font-size:12px;color:var(--muted);font-weight:600}
@@ -492,7 +492,7 @@ input,select,textarea{font-family:inherit}
 .mfam.act{border-color:rgba(46,229,157,.45);background:rgba(46,229,157,.05)}
 .mfd{font-size:13px;color:var(--muted);margin:6px 0 10px;line-height:1.4}
 .mfp{margin-bottom:10px}
-.mfp>span{font-size:11px}
+.mfp>span{font-size:12px}
 .mfin{display:flex;align-items:center;gap:6px;border:1px solid var(--stroke2);background:rgba(255,255,255,.05);border-radius:14px;padding:0 12px}
 .mfin input{border:0!important;background:none!important;box-shadow:none!important;padding:11px 0!important;font-size:16px!important;font-weight:700;min-width:0}
 .mfin b{color:var(--muted);font-weight:700}
@@ -520,7 +520,7 @@ input,select,textarea{font-family:inherit}
 .sitlab .on{color:var(--text);font-weight:700}
 .sitg{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-top:10px}
 .sitg>div{background:rgba(255,255,255,.04);border-radius:14px;padding:9px 10px;min-width:0}
-.sitg span{display:block;font-size:11px;color:var(--muted);font-weight:600}
+.sitg span{display:block;font-size:12px;color:var(--muted);font-weight:600}
 .sitg b{display:block;font-size:15px;font-weight:750;margin-top:2px;white-space:nowrap}
 @media (max-width:440px){.sitg b{font-size:13.5px}.sitg>div{padding:8px}}
 .sitf span{flex:1;min-width:0}
@@ -544,6 +544,7 @@ input,select,textarea{font-family:inherit}
 .sitsw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .sitleg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11.5px;color:var(--muted);font-weight:600;margin-top:6px}
 .sityd{margin-top:6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04)}
+@keyframes fcdraw{to{stroke-dashoffset:0}}@keyframes dnfade{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -567,7 +568,7 @@ const fmtN = (n, dec) => { n = +n || 0; const neg = n < 0; const [i, d] = Math.a
 const nf2 = {format: n => fmtN(n, 2)};
 const nf0 = {format: n => fmtN(Math.round(+n || 0), 0)};
 const r2 = n => Math.round((+n || 0) * 100) / 100;
-const eur = n => nf2.format(r2(n)) + ' €';
+const eur = n => nf2.format(r2(n)) + ' ' + curSym();
 // tutti gli importi sempre con i centesimi: 2.223,00 €
 const eur0 = n => eur(n);
 const pad = n => String(n).padStart(2, '0');
@@ -1463,6 +1464,7 @@ function render() { if (rq) return; rq = requestAnimationFrame(() => { rq = 0; d
 function statusInfo() {
   if (S.mode === 'loading') return {cls: 'amber', t: 'Connessione…'};
   if (S.preview) return {cls: 'amber', t: 'Anteprima'};
+  { const q = window.FutureCloud && window.FutureCloud.pending ? window.FutureCloud.pending() : 0; if (!navigator.onLine) return {cls: 'amber', t: q ? `Offline · ${q} da inviare` : 'Offline'}; if (q) return {cls: 'amber', t: `${q} da inviare`}; }
   if (S.mode === 'db') { if (!S.canWrite) return {cls: '', t: 'Sola lettura'}; if (S.status === 'slow') return {cls: 'amber', t: 'Connessione lenta'}; return {cls: 'green', t: 'Sincronizzato'}; }
   return {cls: '', t: 'Locale'};
 }
@@ -1526,7 +1528,7 @@ function homeHTML() {
   const fut = isFut(ym);
   const btns = isCur ? `<div class="homebtns stag" style="--i:3"><button class="ask" data-act="ask"><div class="q">?</div><div><b>Posso comprarlo?</b><span>Chiedi prima di spendere: decide il budget</span></div></button><button class="btn mt0 hb-sim" data-act="sim">📉 Prevedi</button><button class="btn mt0 hb-add" data-act="add">＋ Registra</button></div>`
     : fut ? `<div class="homebtns stag" style="--i:3"><button class="btn mt0" data-act="add" style="grid-column:1/-1">＋ Prevedi una spesa o un’entrata</button></div>` : '';
-  return `<div class="homewrap"><div class="hw-top">${(isCur ? firstStepsHTML() + sitAlertHTML() + cushionAlertsHTML() + planAlertsHTML() : '') + (fut ? '' : waitsH)}</div>${kpisHTML(ym, st)}${isCur ? sitCardHTML() : ''}<div class="hw-todo">${isCur ? todoHTML() : fut ? agendaHTML(ym) : ''}</div>${btns}</div>`;
+  return `<div class="homewrap"><div class="hw-top">${(isCur ? firstStepsHTML() + forecastHTML() + annualSoonHTML() + chHomeHTML() + sitAlertHTML() + cushionAlertsHTML() + planAlertsHTML() : '') + (fut ? '' : waitsH)}</div>${kpisHTML(ym, st)}${isCur ? sitCardHTML() : ''}<div class="hw-todo">${isCur ? todoHTML() : fut ? agendaHTML(ym) : ''}</div>${btns}</div>`;
 }
 function kpisHTML(ym, st) {
   const flex = st.filter(b => !b.l && !b.auto), spend = r2(flex.reduce((a, b) => a + Math.max(0, b.left), 0)), flexEff = r2(flex.reduce((a, b) => a + b.eff, 0));
@@ -1687,7 +1689,7 @@ function todoHTML() {
   const ov = catStats(ym).filter(b => !b.auto && b.left < -0.005);
   if (ov.length) add(70, '⚠️', '#FF6B5E', 'Budget sforato', `${ov.map(b => esc(b.n)).join(', ')} · −${eur(ov.reduce((a, b) => a - b.left, 0))}`, `<button class="btn sm" data-act="shift">Copri</button>`);
   if (!S.preview && !(B.kind === 'db' && !S.stateLoaded)) assetsTodo(add);
-  if (!S.preview && B.kind === 'db' && S.stateLoaded && ((S.real.state || {}).lastBackup || '').slice(0, 7) < ym) add(99, '💾', '#7C8CFF', 'Backup del mese', 'un tocco per salvare una copia dei dati', `<button class="btn sm" data-act="export">Esporta</button><button class="btn sm ghost" data-act="backup-skip" aria-label="Non ora">✕</button>`);
+  if (false && !S.preview && B.kind === 'db' && S.stateLoaded && ((S.real.state || {}).lastBackup || '').slice(0, 7) < ym) add(99, '💾', '#7C8CFF', 'Backup del mese', 'un tocco per salvare una copia dei dati', `<button class="btn sm" data-act="export">Esporta</button><button class="btn sm ghost" data-act="backup-skip" aria-label="Non ora">✕</button>`);
   if (!items.length) return '';
   items.sort((a, b) => a.key - b.key);
   return `<div class="sec-title">Da fare <small>${items.length}</small></div><div class="card tight stag" style="--i:2">${items.map(x => x.h).join('<div style="height:10px"></div>')}</div>`;
@@ -1742,6 +1744,7 @@ function recHomeHTML(onlyLater) {
 }
 function firstStepsHTML() {
   if (S.preview || S.mode === 'loading' || S.ym !== curYM() || cfg().setupDone) return '';
+  if (!cfg().wizardDone && !cfg().accountsSet && !incomeTotal()) return `<div class="card" style="--i:0"><div class="h-label">Benvenuto in Future 👋</div><p style="font-size:15px;margin:6px 0 12px">Rispondi a 4 domande e ti preparo budget, conti e obiettivo.</p><button class="btn primary" data-act="wizard">Configura in 2 minuti</button></div>`;
   const steps = [
     ['set-income', incomeTotal() > 0, 'Entrate previste', 'Quanto entra ogni mese (stipendio, altre entrate)'],
     ['set-accounts', !!cfg().accountsSet, 'Saldi dei conti', 'Quanto hai oggi su ogni conto'],
@@ -1942,7 +1945,7 @@ function bilHTML() {
   const sum = a => a.reduce((x, b) => x + b.eff, 0);
   const row = b => `<div class="trow"><span class="nm">${esc(b.e)} ${esc(b.n)}</span><span class="num">${eur0(b.eff)}${b.inS || b.outS ? `<br><small class="m">${b.inS ? '+' + eur0(b.inS) : ''}${b.outS ? ' −' + eur0(b.outS) : ''}</small>` : ''}</span><span class="num">${eur0(b.spent)}${b.pend ? `<br><small class="a">+${eur0(b.pend)}</small>` : ''}</span><span class="num ${b.left < -0.005 ? 'r' : b.auto ? 'g' : b.l ? (b.pend && b.left < 0.01 ? 'a' : 'g') : txtColor(b.pct)}">${b.auto ? (b.eff < -0.005 ? '<span class="r">−' + eur0(-b.eff) + '</span>' : b.savWait ? '—' : b.left <= 0.01 ? '✓' : eur0(b.left)) : b.l && b.pend && Math.abs(b.left) < 0.01 ? eur(0) : eur0(b.left)}</span></div>`;
   return `<div class="grid2b"><div>
-    ${S.ym === curYM() ? sitBilHTML() + `<div class="card tight bil-saldi" style="--i:0">${balancesHTML(true)}</div>` + assetsCardHTML() : ''}
+    ${spendDonutHTML()}${S.ym === curYM() ? bilToolsHTML() : ''}${S.ym === curYM() ? sitBilHTML() + `<div class="card tight bil-saldi" style="--i:0">${balancesHTML(true)}</div>` + assetsCardHTML() : ''}
     <div class="card bil-budget" style="--i:0"><div class="h-label">${fut ? 'Budget previsto' : 'Budget del mese'} · ${ymLabel(S.ym)}</div>
       <div style="display:flex;align-items:center;gap:16px;margin-top:10px">${donutSVG(st)}
       <div style="flex:1;font-size:13px;line-height:1.9"><div class="m">Intoccabili</div><b class="num" style="font-size:18px">${eur0(sum(locked))}</b>
@@ -2010,7 +2013,7 @@ function goalsHTML() {
     <div class="card goal"><div class="top"><div><div class="gt">📅 Entrate in arrivo ogni anno</div><div class="gs">Contano nei piani dei debiti: finché ci sono debiti vanno lì, poi al fondo casa</div></div></div>
       ${(cfg().yearly || []).map(y => `<div class="pr" style="display:flex;justify-content:space-between;font-size:14px;padding:5px 0"><span>${esc(y.n)} · ${MONTHS[+y.mm - 1].toLowerCase()}</span><b class="num">${eur0(y.a)}</b></div>`).join('') || '<p class="muted">Nessuna</p>'}
       <button class="btn" style="margin-top:8px" data-act="yearly-edit">Modifica</button></div>
-    <button class="btn" data-act="goal-new">+ Nuovo obiettivo</button>`;
+    <button class="btn" data-act="goal-new">+ Nuovo obiettivo</button>` + annualCardHTML() + challengesCardHTML();
 }
 function yearlyTxt() { const L = (cfg().yearly || []).map(y => y.n.toLowerCase()); return L.length ? ' + ' + (L.length > 1 ? L.slice(0, -1).join(', ') + ' e ' + L[L.length - 1] : L[0]) : ''; }
 function rulesHTML() {
@@ -2019,6 +2022,8 @@ function rulesHTML() {
   return `<div class="sec-title" style="margin-top:0">Generali</div>
     <div class="card tight" style="--i:0">
       <div class="setrow" data-act="who"><span>Account e partner<br><small>${esc(meNow())} · ${hasPartner() ? 'partner: ' + esc(apprName()) : 'nessun partner collegato'}</small></span><span class="chev">›</span></div>
+      <div class="setrow" data-act="currency"><span>Valuta<br><small>${esc(curName())}</small></span><span class="chev">›</span></div>
+      <div class="setrow" data-act="quick-help"><span>Registrazione rapida<br><small>Siri e Comandi Rapidi: una spesa in 3 secondi</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-income"><span>Entrate previste<br><small>${eur0(incomeTotal())} al mese</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-budgets"><span>Budget del mese<br><small>${budgets().length} voci · ${debtPhase() ? 'salvadanaio debiti' : 'fondo casa'} automatico ${eur0(baseOf(bud('fondo')))}</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="rec-list"><span>Pagamenti ricorrenti<br><small>${recs().length} impostati · ${eur(recs().filter(r => r.on && r.kind === 'out').reduce((s, r) => s + recAmount(r), 0))} al mese</small></span><span class="chev">›</span></div>
@@ -2040,6 +2045,7 @@ function rulesHTML() {
     <div class="sec-title">Backup</div>
     <div class="card tight" style="--i:3">
       <div class="setrow" data-act="backup-save"><span>Scarica un backup<br><small>Una copia di tutti i dati in un file (su iPhone: salvalo in File o iCloud Drive)${(S.real.state || {}).lastBackup ? ' · ultimo: ' + esc((S.real.state || {}).lastBackup) : ''}</small></span><span class="chev">›</span></div>
+      <div class="setrow" data-act="auto-backups"><span>Backup automatici<br><small>Ogni settimana sul server, ultimi 8 · si ripristinano con un tocco</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="import"><span>Ripristina da un backup<br><small>Carica un file di backup di Future</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="toggle-preview"><span>${S.preview ? 'Esci dall\u2019anteprima' : 'Mostra anteprima con dati di esempio'}<br><small>${S.preview ? 'Torna ai vostri dati veri' : 'Prova l\u2019app senza toccare i dati'}</small></span><span class="chev">›</span></div>
       <div class="setrow" style="cursor:default"><span>Sincronizzazione<br><small>${S.mode === 'db' ? 'Condivisa in tempo reale tra i vostri dispositivi' : 'Solo questo dispositivo'}</small></span><span class="pill ${statusInfo().cls}"><i></i>${esc(statusInfo().t)}</span></div>
@@ -2430,7 +2436,7 @@ function drawTx(w) {
   $('#tx-body', w).innerHTML = `<h3 class="sh-title">${ex ? 'Modifica movimento' : 'Nuovo movimento'}</h3><p class="sh-sub">${ex && (ex.who || ex.by) ? 'Registrato da ' + esc(ex.who || nameOf(ex.by) || 'qualcuno') + ' · ' : ''}${ex ? dateShort(ex.d) : 'Entrate, uscite e versamenti, insieme.'}</p>
     <div class="fld">${segHTML('tx-kind', [['out', 'Uscita'], ['in', 'Entrata'], ['move', 'Trasferimento']], t.kind)}</div>
     <label class="fld"><span>${w._split ? 'Totale' : 'Importo'}</span><div class="amtin"><input id="tx-a" inputmode="decimal" placeholder="${w._hint ? 'ultima: ' + nf2.format(w._hint) : '0,00'}" value="${w._split ? esc(nf2.format(splitSum(w))) : t.a ? esc(String(t.a).replace('.', ',')) : ''}" ${w._split ? 'readonly' : ''}><b>€</b></div></label>
-    <label class="fld"><span>Descrizione</span><input id="tx-note" placeholder="${t.kind === 'move' ? 'es. Versamento fondo casa' : t.kind === 'in' ? 'es. Stipendio' : 'es. Esselunga'}" value="${esc(t.note)}" autocomplete="off"></label>
+    <label class="fld"><span>Descrizione</span><input id="tx-note" placeholder="${t.kind === 'move' ? 'es. Versamento fondo casa' : t.kind === 'in' ? 'es. Stipendio' : 'es. Supermercato'}" value="${esc(t.note)}" autocomplete="off"></label>
     <div class="sugg" id="tx-sugg">${suggHTML(w, 'tx')}</div>
     ${catPart}
     <div class="row2"><label class="fld"><span>Data</span><input id="tx-d" type="date" value="${esc(t.d)}"></label>${t.kind !== 'move' ? `<label class="fld"><span>Conto</span><select id="tx-acc">${accOpts(t.acc)}</select></label>` : '<div></div>'}</div>
@@ -3193,9 +3199,10 @@ function drawAccRows(w) {
 }
 function syncAcc(w) { $$('[data-ai]', w).forEach(el => { const a = w._rows[+el.dataset.ai]; if (!a) return; if (el.dataset.af === 'n') a.n = el.value.trim(); else a.balTxt = el.value; }); }
 function backupHTML() {
+  return ''; // sostituito dai backup automatici settimanali
   if (S.preview || B.kind !== 'db' || !S.stateLoaded) return '';
   if (((S.real.state || {}).lastBackup || '').slice(0, 7) >= curYM()) return '';
-  return `<div class="banner stag" style="--i:5"><div class="ic">💾</div><div><b>Backup del mese</b>Un tocco per salvare una copia di tutti i dati.<div class="acts"><button class="btn sm" data-act="export">Esporta ora</button><button class="btn sm ghost" data-act="backup-skip">Non ora</button></div></div></div>`;
+  return `<div class="banner stag" style="--i:5"><div class="ic">💾</div><div><b>Backup del mese</b>Un tocco per salvare una copia di tutti i dati.<div class="acts"><button class="btn sm" data-act="backup-save">Scarica ora</button><button class="btn sm ghost" data-act="backup-skip">Non ora</button></div></div></div>`;
 }
 async function saveBackup() {
   const d = D(), day = today();
@@ -3288,7 +3295,7 @@ const FAQ = [
   ['Registrare i movimenti', [
     ['Come registro una spesa?', 'Tocca <b>＋ Registra</b> in Home (o il <b>+</b> in Movimenti), scegli <b>Uscita</b>, scrivi importo e descrizione, scegli la voce e salva. Se sfora, l\u2019app ti chiede da dove coprire.'],
     ['Uscita, entrata o trasferimento?', '<b>Uscita</b>: una spesa. <b>Entrata</b>: stipendio e soldi in arrivo. <b>Trasferimento</b>: soldi che passano da un conto all\u2019altro, per esempio dal conto corrente al fondo casa. I trasferimenti non sono spese.'],
-    ['Come funzionano i suggerimenti?', 'L\u2019app impara i nomi che usate. La seconda volta che scrivi “Es…” ti propone <b>Esselunga</b> con la voce e il conto giusti. Se un movimento ha sempre lo stesso importo (iCloud 9,99 €) compila anche quello, altrimenti ti mostra “ultima: …”.'],
+    ['Come funzionano i suggerimenti?', 'L\u2019app impara i nomi che usate. La seconda volta che scrivi le prime lettere (es. “Sup…”) ti propone <b>il nome completo</b> con la voce e il conto giusti. Se un movimento ha sempre lo stesso importo (iCloud 9,99 €) compila anche quello, altrimenti ti mostra “ultima: …”.'],
     ['Come modifico o elimino un movimento?', 'In <b>Movimenti</b> toccalo per modificarlo. <b>Tienilo premuto</b> (sul PC tasto destro) per le altre azioni: per un bonifico o un\u2019entrata segnati per sbaglio <b>↩︎ Rimetti in Da fare</b>, poi <b>Salta questo mese</b>, <b>Duplica</b> con la data di oggi, <b>Elimina</b>, e per le bollette <b>Pagata</b> o <b>Rimetti da pagare</b>. Le stesse azioni sono anche in fondo alla scheda di modifica.'],
     ['Cosa succede con le entrate extra?', 'Registrala come <b>Entrata</b> con un tipo segnato 💸 (Entrate extra, Tredicesima, Quattordicesima). Il budget del mese non cambia; il {QX} va a {QN} e il resto resta sul conto per i debiti: il piano lo conta subito e le date si avvicinano. I soldi che ti rendono si registrano da <b>Soldi prestati → Ha reso</b>, senza quota.'],
     ['Dove possono andare le entrate extra?', 'Finché ci sono debiti restano <b>sul conto per i debiti</b>: l\u2019app li conta nel piano di saldo. Chiusi i debiti vanno nel <b>fondo casa</b>. Puoi anche scegliere <b>Decido dopo</b>: restano in Home come “da destinare”.'],
@@ -3789,6 +3796,16 @@ const ACT = {
   'rule-example': async el => { const x = RULE_EXAMPLES[+el.dataset.i]; if (!x) return; const c = clone(cfg()); const n = c.rules.reduce((m, r) => Math.max(m, r.n), 0) + 1; c.rules.push({n, t: x.t, kw: x.kw.slice(), until: '', ex: ''}); await saveConfig(c); toast('Regola aggiunta ✓'); render(); },
   'rule-examples': () => { const have = new Set(cfg().rules.map(r => r.t)); const list = RULE_EXAMPLES.map((x, i) => [x, i]).filter(([x]) => !have.has(x.t)); openSheet(`<h3 class="sh-title">Regole di esempio</h3><p class="sh-sub">Tocca per aggiungerla, poi puoi cambiarla.</p>${list.length ? list.map(([x, i]) => `<div class="rule" data-act="rule-example" data-i="${i}"><div class="n">＋</div><div><div class="rt">${esc(x.t)}</div></div></div>`).join('') : '<p class="muted">Le hai già tutte.</p>'}`); },
   'backup-save': () => saveBackup(),
+  currency: () => openCurrency(),
+  wizard: () => openWizard(),
+  'annual-edit': el => openAnnual(el.dataset.id || ''),
+  stress: () => openStress(),
+  subs: () => openSubs(),
+  'quick-help': () => openQuickHelp(),
+  'quick-copy': async () => { const t = location.origin + location.pathname + '?add='; try { await navigator.clipboard.writeText(t); toast('Link copiato ✓'); } catch (e) { toast(t); } },
+  'auto-backups': () => openAutoBackups(),
+  'ch-start': el => { const st = Object.assign({}, chState()); st[el.dataset.id] = {start: today(), by: meNow()}; const won = el.dataset.won === '1'; saveStateField(Object.assign({challenges: st}, won ? {chWins: (((S.real.state || {}).chWins) || 0) + 1} : {})); toast('Sfida iniziata 🔥'); render(); },
+  'ch-stop': el => { const st = Object.assign({}, chState()); delete st[el.dataset.id]; saveStateField({challenges: st}); render(); },
   'goal-casa': () => openGoalEdit('casa'),
   'setup-done': async () => { const c = clone(cfg()); c.setupDone = 1; await saveConfig(c); S.anim = true; render(); },
   'wait-nudge': el => { const w = D().waits.find(x => x.id === el.dataset.id); if (w) pushAsk(w.id, w, true); },
@@ -4007,7 +4024,7 @@ const ACT = {
   'ex-copy': async el => { const w = el.closest('.wrap'); try { await navigator.clipboard.writeText(w._data); toast('Copiato ✓ Incollalo in una nota o in un file'); } catch (e) { const t = $('#ex-t', w); t.focus(); t.select(); toast('Seleziona e copia il testo'); } saveStateField({lastBackup: today()}); render(); },
   import: () => openImport(),
   'im-go': el => doImport(el.closest('.wrap')),
-  'start-real': () => { S.preview = false; lsSet('future_preview_off', '1'); S.anim = true; render(); setTimeout(() => autoPost(), 500); if (!cfg().accountsSet) setTimeout(() => openAccounts(true), 350); else toast('Da ora registrate i vostri dati veri'); },
+  'start-real': () => { S.preview = false; lsSet('future_preview_off', '1'); S.anim = true; render(); setTimeout(() => autoPost(), 500); if (!cfg().accountsSet) setTimeout(() => (cfg().wizardDone ? openAccounts(true) : openWizard()), 350); else toast('Da ora registrate i vostri dati veri'); },
   'in-next': () => introGo(introIdx + 1),
   'tour-start': el => { const w = el.closest('.wrap'); if (w) closeSheet(w); setTimeout(startTour, 350); },
   'tour-next': () => { const st = TOUR.steps[TOUR.i]; if (st && st.last) { endTour(); return; } tourShow(TOUR.i + 1, 1); },
@@ -5180,6 +5197,7 @@ async function boot() {
   } else {
     B.kind = 'local'; S.mode = 'local'; loadLocal(); decidePreview(); render(); setTimeout(() => autoPost(), 600);
   }
+  featuresBoot();
 }
 // regola unica: ogni importo con il segno ha il suo colore, ovunque (− uscita, + entrata), salvo dove c'è già un colore che segnala qualcosa (rosso sforato, giallo, ecc.)
 const SIGN_SKIP = ['g', 'r', 'a', 'v', 'o', 'm'];
@@ -5203,7 +5221,311 @@ function renameFund(root) {
   });
 }
 let paintRq = 0;
-new MutationObserver(() => { if (paintRq) return; paintRq = requestAnimationFrame(() => { paintRq = 0; paintSigns(document); renameFund(document.body); }); }).observe(document.body, {childList: true, subtree: true, characterData: true});
+new MutationObserver(() => { if (paintRq) return; paintRq = requestAnimationFrame(() => { paintRq = 0; paintSigns(document); renameFund(document.body); renameCurrency(document.body); }); }).observe(document.body, {childList: true, subtree: true, characterData: true});
+/* ================= Future · Fasi 1-3: funzioni nuove ================= */
+/* ---------- valuta ---------- */
+const CURRENCIES = [['EUR', '€', 'Euro'], ['USD', '$', 'Dollaro USA'], ['GBP', '£', 'Sterlina britannica'], ['CHF', 'CHF', 'Franco svizzero'], ['EGP', 'E£', 'Sterlina egiziana'], ['AED', 'AED', 'Dirham degli Emirati'], ['SAR', 'SAR', 'Riyal saudita'], ['MAD', 'MAD', 'Dirham marocchino'], ['TND', 'TND', 'Dinaro tunisino'], ['TRY', '₺', 'Lira turca'], ['RON', 'lei', 'Leu romeno'], ['PLN', 'zł', 'Złoty polacco']];
+function curSym() { try { const c = CURRENCIES.find(x => x[0] === ((D() && D().config && D().config.cur) || 'EUR')); return c ? c[1] : '€'; } catch (e) { return '€'; } }
+function curName() { const c = CURRENCIES.find(x => x[0] === (cfg().cur || 'EUR')); return c ? `${c[1]} · ${c[2]}` : '€ · Euro'; }
+function renameCurrency(root) {
+  const sym = curSym(); if (sym === '€') return;
+  const w = document.createTreeWalker(root || document.body, NodeFilter.SHOW_TEXT); const todo = []; let n;
+  while ((n = w.nextNode())) if (n.nodeValue.includes('€')) todo.push(n);
+  todo.forEach(t => { const p = t.parentNode; if (!p || /^(SCRIPT|STYLE|TEXTAREA)$/.test(p.nodeName)) return; if (p.nodeName === 'OPTION' && !p.hasAttribute('value')) p.setAttribute('value', p.textContent); t.nodeValue = t.nodeValue.replace(/€/g, sym); });
+}
+function openCurrency() {
+  const cur = cfg().cur || 'EUR';
+  const w = openSheet(`<h3 class="sh-title">Valuta</h3><p class="sh-sub">La valuta in cui tieni i conti. Cambia solo il simbolo: gli importi restano quelli.</p>
+    <div class="card tight" style="margin:0">${CURRENCIES.map(c => `<div class="setrow" data-cur="${c[0]}"><span>${esc(c[1])} · ${esc(c[2])}</span><span class="chev">${c[0] === cur ? '✓' : ''}</span></div>`).join('')}</div>`);
+  w.addEventListener('click', async e => { const r = e.target.closest('[data-cur]'); if (!r) return; const c = clone(cfg()); c.cur = r.dataset.cur; if (await saveConfig(c) !== false) { closeSheet(w); toast('Valuta aggiornata ✓'); render(); } });
+}
+
+/* ---------- configurazione guidata (2 minuti) ---------- */
+function wizPlan(s) {
+  const inc = r2((s.inc || 0) + (s.other || 0)), fixed = r2((s.casa || 0) + (s.bills || 0)), free = Math.max(0, inc - fixed);
+  const rnd = v => Math.max(0, Math.round(v / 5) * 5);
+  const p = {casa: r2(s.casa || 0), utenze: r2(s.bills || 0), spesa: rnd(Math.min(free * 0.3, inc * 0.15)), auto: rnd(free * 0.12), personali: rnd(free * 0.1), svago: rnd(free * 0.08), salute: rnd(free * 0.05), fuori: rnd(free * 0.05)};
+  const used = Object.values(p).reduce((a, b) => a + b, 0);
+  return {p, inc, fondo: r2(Math.max(0, inc - used)), cushion: rnd(fixed + p.spesa)};
+}
+function openWizard() {
+  const w = openSheet('<div id="wz"></div>'); w.dataset.wiz = '1';
+  const g0 = (cfg().goals || []).find(g => g.id === 'casa') || {};
+  w._s = {step: 0, cur: cfg().cur || 'EUR', inc: incomeTotal() || '', other: '', casa: '', bills: '', cc: '', cash: '', gname: g0.n && g0.n !== 'Fondo casa' ? g0.n : '', gtarget: ''};
+  const num = id => { const v = parseAmt(($('#' + id, w) || {}).value); return v > 0 ? v : 0; };
+  const field = (id, label, val, ph) => `<label class="fld"><span>${label}</span><div class="amtin"><input id="${id}" inputmode="decimal" placeholder="${ph || '0,00'}" value="${val ? String(val).replace('.', ',') : ''}"><b>${esc(curSym())}</b></div></label>`;
+  const draw = () => {
+    const s = w._s, dots = [0, 1, 2, 3, 4].map(i => `<span style="display:inline-block;width:${i === s.step ? 22 : 8}px;height:8px;border-radius:8px;margin-right:5px;background:${i <= s.step ? 'var(--green)' : 'rgba(255,255,255,.15)'};transition:all .3s"></span>`).join('');
+    let body = '';
+    if (s.step === 0) body = `<h3 class="sh-title">Quanto entra ogni mese?</h3><p class="sh-sub">Stipendio o entrate fisse. Poi ti propongo un budget.</p>
+      <label class="fld"><span>Valuta</span><select id="wz-cur">${CURRENCIES.map(c => `<option value="${c[0]}" ${c[0] === s.cur ? 'selected' : ''}>${esc(c[1])} · ${esc(c[2])}</option>`).join('')}</select></label>
+      ${field('wz-inc', 'Entrate fisse al mese', s.inc)}${field('wz-other', 'Altre entrate al mese (facoltativo)', s.other)}`;
+    if (s.step === 1) body = `<h3 class="sh-title">Le spese che non puoi evitare</h3><p class="sh-sub">Più o meno: le correggi quando vuoi.</p>${field('wz-casa', 'Affitto o rata del mutuo', s.casa)}${field('wz-bills', 'Bollette e utenze (luce, gas, internet, telefono)', s.bills)}`;
+    if (s.step === 2) body = `<h3 class="sh-title">Quanto hai oggi?</h3><p class="sh-sub">Il saldo di adesso: da qui l’app tiene il conto.</p>${field('wz-cc', 'Conto corrente', s.cc)}${field('wz-cash', 'Contanti', s.cash)}`;
+    if (s.step === 3) body = `<h3 class="sh-title">Il tuo obiettivo</h3><p class="sh-sub">Per cosa stai mettendo da parte? Casa, viaggio, auto, tranquillità…</p>
+      <label class="fld"><span>Nome dell’obiettivo</span><input id="wz-gn" maxlength="40" placeholder="es. Casa nuova" value="${esc(s.gname)}"></label>${field('wz-gt', 'Quanto ti serve', s.gtarget, 'es. 20.000,00')}`;
+    if (s.step === 4) {
+      const pl = wizPlan(s), L = [['casa', '🏠', 'Affitto o mutuo'], ['utenze', '⚡', 'Utenze'], ['spesa', '🛒', 'Spesa'], ['auto', '🚗', 'Trasporti'], ['personali', '👤', 'Spese personali'], ['svago', '🎉', 'Svago'], ['salute', '💊', 'Salute'], ['fuori', '📦', 'Fuori budget']];
+      body = `<h3 class="sh-title">Il tuo budget</h3><p class="sh-sub">Su ${eur(pl.inc)} al mese ti propongo così. Ogni voce la cambi quando vuoi da Impostazioni → Budget del mese.</p>
+        <div class="card tight" style="margin:0">${L.map(([k, e, n]) => `<div class="pr" style="display:flex;justify-content:space-between;padding:7px 2px;font-size:15px"><span>${e} ${n}</span><b class="num">${eur(pl.p[k])}</b></div>`).join('')}
+        <div class="pr" style="display:flex;justify-content:space-between;padding:9px 2px;font-size:15px;border-top:1px solid rgba(255,255,255,.08)"><span>🔐 ${esc(s.gname || 'Il tuo obiettivo')} (risparmio)</span><b class="num g">${eur(pl.fondo)}</b></div></div>
+        <div class="vrule" style="margin-top:12px">🛟 Cuscinetto di emergenza consigliato: <b>${eur(pl.cushion)}</b> (un mese di spese indispensabili).${pl.fondo <= 0 ? '<br>⚠️ Le spese fisse superano le entrate: la priorità è tagliare o aumentare le entrate.' : ''}</div>`;
+    }
+    $('#wz', w).innerHTML = `<div style="margin:0 0 12px">${dots}</div>${body}
+      <div class="row2" style="margin-top:14px">${s.step ? '<button class="btn mt0" data-wz="back">Indietro</button>' : '<button class="btn ghost mt0" data-act="close-sheet">Più tardi</button>'}<button class="btn primary mt0" data-wz="next">${s.step === 4 ? 'Va bene, inizia' : 'Avanti'}</button></div>`;
+    setTimeout(() => { const i = $('#wz input', w); if (i && !i.value) i.focus(); }, 300);
+  };
+  const grab = () => {
+    const s = w._s;
+    if (s.step === 0) { s.cur = $('#wz-cur', w).value; s.inc = num('wz-inc'); s.other = num('wz-other'); }
+    if (s.step === 1) { s.casa = num('wz-casa'); s.bills = num('wz-bills'); }
+    if (s.step === 2) { s.cc = num('wz-cc'); s.cash = num('wz-cash'); }
+    if (s.step === 3) { s.gname = $('#wz-gn', w).value.trim(); s.gtarget = num('wz-gt'); }
+  };
+  w.addEventListener('click', async e => {
+    const b = e.target.closest('[data-wz]'); if (!b) return; grab(); const s = w._s;
+    if (b.dataset.wz === 'back') { s.step--; draw(); return; }
+    if (s.step === 0 && !(s.inc > 0)) { toast('Scrivi quanto entra ogni mese'); return; }
+    if (s.step < 4) { s.step++; draw(); return; }
+    const pl = wizPlan(s), c = clone(cfg());
+    c.cur = s.cur;
+    c.income = [{n: 'Stipendio', a: r2(s.inc)}].concat(s.other > 0 ? [{n: 'Altre entrate', a: r2(s.other)}] : []);
+    if (s.other > 0 && !c.incomeCats.includes('Altre entrate')) c.incomeCats.splice(1, 0, 'Altre entrate');
+    c.budgets = c.budgets.map(x => (x.k in pl.p ? Object.assign({}, x, {a: pl.p[x.k]}) : x));
+    const acc = n => c.accounts.find(a => a.n === n);
+    if (acc('Conto corrente')) acc('Conto corrente').init = r2(s.cc); if (acc('Contanti')) acc('Contanti').init = r2(s.cash);
+    c.accountsSet = true;
+    c.goals = c.goals.map(g => (g.id === 'casa' ? Object.assign({}, g, {n: s.gname || g.n, target: s.gtarget || g.target}) : g));
+    c.cushion = Object.assign({}, c.cushion, {target: pl.cushion});
+    c.wizardDone = 1;
+    if (await saveConfig(c) === false) return;
+    closeSheet(w); buzz(20); toast('Fatto: Future è pronta 🎉'); S.anim = true; render();
+  });
+  draw();
+}
+
+/* ---------- previsione del saldo fino a fine mese ---------- */
+function spendAccs() { return cfg().accounts.map(a => a.n).filter(n => !accUse(n).goal); }
+function forecastData() {
+  const ym = curYM(), accs = new Set(spendAccs()), t0 = today(), last = `${ym}-${pad(daysIn(ym))}`;
+  let bal = r2([...accs].reduce((s, a) => s + balance(a), 0));
+  const ev = {};
+  for (const r of recs()) {
+    const st = recState(r, ym); if (st !== 'due' && st !== 'later') continue;
+    const d = st === 'due' ? t0 : recDate(r, ym), a = recAmount(r); let v = 0;
+    if (r.kind === 'in' && accs.has(r.acc || 'Conto corrente')) v = a;
+    else if (r.kind === 'out' && accs.has(r.acc || 'Conto corrente')) v = -a;
+    else if (r.kind === 'move') { const f = accs.has(r.acc || 'Conto corrente'), to = accs.has(r.to || ''); v = f && !to ? -a : !f && to ? a : 0; }
+    if (v) (ev[d] = ev[d] || []).push({n: r.n, v});
+  }
+  const pts = []; let min = {v: bal, d: t0}; const day0 = +t0.slice(8);
+  for (let k = day0; k <= +last.slice(8); k++) {
+    const d = `${ym}-${pad(k)}`; (ev[d] || []).forEach(x => { bal = r2(bal + x.v); });
+    pts.push({d, v: bal}); if (bal < min.v) min = {v: bal, d};
+  }
+  return {pts, min, end: bal, ev};
+}
+function forecastHTML() {
+  if (S.preview || S.ym !== curYM() || !cfg().accountsSet) return '';
+  const f = forecastData(); if (f.pts.length < 2 || !Object.keys(f.ev).length) return '';
+  const W = 300, H = 54, vs = f.pts.map(p => p.v), mn = Math.min(...vs), mx = Math.max(...vs), pd = Math.max((mx - mn) * 0.2, Math.abs(mx) * 0.01, 10), lo = mn - pd, hi = mx + pd, sx = i => (i / (f.pts.length - 1)) * W, sy = v => H - 4 - ((v - lo) / (hi - lo || 1)) * (H - 8);
+  const path = f.pts.map((p, i) => `${i ? 'L' : 'M'}${sx(i).toFixed(1)},${sy(p.v).toFixed(1)}`).join(' ');
+  const neg = f.min.v < 0, zero = lo < 0 ? `<line x1="0" x2="${W}" y1="${sy(0).toFixed(1)}" y2="${sy(0).toFixed(1)}" stroke="rgba(255,107,138,.5)" stroke-dasharray="4 4"/>` : '';
+  return `<div class="card stag" style="--i:0"><div class="h-label">📈 Saldo previsto fino a fine mese</div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block;margin:8px 0 4px"><defs><linearGradient id="fcg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${neg ? '#FF6B8A' : '#2EE59D'}" stop-opacity=".35"/><stop offset="1" stop-color="${neg ? '#FF6B8A' : '#2EE59D'}" stop-opacity="0"/></linearGradient></defs>${zero}<path d="${path} L${W},${H} L0,${H} Z" fill="url(#fcg)"/><path d="${path}" fill="none" stroke="${neg ? '#FF6B8A' : '#2EE59D'}" stroke-width="2.2" stroke-linejoin="round" style="stroke-dasharray:900;stroke-dashoffset:900;animation:fcdraw 1.1s ease forwards"/></svg>
+    <div style="display:flex;justify-content:space-between;font-size:13px" class="muted"><span>Oggi</span><span>Fine mese: <b class="num ${f.end < 0 ? 'r' : 'g'}">${eur(f.end)}</b></span></div>
+    ${neg ? `<div class="vrule" style="margin-top:8px;color:#FFB3C1">⚠️ Il <b>${+f.min.d.slice(8)}</b> il conto va sotto di <b>${eur(-f.min.v)}</b> con i pagamenti previsti: sposta dei soldi prima di quel giorno o rinvia una spesa.</div>` : `<div class="muted" style="font-size:13px;margin-top:4px">Il punto più basso: <b class="num">${eur(f.min.v)}</b> il ${+f.min.d.slice(8)} · conta solo entrate e pagamenti fissi.</div>`}</div>`;
+}
+
+/* ---------- spese annuali ---------- */
+const annual = () => (Array.isArray(cfg().annual) ? cfg().annual : []);
+function annualQuota() { return r2(annual().reduce((s, a) => s + (+a.a || 0) / 12, 0)); }
+function annualSoonHTML() {
+  if (S.preview || S.ym !== curYM()) return '';
+  const m = +curYM().slice(5), nx = m === 12 ? 1 : m + 1, soon = annual().filter(a => +a.mm === m || +a.mm === nx);
+  if (!soon.length) return '';
+  return `<div class="card stag" data-act="tab" data-tab="goals" style="--i:0;cursor:pointer"><div class="h-label">📅 Spese annuali in arrivo</div>${soon.map(a => `<div class="pr" style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0"><span>${esc(a.n)} · ${+a.mm === m ? 'questo mese' : MONTHS[+a.mm - 1].toLowerCase()}</span><b class="num">${eur(a.a)}</b></div>`).join('')}</div>`;
+}
+function annualCardHTML() {
+  const L = annual();
+  return `<div class="card goal"><div class="top"><div><div class="gt">📆 Spese annuali</div><div class="gs">Assicurazione, bollo, abbonamenti annuali, regali: mettendo da parte ogni mese non arrivano come sorpresa.</div></div></div>
+    ${L.length ? L.slice().sort((a, b) => a.mm - b.mm).map(a => `<div class="pr" data-act="annual-edit" data-id="${esc(a.id)}" style="display:flex;justify-content:space-between;font-size:14px;padding:6px 0;cursor:pointer"><span>${esc(a.n)} · ${MONTHS[+a.mm - 1].toLowerCase()}</span><b class="num">${eur(a.a)}</b></div>`).join('') + `<div class="vrule" style="margin-top:8px">Da mettere da parte: <b>${eur(annualQuota())} al mese</b></div>` : '<p class="muted" style="font-size:13px">Nessuna spesa annuale. Aggiungi quelle che hai, anche approssimative.</p>'}
+    <button class="btn" style="margin-top:8px" data-act="annual-edit" data-id="">+ Aggiungi spesa annuale</button></div>`;
+}
+function openAnnual(id) {
+  const x = annual().find(a => a.id === id) || {id: '', n: '', a: '', mm: +curYM().slice(5)};
+  const w = openSheet(`<h3 class="sh-title">${x.id ? 'Spesa annuale' : 'Nuova spesa annuale'}</h3><p class="sh-sub">Una spesa che arriva una volta l’anno.</p>
+    <label class="fld"><span>Cos’è</span><input id="an-n" maxlength="40" placeholder="es. Assicurazione auto" value="${esc(x.n)}"></label>
+    <div class="row2"><label class="fld"><span>Quanto</span><div class="amtin"><input id="an-a" inputmode="decimal" value="${x.a ? String(x.a).replace('.', ',') : ''}" placeholder="0,00"><b>${esc(curSym())}</b></div></label>
+    <label class="fld"><span>Quando</span><select id="an-m">${MONTHS.map((n, i) => `<option value="${i + 1}" ${i + 1 === +x.mm ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
+    <button class="btn primary" data-an="save">Salva</button>${x.id ? '<button class="btn danger" data-an="del">Elimina</button>' : ''}`);
+  w.addEventListener('click', async e => {
+    const b = e.target.closest('[data-an]'); if (!b) return; const c = clone(cfg()); c.annual = Array.isArray(c.annual) ? c.annual : [];
+    if (b.dataset.an === 'del') { if (!(await confirmSheet('Eliminare la spesa annuale?', esc(x.n), 'Elimina', true))) return; c.annual = c.annual.filter(a => a.id !== x.id); }
+    else { const n = $('#an-n', w).value.trim(), a = parseAmt($('#an-a', w).value), mm = +$('#an-m', w).value; if (!n || !(a > 0)) { toast('Scrivi nome e importo'); return; }
+      const it = {id: x.id || newId(), n, a: r2(a), mm}; c.annual = c.annual.filter(z => z.id !== it.id).concat(it); }
+    if (await saveConfig(c) !== false) { closeSheet(w); toast('Salvato ✓'); render(); }
+  });
+}
+
+/* ---------- se perdo il lavoro ---------- */
+function openStress() {
+  const liquid = r2(cfg().accounts.reduce((s, a) => s + Math.max(0, balance(a.n)), 0));
+  const ess = budgets().filter(b => (b.l && !b.auto) || b.k === 'spesa'), essT = r2(ess.reduce((s, b) => s + baseOf(b), 0) + annualQuota());
+  const flex = budgets().filter(b => !b.l && !b.auto && b.k !== 'spesa' && baseOf(b) > 0);
+  const months = essT > 0 ? liquid / essT : 0, mm = Math.floor(months), dd = Math.round((months - mm) * 30);
+  const lv = months >= 6 ? ['#2EE59D', 'Solido'] : months >= 3 ? ['#F6C744', 'Discreto'] : ['#FF6B8A', 'Fragile'];
+  const need3 = r2(Math.max(0, essT * 3 - liquid));
+  openSheet(`<h3 class="sh-title">🧯 Se perdo il lavoro</h3><p class="sh-sub">Quanto reggi se da domani non entra più niente, pagando solo l’indispensabile.</p>
+    <div style="text-align:center;margin:10px 0 14px"><div class="num" style="font-size:44px;font-weight:900;color:${lv[0]}">${essT > 0 ? `${mm} ${mm === 1 ? 'mese' : 'mesi'}` : '—'}</div><div class="muted">${essT > 0 && dd ? `e ${dd} giorni · ` : ''}${lv[1]}</div></div>
+    <div class="card tight" style="margin:0"><div class="pr" style="display:flex;justify-content:space-between;padding:7px 2px"><span>Soldi disponibili (tutti i conti)</span><b class="num">${eur(liquid)}</b></div>
+    <div class="pr" style="display:flex;justify-content:space-between;padding:7px 2px"><span>Spese indispensabili al mese</span><b class="num">${eur(essT)}</b></div>
+    ${ess.map(b => `<div class="pr muted" style="display:flex;justify-content:space-between;padding:3px 2px 3px 14px;font-size:13px"><span>${esc(b.e)} ${esc(b.n)}</span><span class="num">${eur(baseOf(b))}</span></div>`).join('')}${annualQuota() ? `<div class="pr muted" style="display:flex;justify-content:space-between;padding:3px 2px 3px 14px;font-size:13px"><span>📆 Quota spese annuali</span><span class="num">${eur(annualQuota())}</span></div>` : ''}</div>
+    <div class="vrule" style="margin-top:12px">${months >= 6 ? '✓ Sei coperto per oltre 6 mesi: ottimo margine.' : `🎯 Per arrivare a <b>3 mesi</b> di sicurezza ti mancano <b>${eur(need3)}</b>: è il primo traguardo da raggiungere.`}${flex.length ? `<br>In emergenza tagli subito: ${flex.map(b => esc(b.n)).join(', ')} (${eur(flex.reduce((s, b) => s + baseOf(b), 0))} al mese, già esclusi dal calcolo).` : ''}</div>`);
+}
+
+/* ---------- caccia agli abbonamenti ---------- */
+function subsGuess() {
+  const names = new Set(recs().map(r => norm(r.n))), from = addMonths(curYM(), -5), m = {};
+  for (const t of TX()) {
+    if (t.kind !== 'out' || t.rec || !t.note || t.d.slice(0, 7) < from) continue;
+    const k = norm(t.note).replace(/\d+/g, '').trim(); if (!k || names.has(k)) continue;
+    (m[k] = m[k] || {n: t.note, months: new Set(), sum: 0, cnt: 0}); m[k].months.add(t.d.slice(0, 7)); m[k].sum += t.a; m[k].cnt++;
+  }
+  return Object.values(m).filter(x => x.months.size >= 3 && x.cnt <= x.months.size + 1).map(x => ({n: x.n, a: r2(x.sum / x.cnt)}));
+}
+function openSubs() {
+  const debtRec = new Set((cfg().goals || []).map(g => g.recId).filter(Boolean));
+  const L = recs().filter(r => r.kind === 'out' && !r.self && !debtRec.has(r.id) && !['mutuo', 'finanz', 'carta', 'condo', 'casa'].includes(r.cat)).map(r => ({r, y: r2(recAmount(r) * 12 / Math.max(1, +r.every || 1))})).sort((a, b) => b.y - a.y);
+  const tot = r2(L.filter(x => x.r.on).reduce((s, x) => s + x.y, 0)), guess = subsGuess();
+  const w = openSheet(`<h3 class="sh-title">🔎 Caccia agli abbonamenti</h3><p class="sh-sub">Abbonamenti e addebiti automatici (rate e mutuo esclusi), con il costo in un anno. Per ognuno chiediti: lo uso davvero?</p>
+    <div style="text-align:center;margin:6px 0 12px"><div class="muted" style="font-size:13px">In un anno</div><div class="num" style="font-size:34px;font-weight:900">${eur(tot)}</div></div>
+    <div class="card tight" style="margin:0">${L.length ? L.map(({r, y}) => `<div class="setrow" style="cursor:default"><span>${esc(r.n)}<br><small>${eur(recAmount(r))} al mese · <b>${eur(y)}</b> l’anno</small></span><button class="btn sm ${r.on ? '' : 'primary'}" data-sub="${esc(r.id)}">${r.on ? 'Sospendi' : 'Riattiva'}</button></div>`).join('') : '<p class="muted" style="padding:8px">Nessun pagamento ricorrente.</p>'}</div>
+    ${guess.length ? `<div class="h-label" style="margin-top:14px">Sembrano abbonamenti, ma non sono tra i ricorrenti</div><div class="card tight" style="margin:0">${guess.map(g => `<div class="setrow" style="cursor:default"><span>${esc(g.n)}<br><small>circa ${eur(g.a)} al mese · ${eur(g.a * 12)} l’anno</small></span></div>`).join('')}</div>` : ''}`);
+  w.addEventListener('click', async e => {
+    const b = e.target.closest('[data-sub]'); if (!b) return; const c = clone(cfg()); const r = c.recurring.find(x => x.id === b.dataset.sub); if (!r) return;
+    if (r.on && !(await confirmSheet(`Sospendere ${r.n}?`, 'Non conterà più nel budget dei prossimi mesi. Ricordati di disdirlo davvero.', 'Sospendi', true))) return;
+    r.on = r.on ? 0 : 1; if (await saveConfig(c) !== false) { closeSheet(w); toast(r.on ? 'Riattivato' : `Sospeso: risparmi ${eur(recAmount(r) * 12)} l’anno 💪`); openSubs(); }
+  });
+}
+
+/* ---------- sfide ---------- */
+const CHALLENGES = [
+  {id: 'nodelivery', e: '🛵', t: '7 giorni senza delivery', d: 'Niente Glovo, Deliveroo, Just Eat, Uber Eats.', days: 7, kw: ['glovo', 'deliveroo', 'just eat', 'justeat', 'uber eats', 'ubereats', 'delivery', 'domicilio']},
+  {id: 'nobar', e: '☕', t: '14 giorni senza bar', d: 'Caffè e colazioni a casa.', days: 14, kw: ['bar', 'caffe', 'caffè', 'starbucks', 'colazione', 'cornetto']},
+  {id: 'zero3', e: '🧊', t: '3 giorni a spesa zero', d: 'Nessuna uscita registrata a mano per 3 giorni di fila.', days: 3, zero: true},
+  {id: 'nofuori', e: '📦', t: '30 giorni senza Fuori budget', d: 'Solo spese previste dalle voci.', days: 30, cat: 'fuori'}
+];
+const chState = () => ((S.real.state || {}).challenges) || {};
+function chStatus(ch, st) {
+  if (!st || !st.start) return null;
+  const hit = TX().filter(t => t.kind === 'out' && !t.rec && t.d >= st.start && (ch.zero || (ch.cat && t.cat === ch.cat) || (ch.kw && ch.kw.some(k => norm(t.note).includes(norm(k))))));
+  const days = Math.max(0, Math.floor((new Date(today()) - new Date(st.start)) / 864e5));
+  if (hit.length) return {s: 'lost', days: Math.max(0, Math.floor((new Date(hit.sort((a, b) => a.d < b.d ? -1 : 1)[0].d) - new Date(st.start)) / 864e5)), by: hit[0]};
+  return days >= ch.days ? {s: 'won', days: ch.days} : {s: 'run', days};
+}
+function challengesCardHTML() {
+  const st = chState(), wins = ((S.real.state || {}).chWins) || 0;
+  return `<div class="card goal"><div class="top"><div><div class="gt">🏆 Sfide</div><div class="gs">Piccole sfide per spendere meno. ${wins ? `Vinte finora: <b>${wins}</b>` : 'Prova la prima!'}</div></div></div>
+    ${CHALLENGES.map(ch => { const x = chStatus(ch, st[ch.id]);
+      if (!x) return `<div class="setrow" style="cursor:default"><span>${ch.e} ${esc(ch.t)}<br><small>${esc(ch.d)}</small></span><button class="btn sm" data-act="ch-start" data-id="${ch.id}">Inizia</button></div>`;
+      const pct = Math.min(1, x.days / ch.days), col = x.s === 'lost' ? '#FF6B8A' : x.s === 'won' ? '#2EE59D' : '#F6C744';
+      return `<div style="padding:8px 2px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${ch.e} <b>${esc(ch.t)}</b><br><small class="m">${x.s === 'won' ? 'Vinta! 🎉' : x.s === 'lost' ? `Persa al giorno ${x.days + 1}: ${esc(x.by.note || 'una spesa')} ${eur(x.by.a)}` : `Giorno ${x.days} di ${ch.days}`}</small></span>${x.s === 'run' ? `<button class="btn sm ghost" data-act="ch-stop" data-id="${ch.id}">Lascia</button>` : `<button class="btn sm ${x.s === 'won' ? 'primary' : ''}" data-act="ch-start" data-id="${ch.id}" data-won="${x.s === 'won' ? 1 : 0}">${x.s === 'won' ? 'Rifalla' : 'Riprova'}</button>`}</div>
+        <div style="height:6px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden"><div style="height:100%;width:${(pct * 100).toFixed(0)}%;background:${col};border-radius:6px;transition:width .6s"></div></div></div>`; }).join('')}</div>`;
+}
+function chHomeHTML() {
+  if (S.preview || S.ym !== curYM()) return '';
+  const st = chState(), run = CHALLENGES.map(ch => [ch, chStatus(ch, st[ch.id])]).filter(([, x]) => x && x.s === 'run');
+  if (!run.length) return '';
+  return `<div class="card stag" data-act="tab" data-tab="goals" style="--i:0;cursor:pointer"><div class="h-label">🏆 Sfide in corso</div>${run.map(([ch, x]) => `<div style="display:flex;justify-content:space-between;font-size:14px;padding:3px 0"><span>${ch.e} ${esc(ch.t)}</span><b>${x.days}/${ch.days} 🔥</b></div>`).join('')}</div>`;
+}
+
+/* ---------- dove vanno i soldi ---------- */
+function spendDonutHTML() {
+  const st = catStats(S.ym).filter(b => !b.auto && b.spent > 0.005).sort((a, b) => b.spent - a.spent);
+  const tot = r2(st.reduce((s, b) => s + b.spent, 0)); if (!tot) return '';
+  const R = 52, C = 2 * Math.PI * R; let acc = 0;
+  const segs = st.map(b => { const len = (b.spent / tot) * C, seg = `<circle r="${R}" cx="70" cy="70" fill="none" stroke="${esc(b.c)}" stroke-width="18" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}" transform="rotate(-90 70 70)" style="animation:dnfade .7s ease both"/>`; acc += len; return seg; }).join('');
+  return `<div class="card" style="--i:0"><div class="h-label">🍩 Dove vanno i soldi · ${ymLabel(S.ym).toLowerCase()}</div>
+    <div style="display:flex;gap:16px;align-items:center;margin-top:8px"><svg viewBox="0 0 140 140" width="132" height="132" style="flex:none">${segs}<text x="70" y="66" text-anchor="middle" fill="currentColor" style="font-size:12px;opacity:.6">spese</text><text x="70" y="84" text-anchor="middle" fill="currentColor" style="font-size:14px;font-weight:800">${esc(nf0.format(tot))}</text></svg>
+    <div style="flex:1;min-width:0">${st.slice(0, 6).map(b => `<div style="display:flex;justify-content:space-between;gap:6px;font-size:13px;padding:3px 0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><i style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${esc(b.c)};margin-right:6px"></i>${esc(b.n)}</span><b class="num">${Math.round(b.spent / tot * 100)}%</b></div>`).join('')}</div></div></div>`;
+}
+function bilToolsHTML() {
+  return `<div class="card tight" style="--i:0"><div class="setrow" data-act="stress"><span>🧯 Se perdo il lavoro<br><small>Quanti mesi reggi con i soldi che hai</small></span><span class="chev">›</span></div>
+    <div class="setrow" data-act="subs"><span>🔎 Caccia agli abbonamenti<br><small>Quanto ti costano in un anno i pagamenti automatici</small></span><span class="chev">›</span></div></div>`;
+}
+
+/* ---------- registrazione rapida (Comandi Rapidi / Siri) e scontrino ---------- */
+function openQuickHelp() {
+  const base = location.origin + location.pathname;
+  openSheet(`<h3 class="sh-title">⚡ Registrazione rapida</h3><p class="sh-sub">Con Siri o con un’icona sulla Home registri una spesa in 3 secondi.</p>
+    <div class="vrule"><b>Su iPhone, con Comandi Rapidi:</b><br>1. Apri <b>Comandi Rapidi</b> → <b>+</b><br>2. Aggiungi <b>Chiedi input</b> (Numero) → "Quanto?"<br>3. Aggiungi <b>URL</b>: <span class="num" style="word-break:break-all">${esc(base)}?add=</span> e accanto la variabile <i>Input fornito</i><br>4. Aggiungi <b>Apri URL</b><br>5. Chiamalo <b>"Spesa"</b>: ora puoi dire <i>"Ehi Siri, Spesa"</i>.</div>
+    <div class="vrule" style="margin-top:10px">Il link accetta anche la nota e la voce:<br><span class="num" style="word-break:break-all;font-size:12px">${esc(base)}?add=12,50&amp;nota=Bar&amp;voce=svago</span></div>
+    <button class="btn" data-act="quick-copy">Copia il link base</button>`);
+}
+function handleQuickAdd() {
+  try {
+    const u = new URL(location.href); if (!u.searchParams.has('add')) return;
+    const a = parseAmt(u.searchParams.get('add') || ''), note = u.searchParams.get('nota') || '', v = norm(u.searchParams.get('voce') || '');
+    const b = v ? budgets().find(x => norm(x.k) === v || norm(x.n) === v) : null;
+    ['add', 'nota', 'voce'].forEach(k => u.searchParams.delete(k)); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+    setTimeout(() => openTx({_new: true, kind: 'out', a: a > 0 ? a : '', cat: b ? b.k : 'spesa', note, d: today(), acc: 'Conto corrente', to: 'Fondo casa', xb: false, src: ''}), 500);
+  } catch (e) {}
+}
+function loadTess() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = () => res(window.Tesseract); s.onerror = () => rej(new Error('rete')); document.head.appendChild(s); });
+}
+function receiptAmount(text) {
+  const lines = String(text || '').split(/\n+/), amt = s => { const m = s.match(/(\d{1,4}(?:[.\s]\d{3})*[.,]\d{2})(?!\d)/g); return m ? m.map(x => parseAmt(x.replace(/\s/g, ''))).filter(v => v > 0) : []; };
+  for (const l of lines) if (/totale|total|importo|pagato|da pagare|contanti|carta/i.test(l)) { const v = amt(l); if (v.length) return Math.max(...v); }
+  const all = lines.flatMap(amt); return all.length ? Math.max(...all) : 0;
+}
+async function scanReceipt(w) {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    toast('Leggo lo scontrino… (la prima volta scarica il lettore, qualche secondo)');
+    try {
+      const T = await loadTess(); const r = await T.recognize(f, 'ita+eng'); const txt = (r && r.data && r.data.text) || '';
+      const a = receiptAmount(txt), first = txt.split('\n').map(x => x.trim()).find(x => /[a-z]{3,}/i.test(x)) || '';
+      if (a > 0) { const ia = $('#tx-a', w); if (ia) { ia.value = nf2.format(a); ia.dispatchEvent(new Event('input', {bubbles: true})); } }
+      const inote = $('#tx-note', w); if (inote && !inote.value && first) { inote.value = first.slice(0, 40); inote.dispatchEvent(new Event('input', {bubbles: true})); }
+      toast(a > 0 ? `Letto: ${eur(a)} · controlla prima di salvare` : 'Non ho trovato il totale: scrivilo tu');
+    } catch (e) { toast('Lettura non riuscita: serve la rete la prima volta'); }
+  };
+  inp.click();
+}
+
+/* ---------- avvio delle funzioni nuove ---------- */
+function featuresBoot() {
+  handleQuickAdd();
+  addEventListener('offline', () => { toast('Sei offline: quello che registri parte appena torna la rete'); render(); });
+  addEventListener('online', () => { render(); });
+  if (window.FutureCloud && window.FutureCloud.onQueue) window.FutureCloud.onQueue(() => render());
+  setTimeout(() => { if (B.kind === 'db' && !S.preview && window.FutureCloud && window.FutureCloud.autoBackup) window.FutureCloud.autoBackup().then(r => { if (r && r.ok && !r.skipped) saveStateField({lastAuto: today()}); }); }, 9000);
+  navigator.serviceWorker && navigator.serviceWorker.addEventListener && navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'open' && /add=/.test(e.data.url || '')) { history.replaceState(null, '', e.data.url); handleQuickAdd(); } });
+}
+async function openAutoBackups() {
+  const FC = window.FutureCloud; if (!FC || !FC.listBackups) return;
+  const w = openSheet('<h3 class="sh-title">Backup automatici</h3><p class="sh-sub">Uno a settimana, salvati sul server. Si tengono gli ultimi 8.</p><div id="ab-list" class="muted">Carico…</div><button class="btn" data-ab="now">Fai un backup adesso</button>');
+  const draw = async () => { const L = await FC.listBackups(); $('#ab-list', w).innerHTML = L.length ? `<div class="card tight" style="margin:0">${L.map(b => `<div class="setrow" style="cursor:default"><span>${esc(dateShort(String(b.created_at).slice(0, 10)))} · ${String(b.created_at).slice(11, 16)}<br><small>${b.docs} elementi</small></span><button class="btn sm" data-ab="${b.id}">Ripristina</button></div>`).join('')}</div>` : '<p>Ancora nessun backup automatico.</p>'; };
+  draw();
+  w.addEventListener('click', async e => {
+    const b = e.target.closest('[data-ab]'); if (!b) return;
+    if (b.dataset.ab === 'now') { b.disabled = true; const r = await FC.autoBackup(true); toast(r.ok ? 'Backup fatto ✓' : 'Backup non riuscito'); b.disabled = false; draw(); return; }
+    if (!(await confirmSheet('Ripristinare questo backup?', 'Prima salvo un backup dello stato attuale, così puoi tornare indietro. I movimenti aggiunti dopo il backup restano.', 'Ripristina', true))) return;
+    try { const n = await FC.restoreBackup(+b.dataset.ab); toast(`Ripristinati ${n} elementi ✓`); closeSheet(w); render(); } catch (err) { toast('Ripristino non riuscito: ' + err.message); }
+  });
+}
+
+/* scontrino: pulsante nel foglio del movimento */
+const _drawTx0 = drawTx;
+drawTx = function (w) {
+  _drawTx0(w);
+  try { if (w._t && w._t.kind === 'out' && !S.preview && !$('#tx-scan', w)) { const a = $('#tx-a', w); const lab = a && a.closest('label'); if (lab) { lab.insertAdjacentHTML('afterend', '<button class="chipbtn" id="tx-scan" type="button" style="margin:-4px 0 10px">📷 Leggi lo scontrino</button>'); $('#tx-scan', w).addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); scanReceipt(w); }); } } } catch (e) {}
+};
+
 boot();
 })();
 </script>
