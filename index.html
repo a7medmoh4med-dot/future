@@ -481,6 +481,15 @@ input,select,textarea{font-family:inherit}
   .ask b{font-size:18px}.ask{padding:17px}
   .slide{padding-left:20px;padding-right:20px}.slide h2{font-size:26px}
 }
+@media (min-width:1100px){
+  #sheets .sheet.wide1{width:min(780px,90vw);padding:14px 30px 26px}
+  #sheets .sheet.wide2{width:min(1060px,92vw);padding:14px 32px 28px}
+  .cols2{column-count:2;column-gap:30px}
+  .cols2 > *{break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid}
+  .cols2 > .sh-title,.cols2 > .sh-sub,.cols2 > .ask-hd,.cols2 > .banner:first-of-type{column-span:all}
+  .cols2 > .h-label,.cols2 > h4{break-after:avoid;-webkit-column-break-after:avoid}
+  .cols2 > .card,.cols2 > .vrule,.cols2 > .plan{display:block;width:100%}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .mtiles{display:grid;gap:8px}
 .mtile{display:grid;grid-template-columns:40px 1fr;column-gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--stroke);background:rgba(255,255,255,.04);border-radius:18px;padding:12px 14px;color:var(--text)}
@@ -2111,8 +2120,27 @@ function openSheet(html) {
   w.innerHTML = `<div class="bd" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div><button class="x" data-act="close-sheet" aria-label="Chiudi">✕</button><div class="sc">${html}</div></div>`;
   $('#sheets').appendChild(w);
   requestAnimationFrame(() => requestAnimationFrame(() => w.classList.add('open')));
+  layoutSheet(w); try { let tm = 0; new MutationObserver(() => { clearTimeout(tm); tm = setTimeout(() => layoutSheet(w), 30); }).observe($('.sc', w), {childList: true, subtree: true}); } catch (e) {}
   return w;
 }
+// su PC i fogli lunghi usano lo schermo: due colonne invece di una striscia stretta
+function layoutSheet(w) {
+  try {
+    const sh = $('.sheet', w), sc = $('.sc', w); if (!sh || !sc) return;
+    const tgt = [sc, ...[...sc.children].filter(x => x.tagName === 'DIV' && !x.classList.contains('row2'))].reduce((m, x) => (x.children.length > m.children.length ? x : m), sc);
+    const form = sc.querySelectorAll('.fld').length >= 3 || sc.querySelector('.cats');
+    sh.classList.remove('wide2', 'wide1'); $$('.cols2', sc).forEach(x => x.classList.remove('cols2')); sc.classList.remove('cols2');
+    if (innerWidth < 1100 || form) return;
+    const many = sc.querySelectorAll('*').length >= 20;
+    if (many) sh.classList.add('wide1');
+    if (sh.scrollHeight > sh.clientHeight + 4 && tgt.children.length > 2) {
+      sh.classList.remove('wide1'); sh.classList.add('wide2');
+      const list = [...tgt.querySelectorAll('.card, .plan, div')].filter(x => x.children.length >= 8 && !x.closest('.cols2')).sort((p, q) => q.children.length - p.children.length)[0];
+      (list && list.children.length > tgt.children.length ? list : tgt).classList.add('cols2');
+    }
+  } catch (e) {}
+}
+addEventListener('resize', () => { try { $$('#sheets .wrap').forEach(layoutSheet); } catch (e) {} });
 function closeSheet(w) { w = w || $$('#sheets .wrap').pop(); if (!w) return; w.classList.remove('open'); setTimeout(() => { w.remove(); if (!$$('#sheets .wrap').length) setTimeout(() => maybeAsk(), 150); }, 380); }
 function closeAll() { $$('#sheets .wrap').forEach(w => closeSheet(w)); }
 function confirmSheet(title, msg, ok, danger) {

@@ -1,6 +1,6 @@
 /* Future — service worker: l'app si apre anche senza rete.
    Quando pubblichi una nuova versione, cambia il numero qui sotto (v1 → v2): i telefoni scaricano tutto di nuovo. */
-const VERSION = 'future-v13';
+const VERSION = 'future-v14';
 const SHELL = ['./', 'index.html', 'config.js', 'future-cloud.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js'];
