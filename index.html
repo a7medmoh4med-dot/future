@@ -3243,7 +3243,7 @@ function openIncome() {
   w._rows = clone(cfg().income); drawIncome(w);
 }
 function drawIncome(w) { $('#inc-rows', w).innerHTML = w._rows.map((r, i) => `<div class="edrow"><input data-i="${i}" data-f="n" value="${esc(r.n)}" placeholder="Nome"><input data-i="${i}" data-f="a" inputmode="decimal" value="${r.a}"><button class="tg" data-act="inc-del" data-i="${i}" aria-label="Rimuovi">✕</button></div>`).join(''); }
-function syncRows(w) { $$('[data-i][data-f]', w).forEach(el => { const r = w._rows[+el.dataset.i]; if (!r) return; if (el.dataset.f === 'a') r.a = parseAmt(el.value) || 0; else r[el.dataset.f] = el.value.trim(); }); }
+function syncRows(w) { $$('[data-i][data-f]', w).forEach(el => { const r = w._rows[+el.dataset.i]; if (!r) return; if (el.dataset.f === 'a') { if ((r.rec || r.bills) && !r.pct) { const v = parseAmt(el.value); if (el.value.trim() && v >= 0) { r.a = v; r.rec = 0; r.bills = 0; } } else r.a = parseAmt(el.value) || 0; } else r[el.dataset.f] = el.value.trim(); }); }
 function openIncTypes() {
   const w = openSheet(`<h3 class="sh-title">Tipi di entrata</h3><p class="sh-sub">I nomi che vedi quando registri un\u2019entrata. 💸 = entrata extra: dopo averla registrata l\u2019app ti propone di mandarla al fondo o ai debiti (regola 9).</p><div id="it-rows"></div>
     <button class="btn" data-act="it-add">+ Aggiungi tipo</button><button class="btn primary" data-act="it-save">Salva</button>`);
@@ -3251,13 +3251,19 @@ function openIncTypes() {
 }
 function drawIncTypes(w) { $('#it-rows', w).innerHTML = w._rows.map((r, i) => `<div class="edrow3"><input class="plain" data-i="${i}" data-f="n" value="${esc(r.n)}" placeholder="es. Rimborso spese"><button class="tg ${r.x ? 'on' : ''}" data-act="it-x" data-i="${i}" aria-label="Entrata extra">💸</button><button class="tg" data-act="it-del" data-i="${i}" aria-label="Elimina">✕</button></div>`).join(''); }
 function openBudgets() {
-  const w = openSheet(`<h3 class="sh-title">Budget del mese</h3><p class="sh-sub">Importo mensile per voce. 🔒 = intoccabile.${shareFp() > 0 ? ` ${esc(shareN())} è il ${pctTxt(shareFp())} delle entrate previste (si cambia in Impostazioni → Quota di ${esc(shareN())}).` : ''} Mutuo, Finanziamenti, Carta, Condominio e Utenze sono la somma dei loro pagamenti ricorrenti: l\u2019importo si cambia lì. Le Bollette compaiono solo nel mese in cui le registri (qui sotto il totale conta la media). Il fondo casa (finché ci sono debiti: salvadanaio debiti) si calcola da solo: entrate previste meno tutte le altre voci.</p><div id="bud-rows"></div>
+  const w = openSheet(`<h3 class="sh-title">Budget del mese</h3><p class="sh-sub">Importo mensile per voce. 🔒 = intoccabile.${shareFp() > 0 ? ` ${esc(shareN())} è il ${pctTxt(shareFp())} delle entrate previste (si cambia in Impostazioni → Quota di ${esc(shareN())}).` : ''} Ogni voce si può rinominare, rendere flessibile o eliminare. Il fondo casa (finché ci sono debiti: salvadanaio debiti) si calcola da solo: entrate previste meno tutte le altre voci.</p><div id="bud-rows"></div>
     <button class="btn" data-act="bud-add">+ Aggiungi voce</button><div id="bud-tot" class="banner" style="margin-top:12px"></div><button class="btn primary" data-act="bud-save">Salva</button>`);
   w._rows = clone(cfg().budgets); drawBudgets(w);
 }
 function drawBudgets(w) {
-  $('#bud-rows', w).innerHTML = w._rows.map((b, i) => b.auto || b.pct || b.rec || b.bills ? `<div class="edrow"><input value="${esc(b.e)} ${esc(b.n)}" disabled><input value="${b.pct ? b.pct + '% = ' + eur0(r2(incomeTotal() * b.pct / 100)) : b.rec ? 'ricorrenti = ' + eur(recBudget(b.k)) : b.bills ? 'solo quando arrivano' : 'auto'}" disabled><button class="tg on" disabled>🔒</button></div>`
-    : `<div class="edrow4"><input class="em" data-i="${i}" data-f="e" value="${esc(b.e)}" aria-label="Emoji"><input data-i="${i}" data-f="n" value="${esc(b.n)}" placeholder="Nome voce"><input data-i="${i}" data-f="a" inputmode="decimal" value="${b.a}"><button class="tg ${b.l ? 'on' : ''}" data-act="bud-lock" data-i="${i}" aria-label="Intoccabile">${b.l ? '🔒' : '🔓'}</button><button class="tg" data-act="bud-del" data-i="${i}" aria-label="Elimina voce">✕</button></div>`).join('');
+  $('#bud-rows', w).innerHTML = w._rows.map((b, i) => {
+    if (b.auto) return `<div class="edrow"><input value="${esc(b.e)} ${esc(b.n)}" disabled><input value="auto" disabled><button class="tg on" disabled aria-label="Calcolata da sola">🔒</button></div>`;
+    const sys = b.pct || b.rec || b.bills;
+    const amt = b.pct ? `<button class="tg" style="width:100%;font-size:13px" data-act="set-share" aria-label="Cambia la quota">${b.pct}%</button>`
+      : sys ? `<input data-i="${i}" data-f="a" inputmode="decimal" value="" placeholder="${b.rec ? esc(fmtN(recBudget(b.k), 0)) + ' auto' : 'variabile'}" aria-label="Importo fisso (vuoto = automatico)">`
+      : `<input data-i="${i}" data-f="a" inputmode="decimal" value="${b.a}">`;
+    return `<div class="edrow4"><input class="em" data-i="${i}" data-f="e" value="${esc(b.e)}" aria-label="Emoji"><input data-i="${i}" data-f="n" value="${esc(b.n)}" placeholder="Nome voce">${amt}<button class="tg ${b.l ? 'on' : ''}" data-act="bud-lock" data-i="${i}" aria-label="Intoccabile">${b.l ? '🔒' : '🔓'}</button><button class="tg" data-act="bud-del" data-i="${i}" aria-label="Elimina voce">✕</button></div>`;
+  }).join('') + `<p class="muted" style="font-size:12.5px;margin:2px 4px 10px">🔒 intoccabile · 🔓 flessibile: da lì si possono prendere soldi per coprire altre voci. Nelle voci con «auto» l’importo è la somma dei pagamenti ricorrenti (o delle bollette): se scrivi una cifra diventa un importo fisso.</p>`;
   updBudTot(w);
 }
 function updBudTot(w) {
@@ -4100,10 +4106,19 @@ const ACT = {
   'bud-lock': el => { const w = el.closest('.wrap'); syncRows(w); const b = w._rows[+el.dataset.i]; b.l = b.l ? 0 : 1; drawBudgets(w); },
   'bud-add': el => { const w = el.closest('.wrap'); syncRows(w); const cols = ['#5AA9FF', '#FF9F43', '#B57CFF', '#4FD1C5', '#F6C744', '#FF5E7A', '#5BD67A']; w._rows.push({k: 'c' + newId().slice(-6), n: '', a: 0, l: 0, e: '🏷️', c: cols[w._rows.length % cols.length]}); drawBudgets(w); const ins = $$('.edrow4 [data-f="n"]', w); if (ins.length) ins[ins.length - 1].focus(); },
   'bud-del': async el => { const w = el.closest('.wrap'); syncRows(w); const b = w._rows[+el.dataset.i]; if (!b) return; const n = D().tx.filter(t => t.cat === b.k).length;
-    if (recs().some(r => r.cat === b.k)) { toast('Questa voce è usata da un pagamento ricorrente: cambia prima quello'); return; }
-    if (!(await confirmSheet('Eliminare la voce?', n ? `${n} movimenti usano “${esc(b.n)}”: restano nello storico ma non avranno più un budget.` : `“${esc(b.n || 'Voce')}”: diventa effettivo quando premi Salva.`, 'Elimina voce', true))) return;
+    const nr = recs().filter(r => r.cat === b.k).length;
+    if (n || nr) {
+      const dests = w._rows.filter(x => x !== b && !x.auto && x.n);
+      const ch = await choiceSheet(`Eliminare «${b.n}»?`, `La usano ${[n ? n + ' movimenti' : '', nr ? nr + ' pagamenti ricorrenti' : ''].filter(Boolean).join(' e ')}. Su quale voce li sposto? Diventa effettivo quando premi Salva.`, dests.map(x => [x.k, `${x.e} ${x.n}`]));
+      if (!ch) return; w._remap = Object.assign(w._remap || {}, {[b.k]: ch});
+      for (const k in w._remap) if (w._remap[k] === b.k) w._remap[k] = ch;
+    } else if (!(await confirmSheet('Eliminare la voce?', `“${esc(b.n || 'Voce')}”: diventa effettivo quando premi Salva.`, 'Elimina voce', true))) return;
     w._rows.splice(+el.dataset.i, 1); drawBudgets(w); },
-  'bud-save': async el => { const w = el.closest('.wrap'); syncRows(w); if (w._rows.some(b => !b.auto && !b.n)) { toast('Dai un nome a ogni voce'); return; } const c = clone(cfg()); c.budgets = w._rows.map(b => Object.assign(b, {e: (b.e || '🏷️').trim() || '🏷️'})); await saveConfig(c); toast('Budget salvato ✓'); closeSheet(w); S.anim = true; render(); },
+  'bud-save': async el => { const w = el.closest('.wrap'); syncRows(w); if (w._rows.some(b => !b.auto && !b.n)) { toast('Dai un nome a ogni voce'); return; } const c = clone(cfg()); c.budgets = w._rows.map(b => Object.assign(b, {e: (b.e || '🏷️').trim() || '🏷️'}));
+    const RM = w._remap || {}; if (Object.keys(RM).length) c.recurring = (c.recurring || []).map(r => (RM[r.cat] ? Object.assign({}, r, {cat: RM[r.cat]}) : r));
+    if (await saveConfig(c) === false) return;
+    let moved = 0; for (const t of D().tx.filter(t => RM[t.cat])) { await put('tx', t.id, Object.assign(stripId(t), {cat: RM[t.cat]})); moved++; }
+    toast(moved ? `Budget salvato ✓ · ${moved} movimenti spostati` : 'Budget salvato ✓'); closeSheet(w); S.anim = true; render(); },
   'set-accounts': () => openAccounts(false),
   'acc-uses': () => openAccUses(),
   'set-share': () => openShare(),
