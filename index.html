@@ -1637,7 +1637,7 @@ function cushionAlertsHTML() {
     h.push(`<div class="banner amber stag" style="--i:0"><div class="ic">🛟</div><div style="min-width:0;flex:1"><b>${MONTHS[+ym.slice(5) - 1]} è sotto di ${eur(m.tot)}</b>
       <div class="ovw">${overs.map((b, i) => W[i].h).join('')}${m.short ? shortWhyHTML(m.short, ym) : ''}</div>
       <div class="ovn">Se non fai niente${m.flexLeft > 0.5 ? ' e spendete tutto il budget flessibile' : ''}: a fine mese lo copre il cuscinetto, ${eur(c.bal)} → ${eur(worst)}.${m.flexLeft > 0.5 ? ` Ogni euro che resta nelle voci flessibili (oggi ${eur(m.flexLeft)}) lo salva.` : ''}</div>
-      <div class="acts">${src ? `<button class="btn sm" data-act="shift-cover" data-from="${esc(src.k)}" data-to="${esc(to0)}">Copri da ${esc(src.n)} (${eur(src.left)} liberi)</button>` : ''}${tx0 ? `<button class="btn sm ghost" data-act="edit-tx" data-id="${esc(tx0.id)}">Apri il movimento</button>` : ''}<button class="btn sm ghost" data-act="cush-seen" data-a="${m.tot}" aria-label="Nascondi">✕</button></div></div></div>`);
+      <div class="acts">${(() => { const srcs = st.filter(b => !b.l && !b.auto && b.left > 0.009), free = r2(srcs.reduce((v, b) => v + b.left, 0)), need = r2(overs.reduce((v, b) => v - b.left, 0)); if (!srcs.length || !overs.length) return ''; if (srcs.length === 1 || src.left + 0.001 >= need) return `<button class="btn sm" data-act="shift-cover" data-from="${esc(src.k)}" data-to="${esc(to0)}">Copri da ${esc(src.n)} (${eur(src.left)} liberi)</button>`; return `<button class="btn sm" data-act="shift-cover-all">Copri da tutte le voci (${eur(Math.min(free, need))}${free + 0.001 < need ? ' su ' + eur(need) : ''})</button><button class="btn sm ghost" data-act="shift-cover" data-from="${esc(src.k)}" data-to="${esc(to0)}">Solo da ${esc(src.n)}</button>`; })()}${tx0 ? `<button class="btn sm ghost" data-act="edit-tx" data-id="${esc(tx0.id)}">Apri il movimento</button>` : ''}<button class="btn sm ghost" data-act="cush-seen" data-a="${m.tot}" aria-label="Nascondi">✕</button></div></div></div>`);
   }
   return h.join('');
 }
@@ -2591,9 +2591,9 @@ async function saveTx(w, coverFrom, asOver) {
       w._cover = {over, sources, ym};
       const sh = openSheet(`<h3 class="sh-title">⚖️ Budget del mese</h3><p class="sh-sub">Questa spesa sfora <b>${esc(b.n)}</b> di <b>${eur(over)}</b>. Il totale del mese non si supera: da dove togli i soldi?</p>
         ${sources.filter(s => s.left + .001 >= over).map(s => `<button class="btn" data-cv="${esc(s.k)}">${esc(s.e)} Togli da ${esc(s.n)} <small class="m">(restano ${eur(s.left - over)})</small></button>`).join('')}
-        ${flexTot + .001 >= over ? '<button class="btn" data-cv="*">Copri in automatico da più voci</button>' : `<div class="banner red" style="margin-top:10px"><div class="ic">🚫</div><div><b>Budget flessibile esaurito</b>Restano solo ${eur(flexTot)} nelle voci flessibili.</div></div>`}
+        ${flexTot + .001 >= over ? '<button class="btn" data-cv="*">Copri in automatico da più voci</button>' : `<div class="banner red" style="margin-top:10px"><div class="ic">🚫</div><div><b>Budget flessibile non basta</b>Nelle voci flessibili restano solo ${eur(flexTot)}.</div></div>${flexTot > 0.009 ? `<button class="btn" data-cv="part">Copri ${eur(flexTot)} da tutte le voci, il resto (${eur(r2(over - flexTot))}) come sforamento</button>` : ''}`}
         <button class="btn danger" data-cv="!">Registra come sforamento</button><button class="btn ghost" data-cv="x">Annulla</button>`);
-      sh.addEventListener('click', e => { const bt = e.target.closest('[data-cv]'); if (!bt) return; const v = bt.dataset.cv; closeSheet(sh); if (v === 'x') return; if (v === '!') saveTx(w, undefined, true); else saveTx(w, v === '*' ? '' : v); });
+      sh.addEventListener('click', e => { const bt = e.target.closest('[data-cv]'); if (!bt) return; const v = bt.dataset.cv; closeSheet(sh); if (v === 'x') return; if (v === '!') saveTx(w, undefined, true); else if (v === 'part') { w._cover.over = flexTot; saveTx(w, '', true); } else saveTx(w, v === '*' ? '' : v); });
       return;
     }
   }
@@ -3971,6 +3971,18 @@ const ACT = {
   shift: () => openShift(),
   'shift-sv': () => openShift('fondo'),
   'shift-cover': el => openShift(el.dataset.to, el.dataset.from),
+  'shift-cover-all': async () => {
+    const ym = curYM(), st = catStats(ym), overs = st.filter(b => !b.auto && b.left < -0.005).sort((a, b) => a.left - b.left);
+    const srcs = st.filter(b => !b.l && !b.auto && b.left > 0.009).sort((a, b) => b.left - a.left).map(b => ({k: b.k, n: b.n, e: b.e, left: b.left}));
+    const plan = [];
+    for (const o of overs) { let need = r2(-o.left); const tx = (overWhy(o, ym) || {}).tx; for (const sr of srcs) { if (need <= 0.005) break; const take = r2(Math.min(sr.left, need)); if (take <= 0.005) continue; sr.left = r2(sr.left - take); need = r2(need - take); plan.push({from: sr.k, fn: sr.n, fe: sr.e, to: o.k, tn: o.n, a: take, tx: tx ? tx.id : ''}); } }
+    if (!plan.length) { toast('Nessuna voce ha soldi liberi'); return; }
+    const tot = r2(plan.reduce((v, p) => v + p.a, 0)), need0 = r2(overs.reduce((v, b) => v - b.left, 0));
+    const ok = await confirmSheet(`Copri ${eur(tot)} da più voci?`, plan.map(p => `${esc(p.fe)} ${esc(p.fn)} → ${esc(p.tn)}: <b>${eur(p.a)}</b>`).join('<br>') + (need0 - tot > 0.005 ? `<br><br>Restano scoperti <b>${eur(r2(need0 - tot))}</b>: li copre il cuscinetto a fine mese.` : '') + '<br><br>Queste voci restano a zero per il resto del mese.', 'Copri');
+    if (!ok) return;
+    for (const p of plan) if (await addShift({m: ym, from: p.from, to: p.to, a: p.a, why: 'Copertura da più voci: ' + p.tn, tx: p.tx}) === false) return;
+    buzz(15); toast(`Coperti ${eur(tot)} ✓`); S.anim = true; render();
+  },
   'cush-red-seen': el => { saveStateField({cushRed: {ym: curYM(), a: +el.dataset.a || 0}}); render(); },
   'cush-seen': el => { saveStateField({cushSeen: {ym: curYM(), a: +el.dataset.a || 0}}); render(); },
   'cush-move': el => { const n = el.dataset.n, a = +el.dataset.a || 0; openTx({kind: 'move', a, cat: '', note: 'Dalla ' + n.toLowerCase() + ' al conto', d: today(), acc: n, to: mainAcc(), xb: false, src: '', _new: true}); },
