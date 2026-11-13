@@ -199,6 +199,7 @@ input,select,textarea{font-family:inherit}
 .amtin{display:flex;align-items:center;gap:8px;border:1px solid var(--stroke2);background:rgba(255,255,255,.05);border-radius:20px;padding:6px 16px}
 .amtin input{border:0!important;background:none!important;box-shadow:none!important;font-size:40px!important;font-weight:800;letter-spacing:-.04em;padding:6px 0!important}
 .amtin b{font-size:28px;color:var(--muted);font-weight:700}
+.amtin input{min-width:0;width:100%;flex:1}.edrow>*,.edrow3>*,.edrow4>*,[data-yrow]>*{min-width:0;width:100%}
 .amtin.sm{border-radius:16px;padding:2px 14px}.amtin.sm input{font-size:20px!important;font-weight:700;letter-spacing:-.01em}.amtin.sm b{font-size:16px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .seg{display:flex;padding:4px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid var(--stroke)}
@@ -606,7 +607,11 @@ body.lefty .hqb{grid-template-columns:1.3fr 1fr}body.lefty .hqb-add{order:-1}
 .ms-how.g{color:var(--green)}.ms-how.a{color:var(--amber)}
 .mfam .ms-tiles{margin-top:8px}
 .ms-r.ms-r3{grid-template-columns:minmax(0,1fr) 74px 74px;gap:8px}.ms-r3 span:nth-child(2){color:var(--muted)!important;font-weight:600!important}.ms-r3 span:nth-child(3).g{color:var(--green)}.ms-r3 span:nth-child(3).r{color:var(--red)}
-.ms-tbl{margin-top:12px}.ms-cap{font-size:12px;color:var(--muted);font-weight:650;margin:0 2px 2px}
+.ms-tbl{margin-top:12px}
+@media (max-width:400px){.row2>.btn{white-space:nowrap;padding-left:8px;padding-right:8px;font-size:14.5px}}
+@media (max-width:480px){.ms-tbl .ms-r{grid-template-columns:62px minmax(0,1fr) minmax(0,1.15fr) 58px;gap:5px;font-size:12.5px}.card.goal .gt{font-size:15.5px}}
+@media (max-width:380px){.txr .t1{font-size:14px}.txr .t2{font-size:11.5px}}
+@media (max-width:400px){.nm{font-size:13px}}.ms-cap{font-size:12px;color:var(--muted);font-weight:650;margin:0 2px 2px}
 .ms-r{display:grid;grid-template-columns:1fr 1fr 1.1fr .8fr;gap:6px;padding:8px 2px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13.5px;font-variant-numeric:tabular-nums}
 .ms-r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ms-r span:not(:first-child){text-align:right}
 .ms-r span:nth-child(2){color:var(--amber)}.ms-r span:nth-child(3),.ms-r span:nth-child(4){font-weight:700}
@@ -2071,7 +2076,7 @@ function txListHTML() {
     const tags = (t.plan ? ' · <span class="a">prevista</span>' : '') + (t.unpaid ? ' · <span class="a">da pagare</span>' : '') + (t.pid ? (t.kind === 'in' ? ' · rientro prestito' : t.rec ? ' · a carico di ' + esc((personOf(t.pid) || {}).n || '') : ' · prestito') : t.xb ? ' · escluso dal budget' : '') + (t.over ? ' · <span class="r">sforamento</span>' : '') + (t.rev ? ' · <span class="a">⚡ da controllare</span>' : '');
     h += `<div class="txr" data-act="edit-tx" data-id="${t.id}"><div class="bico" style="--c:${esc(catColor(t))}">${esc(catEmoji(t))}</div>
       <div style="min-width:0"><div class="t1">${esc(t.note || catName(t))}</div><div class="t2">${whoChip(t.by, t.who)}${sub}${tags}</div></div>
-      <div class="amt num ${col}">${sign}${eur(t.a)}</div></div>`;
+      <div class="amt num ${t.skip ? 'm' : col}">${t.skip ? 'saltato' : (t.a > 0.004 ? sign : '') + eur(t.a)}</div></div>`;
   }
   return h + '</div>';
 }
@@ -2233,7 +2238,7 @@ function goalsHTML() {
     if (isMort(g)) return `<div class="step"><div class="dot">${i + 1}</div><div class="sl">${esc(g.n)} · ${esc(mTitle(g.sid, mSP(g)))}</div><div class="sd num">${mStepWhen(g)}</div></div>`;
     const gi = goalInfo(g);
     const when = g.type === 'fund' ? (gi.done ? 'raggiunto ✓' : gi.ym ? ymShort(gi.ym) : '—') : gi.done ? 'chiuso ✓' : gi.planned ? dateShort(gi.planned) : gi.ym ? ymShort(gi.ym) : '—';
-    return `<div class="step ${gi.done ? 'done' : ''}"><div class="dot">${gi.done ? '✓' : i + 1}</div><div class="sl">${esc(g.n)}</div><div class="sd num">${when}</div></div>`;
+    return `<div class="step ${gi.done ? 'done' : ''}"><div class="dot">${gi.done ? '✓' : i + 1}</div><div class="sl">${esc(g.kind === 'person' ? g.n.replace(/^Debito con /, '') : g.n)}</div><div class="sd num">${when}</div></div>`;
   }).join('');
   const cards = goals.map((g, i) => {
     if (isMort(g)) return mortCardHTML(g, i);
@@ -2254,8 +2259,8 @@ function goalsHTML() {
         <div class="row2" style="margin-top:6px">${gi.paused ? '<span></span>' : '<button class="btn primary" data-act="versa">Versa ora</button>'}<button class="btn" data-act="goal-edit" data-id="${g.id}">Modifica</button></div></div>`;
     }
     const sct = gi.sch || {}, late = sct.st === 'late';
-    const status = gi.done ? '<span class="badge g">Chiuso ✓</span>' : gi.planned ? `<span class="badge a">Promesso ${dateShort(gi.planned)}</span>` : `<span class="badge ${late ? 'a' : ''}">${late ? 'Possibile ' : ''}${gi.ym ? ymShort(gi.ym) : '—'}</span>`;
-    return `<div class="card goal" style="--i:${i + 1}"><div class="top"><div style="min-width:0"><div class="gt ell">${g.kind === 'person' ? '🤝' : g.cat === 'carta' ? '💳' : '🏛️'} ${esc(g.n)}</div><div class="gs ell">${esc(debtSubShort(g))}</div></div>${status}</div>
+    const status = gi.done ? '<span class="badge g">Chiuso ✓</span>' : gi.planned ? `<span class="badge a">Entro ${dm(gi.planned)}${gi.planned.slice(0, 4) !== curYM().slice(0, 4) ? ' ' + gi.planned.slice(0, 4) : ''}</span>` : `<span class="badge ${late ? 'a' : ''}">${late ? 'Possibile ' : ''}${gi.ym ? ymShort(gi.ym) : '—'}</span>`;
+    return `<div class="card goal" style="--i:${i + 1}"><div class="top"><div style="min-width:0"><div class="gt ell">${g.kind === 'person' ? '🤝' : g.cat === 'carta' ? '💳' : '🏛️'} ${esc(g.kind === 'person' ? g.n.replace(/^Debito con /, '') : g.n)}</div><div class="gs ell">${esc(debtSubShort(g))}</div></div>${status}</div>
       <div class="gv num">${eur0(debtCur(g))} <small class="m" style="font-size:14px;font-weight:600">da pagare</small></div>
       <div class="gbar"><i style="width:${r2(gi.pct * 100)}%;background:linear-gradient(90deg,#FFB547,#2EE59D)"></i></div>
       <div class="gd"><span class="ell">Pagati ${eurR(gi.paid)}${cfg().startYM ? ' da ' + ymShort(cfg().startYM) : ''}</span><span>${Math.round(gi.pct * 100)}%</span></div>
@@ -2264,7 +2269,7 @@ function goalsHTML() {
       ${g.kind === 'person' ? `<div class="row2" style="margin-top:6px"><button class="btn" data-act="goal-pay" data-id="${g.id}">Restituisci</button><button class="btn" data-act="goal-edit" data-id="${g.id}">Aggiorna</button></div>` : `<button class="btn" style="margin-top:6px" data-act="goal-edit" data-id="${g.id}">Aggiorna residuo</button>`}</div>`;
   }).join('');
   const c = cushion(), cp = c.target > 0 ? Math.min(1, c.bal / c.target) : 0;
-  const cushionCard = `<div class="card goal" style="--i:0"><div class="top"><div style="min-width:0"><div class="gt">🛟 Cuscinetto</div><div class="gs ell">Dentro «${esc(mainAcc())}» · per i mesi scarsi</div></div><span class="badge ${cp >= 1 ? 'g' : ''}">${cp >= 1 ? 'Pieno ✓' : Math.round(cp * 100) + '%'}</span></div>
+  const cushionCard = `<div class="card goal" style="--i:0"><div class="top"><div style="min-width:0"><div class="gt">🛟 Cuscinetto</div><div class="gs ell">Per i mesi scarsi · nel ${esc(mainAcc())}</div></div><span class="badge ${cp >= 1 ? 'g' : ''}">${cp >= 1 ? 'Pieno ✓' : Math.round(cp * 100) + '%'}</span></div>
     <div class="gv num">${eur0(c.bal)} <small class="m" style="font-size:16px;font-weight:600">/ ${eur0(c.target)}</small></div>
     <div class="gbar"><i style="width:${r2(cp * 100)}%;background:linear-gradient(90deg,#FFB547,#2EE59D)"></i></div>
     <div class="gd"><span>Si riempie con gli avanzi di fine mese</span></div>
@@ -3148,8 +3153,8 @@ function drawRecList(w) {
   const lab = {done: '✓ fatto', skip: 'saltato', due: 'da fare', later: 'in arrivo', off: 'in pausa'}, labOf = (r, st) => st === 'off' && r.on && (r.every || 1) > 1 && !(r.until && r.until < ym) ? 'non questo mese' : lab[st] || '';
   $('#rec-body', w).innerHTML = `<h3 class="sh-title">Pagamenti ricorrenti</h3><p class="sh-sub">Gli addebiti automatici si registrano da soli il giorno stabilito. I bonifici che fai tu e le entrate restano in Home → Da fare finché non premi Fatto o Arrivata. Nel budget contano subito come previsti.</p>
     ${L.length ? `<div class="card tight">${L.map(r => { const b = bud(r.cat); const st = recState(r, ym);
-      return `<div class="txr" data-act="rec-edit" data-id="${esc(r.id)}"><div class="bico" style="--c:${recColor(r)}">${esc(recIcon(r))}</div><div style="min-width:0"><div class="t1">${esc(r.n)}</div><div class="t2">Il ${r.day} ${(r.every || 1) > 1 ? 'ogni ' + r.every + ' mesi' : 'di ogni mese'} · ${r.kind === 'out' ? esc(b ? b.n : r.cat) : r.kind === 'in' ? esc(r.cat || 'Entrata') : esc(r.acc) + ' → ' + esc(r.to)}${r.var ? ' · variabile' : ''}${r.pid ? ' · a carico di ' + esc((personOf(r.pid) || {}).n || '') : ''}${r.until ? ' · fino a ' + ymShort(r.until) : ''}</div></div>
-        <div class="amt num ${r.kind === 'in' ? 'g' : r.kind === 'out' ? 'o' : 'v'}">${r.auto ? 'auto' : r.pct ? eur(recAmount(r)) : eur(r.a)}<small>${labOf(r, st)}${r.self ? ' · bonifico' : ''}</small></div></div>`; }).join('')}</div>` : '<div class="empty"><div class="e">🔁</div>Nessun pagamento ricorrente.</div>'}
+      return `<div class="txr" data-act="rec-edit" data-id="${esc(r.id)}"><div class="bico" style="--c:${recColor(r)}">${esc(recIcon(r))}</div><div style="min-width:0"><div class="t1">${esc(r.n)}</div><div class="t2">Il ${r.day}${(r.every || 1) > 1 ? ' · ogni ' + r.every + ' mesi' : ''}${r.self ? ' · bonifico' : ''} · ${r.kind === 'out' ? esc(b ? b.n : r.cat) : r.kind === 'in' ? esc(r.cat || 'Entrata') : esc(r.acc) + ' → ' + esc(r.to)}${r.var ? ' · variabile' : ''}${r.pid ? ' · a carico di ' + esc((personOf(r.pid) || {}).n || '') : ''}${r.until ? ' · fino a ' + ymShort(r.until) : ''}</div></div>
+        <div class="amt num ${r.kind === 'in' ? 'g' : r.kind === 'out' ? 'o' : 'v'}">${r.auto ? 'auto' : r.pct ? eur(recAmount(r)) : eur(r.a)}<small>${labOf(r, st)}</small></div></div>`; }).join('')}</div>` : '<div class="empty"><div class="e">🔁</div>Nessun pagamento ricorrente.</div>'}
     <div class="muted" style="font-size:13px;margin:4px 4px 0">Uscite fisse al mese: <b>${eur(tot)}</b></div>
     <button class="btn primary" data-act="rec-edit" data-id="new">+ Aggiungi ricorrente</button>`;
 }
@@ -3239,7 +3244,7 @@ function saldiBody() {
     const last = TX().filter(t => t.acc === a.n || t.to === a.n).sort((x, y) => y.d.localeCompare(x.d) || y.ts - x.ts).slice(0, 4);
     return `<div class="accard ${h ? 'hid' : ''}"><div class="acc" style="padding:0;cursor:default"><div class="bico" style="--c:${accColor(a.n)}">${accIcon(a.n)}</div><div><div class="an">${esc(a.n)}</div><div class="as">${h ? 'Nascosto: escluso dal totale' : 'Incluso nel totale'}</div></div>
       <div class="av num" style="font-size:20px">${h ? '•••••' : eur(b)}</div><button class="eye" data-act="acc-hide" data-n="${esc(a.n)}" aria-label="${h ? 'Mostra' : 'Nascondi'}">${EYE(!h)}</button></div>
-      ${h ? '' : `<div class="mini"><div class="stat"><span>Entrato a ${MS[+ym.slice(5) - 1]}</span><b class="num g">+${eur0(inn)}</b></div><div class="stat"><span>Uscito a ${MS[+ym.slice(5) - 1]}</span><b class="num">−${eur0(out)}</b></div></div>
+      ${h ? '' : `<div class="mini"><div class="stat"><span>Entrato a ${MS[+ym.slice(5) - 1]}</span><b class="num g">${inn > 0.004 ? '+' : ''}${eur0(inn)}</b></div><div class="stat"><span>Uscito a ${MS[+ym.slice(5) - 1]}</span><b class="num">${out > 0.004 ? '−' : ''}${eur0(out)}</b></div></div>
       ${last.length ? last.map(t => { const inc = (t.kind === 'in' && t.acc === a.n) || (t.kind === 'move' && t.to === a.n); return `<div class="txr" data-act="edit-tx" data-id="${t.id}" style="padding:8px 2px"><div style="min-width:0"><div class="t1" style="font-size:14px">${esc(t.note || catName(t))}</div><div class="t2">${dateShort(t.d)}</div></div><div class="amt num ${inc ? 'g' : t.kind === 'move' ? 'v' : 'o'}" style="font-size:14px">${inc ? '+' : '−'}${eur(t.a)}</div></div>`; }).join('') : '<div class="muted" style="font-size:13px;padding:6px 2px">Nessun movimento ancora.</div>'}`}</div>`;
   }).join('');
   return `<h3 class="sh-title">Saldi</h3><p class="sh-sub">Tocca l\u2019occhio per nascondere un conto: sparisce dal totale finché non lo riattivi.</p>
@@ -4859,7 +4864,7 @@ function mRowsHTML(g, f, sp, r, w0) {
     ${kv(`Interessi da pagare${g.prima ? ' (con detrazione)' : ''}`, eurR(r.intNet))}
     ${kv(`Fondo casa a ${ymShort(r.hz)}`, eurR(r.fondoH))}
     ${kv(`Mutuo ancora da pagare a ${ymShort(r.hz)}`, eurR(r.resH))}
-    ${f !== 'watch' ? kv(`In tasca a ${ymShort(r.hz)}, rispetto alle sole rate`, (r.worth - w0.worth >= 0 ? '+' : '−') + eurR(Math.abs(r2(r.worth - w0.worth)))) : ''}</details>`;
+    ${f !== 'watch' ? kv(`${r.worth - w0.worth >= 0 ? 'Ci guadagni' : 'Ci perdi'} (a ${ymShort(r.hz)})`, (r.worth - w0.worth >= 0 ? '+' : '−') + eurR(Math.abs(r2(r.worth - w0.worth)))) : ''}</details>`;
   return msTiles(g, f, sp, r, w0, fg) + how + pv + more;
 }
 function mParamsHTML(f, sp, g) {
@@ -4932,7 +4937,7 @@ function mortCardHTML(g, i) {
   const pt = (Array.isArray(g.pts) ? g.pts : []).filter(p => p.ym > cur).sort((a, c) => a.ym.localeCompare(c.ym))[0], rec = g.recId ? recs().find(r => r.id === g.recId) : null;
   const y1 = String(+cur.slice(0, 4) + 1), i1 = b.intY[y1] || 0;
   const f = g.sid || '', sp = mSP(g), r = f ? mRun(g, f, sp) : null, w0 = f ? (f === 'watch' ? r : mRun(g, 'watch', sp)) : mRun(g, 'watch', sp);
-  const sub = [`${g.var ? 'Variabile' : 'Fisso'} ${pctTxt(g.tasso)}`, g.prima ? 'prima casa' : '', g.bank].filter(Boolean).map(esc).join(' · ');
+  const sub = [`${g.var ? 'Variabile' : 'Fisso'} ${pctTxt(g.tasso)}`, g.bank].filter(Boolean).map(esc).join(' · ');
   const fg = cfg().goals.find(x => x.id === 'casa');
   let strat;
   if (!f) strat = `<div class="plan"><div class="ph"><span>🎯 Qual è il tuo obiettivo?</span></div><p class="mfd">Abbassare la rata, chiuderlo prima, versare ogni tanto o solo tenerlo d’occhio: scegli e l’app ti mostra le strade possibili, con i numeri.</p><button class="btn primary" data-act="mg-obj" data-id="${esc(g.id)}">Scegli l’obiettivo</button></div>`;
@@ -5533,7 +5538,7 @@ const ATYPES = [
 ];
 const ATYPE = t => ATYPES.find(x => x[0] === t) || ATYPES[ATYPES.length - 1];
 const aKind = a => (ATYPES.some(x => x[0] === a.t) ? a.t : /casa|appartament|terren|immobil/i.test(a.n || '') ? 'immobile' : 'altro');
-const ASRC = {perizia: 'perizia', stima: 'stima mia', acquisto: 'prezzo d’acquisto'};
+const ASRC = {perizia: 'perizia', stima: 'stima mia', acquisto: 'acquisto'};
 const CURS = ['EUR', 'EGP', 'USD', 'GBP', 'CHF', 'AED', 'SAR'];
 // valore in euro: oro = grammi × carati/24 × prezzo dell'oro puro; in un'altra valuta = importo ÷ cambio (1 € = X)
 function assetCalc(a) {
@@ -5546,8 +5551,8 @@ const immTot = () => r2(assetsBy('immobile').reduce((t, a) => t + (+a.v || 0), 0
 const otherTot = () => r2(assets().filter(a => aKind(a) !== 'immobile').reduce((t, a) => t + (+a.v || 0), 0));
 const goldTot = () => r2(assetsBy('oro').reduce((t, a) => t + (+a.v || 0), 0));
 function assetSub(a) {
-  const k = aKind(a), when = a.d ? ` · ${dateShort(a.d)}` : '';
-  if (k === 'oro') return `${nf2.format(+a.g || 0).replace(/,00$/, '')} g · ${+a.k || 24} carati · ${eur(+a.pg || 0)}/g${when}`;
+  const k = aKind(a), when = a.d ? ` · ${dm(a.d)}${a.d.slice(0, 4) !== curYM().slice(0, 4) ? ' ' + a.d.slice(0, 4) : ''}` : '';
+  if (k === 'oro') return `${nf2.format(+a.g || 0).replace(/,00$/, '')} g · ${+a.k || 24} kt · ${eurR(+a.pg || 0)}/g${when}`;
   const parts = [ATYPE(k)[2].split(' ')[0]];
   if (a.place) parts.push(esc(a.place));
   if (a.cur && a.cur !== 'EUR') parts.push(`${nf2.format(+a.vc || 0)} ${esc(a.cur)} (1 € = ${String(+a.fx).replace('.', ',')} ${esc(a.cur)})`);
@@ -6201,7 +6206,7 @@ function openReport(ym) {
     ${d !== null ? `<div class="vrule">${d <= 0 ? '📉' : '📈'} Hai speso il <b>${Math.abs(d)}% ${d <= 0 ? 'in meno' : 'in più'}</b> di ${ymLabel(addMonths(ym, -1)).toLowerCase()} (${eur(r.pOut)}).</div>` : ''}
     ${r.debtPaid || r.toFund ? `<div class="vrule" style="margin-top:8px">${r.debtPaid ? `🏛️ Ai debiti: <b>${eur(r.debtPaid)}</b>` : ''}${r.debtPaid && r.toFund ? '<br>' : ''}${r.toFund ? `🔐 Messi da parte: <b>${eur(r.toFund)}</b>` : ''}</div>` : ''}
     ${r.over.length ? `<div class="h-label" style="margin-top:12px">Dove hai sforato</div>${r.over.map(o => `<div class="pr" style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span>${esc(o.e)} ${esc(o.n)}</span><b class="num r">+${eur(o.by)}</b></div>`).join('')}` : `<div class="vrule" style="margin-top:8px">✓ Nessuna voce sforata.</div>`}
-    ${r.under.length ? `<div class="h-label" style="margin-top:12px">Dove hai risparmiato</div>${r.under.slice(0, 5).map(o => `<div class="pr" style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span>${esc(o.e)} ${esc(o.n)}</span><b class="num g">${eur(o.left)}</b></div>`).join('')}` : ''}
+    ${r.under.length ? `<div class="h-label" style="margin-top:12px">${ym === curYM() ? 'Ancora liberi nelle voci' : 'Dove hai risparmiato'}</div>${r.under.slice(0, 5).map(o => `<div class="pr" style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span>${esc(o.e)} ${esc(o.n)}</span><b class="num g">${eur(o.left)}</b></div>`).join('')}` : ''}
     ${r.top.length ? `<div class="h-label" style="margin-top:12px">Le spese più grandi</div>${r.top.map(t => `<div class="pr" style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span>${esc(t.note || catName(t))} · ${esc(dateShort(t.d))}</span><b class="num">${eur(t.a)}</b></div>`).join('')}` : ''}
     ${r.byWho.length ? `<div class="h-label" style="margin-top:12px">Chi ha speso</div>${r.byWho.map(x => `<div class="pr" style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span>${esc(x.p)}</span><b class="num">${eur(x.out)}</b></div>`).join('')}` : ''}</div>
     <div class="row2" style="margin-top:14px"><button class="btn mt0" data-rp="share">Condividi</button><button class="btn mt0" data-rp="print">Stampa / PDF</button></div>
