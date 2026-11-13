@@ -813,7 +813,7 @@ function normTx(id, x) {
   x = x || {};
   return {id, kind: ['in', 'out', 'move', 'lend0'].includes(x.kind) ? x.kind : 'out', a: Math.abs(r2(x.a)), cat: String(x.cat || ''), note: String(x.note || ''),
     d: /^\d{4}-\d{2}-\d{2}$/.test(x.d) ? x.d : today(), acc: String(x.acc || mainAcc()), to: String(x.to || ''),
-    xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, og: String(x.og || ''), lnk: String(x.lnk || ''), by: String(x.by || ''), ts: +x.ts || 0};
+    xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, og: String(x.og || ''), lnk: String(x.lnk || ''), par: String(x.par || ''), fin: x.fin ? 1 : 0, by: String(x.by || ''), ts: +x.ts || 0};
 }
 function normShift(id, x) { x = x || {}; return {id, m: String(x.m || ''), from: String(x.from || ''), to: String(x.to || ''), a: Math.abs(r2(x.a)), why: String(x.why || ''), tx: String(x.tx || ''), cv: x.cv ? 1 : 0, who: String(x.who || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
 function normWait(id, x) { x = x || {}; return {id, type: ['next', 'loan', 'extra', 'over', 'goal'].includes(x.type) ? x.type : '48h', desc: String(x.desc || ''), a: Math.abs(r2(x.a)), cat: String(x.cat || 'fuori'), acc: String(x.acc || mainAcc()), need: x.need === 'rinv' ? 'rinv' : 'need', until: +x.until || 0, pid: String(x.pid || ''), due: String(x.due || ''), xb: x.xb ? 1 : 0, gid: String(x.gid || ''),
@@ -880,13 +880,15 @@ function phaseAt(ym) {
   const sch = debtSchedule();
   return cfg().goals.some(g => g.type === 'debt' && debtCur(g) > 0 && (!(sch[g.id] || {}).ym || sch[g.id].ym >= ym));
 }
+const isDebtPay = (t, g) => t.kind === 'out' && t.goal === g.id && (t.src === 'extra' || t.src === 'avanzo') && !t.plan && !t.skip;
 function debtCur(g) {
   if (!g || g.type !== 'debt') return g ? +g.cur || 0 : 0;
-  let r = +g.cur || 0;
-  if (!g.recId || r <= 0) return r2(r);
-  const rate = rateOf(g) / 1200, since = +g.curTs || 0;
-  const rb = +g.rataB > 0 ? +g.rataB : 0;
-  for (const t of TX().filter(t => t.kind === 'out' && t.rec === g.recId && (+t.ts || 0) > since).sort((a, b) => a.d.localeCompare(b.d))) r = Math.max(0, r + r * rate - (rb || t.a));
+  let r = +g.cur || 0; const since = +g.curTs || 0;
+  const rate = g.recId ? rateOf(g) / 1200 : 0, rb = +g.rataB > 0 ? +g.rataB : 0, ev = [];
+  if (g.recId) for (const t of TX()) if (t.kind === 'out' && t.rec === g.recId && (+t.ts || 0) > since) ev.push({d: t.d, ts: +t.ts || 0, k: 'r', a: t.a});
+  for (const t of TX()) if (isDebtPay(t, g) && (+t.ts || 0) > since) ev.push({d: t.d, ts: +t.ts || 0, k: t.fin ? 'f' : 'p', a: t.a});
+  ev.sort((a, b) => a.d.localeCompare(b.d) || a.ts - b.ts);
+  for (const e of ev) { if (r <= 0) break; if (e.k === 'r') r = Math.max(0, r + r * rate - (rb || e.a)); else if (e.k === 'f') r = 0; else r = Math.max(0, r - e.a); }
   return r2(r);
 }
 const debtPhase = () => cfg().goals.some(g => g.type === 'debt' && debtCur(g) > 0);
@@ -912,6 +914,8 @@ function catStats(ym, excludeTxId, excludeRec) {
   const sh = D().shifts.filter(s => s.m === ym), dp = phaseAt(ym);
   const pend = pendingFor(ym, excludeRec);
   const salWait = ym === curYM() && cfg().income[0] && !tx.some(t => t.kind === 'in' && t.cat === cfg().income[0].n);
+  const wres = {};
+  if (ym === curYM()) for (const x of (D().waits || [])) { if (x.id === S.exWait || x.st === 'no' || !x.cat || !['48h', 'over', 'loan'].includes(x.type)) continue; const o = wres[x.cat] = wres[x.cat] || {fix: 0, loan: 0}; o[x.type === 'loan' ? 'loan' : 'fix'] += x.a; }
   return budgets().map(b => {
     const base = baseOf(b, ym);
     const inS = sh.filter(s => s.to === b.k).reduce((a, s) => a + s.a, 0);
@@ -920,7 +924,8 @@ function catStats(ym, excludeTxId, excludeRec) {
     const spent = b.og ? (() => { const ga = (goalById(b.og) || {}).acc; return ga ? tx.filter(t => t.kind === 'move' && t.to === ga && t.acc !== ga).reduce((a, t) => a + t.a, 0) : 0; })() : b.auto
       ? tx.filter(t => t.kind === 'move' && (t.to === 'Fondo casa' || potAccs().includes(t.to)) && t.acc !== 'Fondo casa').reduce((a, t) => a + t.a, 0)
       : tx.filter(t => t.kind === 'out' && t.cat === b.k && !t.xb).reduce((a, t) => a + t.a, 0);
-    const pd = r2(b.auto ? (pend.__fondo || 0) : (pend[b.k] || 0) + planned.filter(t => t.cat === b.k).reduce((a, t) => a + t.a, 0));
+    let pd = r2(b.auto ? (pend.__fondo || 0) : (pend[b.k] || 0) + planned.filter(t => t.cat === b.k).reduce((a, t) => a + t.a, 0));
+    if (!b.auto && wres[b.k]) { const fx = wres[b.k].fix || 0, ln = wres[b.k].loan || 0; pd = r2(pd + fx + Math.min(ln, Math.max(0, eff - spent - pd - fx))); }
     if (b.auto && dp) return Object.assign({}, b, {n: 'Salvadanaio debiti', e: '🏛️', sav: true, savWait: salWait && eff > 0, base, inS: r2(inS), outS: r2(outS), eff, spent: eff, pend: 0, left: 0, pct: 1});
     const left = r2(eff - spent - pd);
     const pct = eff > 0 ? (spent + pd) / eff : ((spent + pd) > 0 ? 1.5 : 0);
@@ -1283,17 +1288,38 @@ function openExt(id) {
 function linkedRec(c, g) { return g.kind === 'person' ? null : (c.recurring || []).find(x => g.recId ? x.id === g.recId : (x.kind === 'out' && x.cat === (g.cat || 'finanz') && (norm(x.n) === norm(g.n) || Math.abs((+x.a || 0) - (+g.rata || 0)) < 0.01))); }
 function closeDebtLinks(c, g) {
   const cur = curYM(), r = linkedRec(c, g);
+  const b = c.budgets.find(x => x.k === (g.cat || 'finanz') && !x.auto), b0 = b ? +b.a || 0 : 0;
+  g.shut = {recId: r ? r.id : '', until: r ? String(r.until || '') : '', dA: 0, ts: Date.now()};
   if (r) r.until = recState(r, cur) === 'done' ? cur : addMonths(cur, -1);
-  const b = c.budgets.find(x => x.k === (g.cat || 'finanz') && !x.auto); if (b && g.rata) b.a = Math.max(0, r2(b.a - g.rata));
+  if (b && g.rata) { b.a = Math.max(0, r2(b.a - g.rata)); g.shut.dA = r2(b0 - b.a); }
+}
+/* debiti: il residuo si ricalcola dai pagamenti; chiusura e riapertura seguono da sole */
+let debtBusy = false;
+async function debtSync() {
+  if (debtBusy || S.preview || !S.canWrite) return;
+  debtBusy = true;
+  try {
+    const c = clone(cfg()), msg = []; let ch = false;
+    for (const g of c.goals.filter(x => x.type === 'debt')) {
+      const cur = debtCur(g);
+      if (cur <= 0.005 && !g.shut && (+g.cur || 0) > 0.005) { closeDebtLinks(c, g); ch = true; msg.push(`${g.n} chiuso 🎉`); }
+      else if (cur > 0.005 && g.shut) {
+        const sh = g.shut, r = sh.recId ? (c.recurring || []).find(x => x.id === sh.recId) : null;
+        if (r) r.until = sh.until || '';
+        const b = c.budgets.find(x => x.k === (g.cat || 'finanz') && !x.auto); if (b && sh.dA > 0) b.a = r2((+b.a || 0) + sh.dA);
+        delete g.shut; ch = true; msg.push(`${g.n} riaperto: restano ${eur(cur)}`);
+      }
+    }
+    if (ch) { await saveConfig(c); toast(msg.join(' · ')); }
+  } catch (e) { console.warn('debtSync', e); }
+  debtBusy = false;
 }
 async function saveExt(w, id) {
   const c = clone(cfg()), g = c.goals.find(x => x.id === id); if (!g) return;
   const a = parseAmt($('#ext-a', w).value); if (!(a > 0)) { toast('Inserisci l’importo'); return; }
   for (const i of $$('[data-extsrc]', w)) { const v = parseAmt(i.value) || 0; if (v > 0 && await addTx({kind: 'move', a: v, acc: i.dataset.extsrc, to: mainAcc(), note: 'Per l’estinzione di ' + g.n, d: today()}) === false) return; }
-  if (await addTx({kind: 'out', a, cat: g.kind === 'person' ? '' : (g.cat || 'finanz'), note: (g.kind === 'person' ? 'Restituiti: ' : 'Estinzione ') + g.n, d: today(), acc: mainAcc(), xb: true, src: 'extra', goal: g.id}) === false) return;
-  g.cur = 0; g.curTs = Date.now();
-  closeDebtLinks(c, g);
-  await saveConfig(c); buzz([20, 40, 20]); closeSheet(w); S.anim = true; render();
+  if (await addTx({kind: 'out', a, cat: g.kind === 'person' ? '' : (g.cat || 'finanz'), note: (g.kind === 'person' ? 'Restituiti: ' : 'Estinzione ') + g.n, d: today(), acc: mainAcc(), xb: true, src: 'extra', goal: g.id, fin: 1}) === false) return;
+  await debtSync(); buzz([20, 40, 20]); closeSheet(w); S.anim = true; render();
   toast(`${g.n} saldato 🎉 ${g.rata ? eur0(g.rata) + (debtPhase() ? ' al mese ai prossimi debiti' : ' al mese al fondo casa') : ''}`);
 }
 
@@ -1335,12 +1361,7 @@ async function autoPost() {
       const a = recAmount(r); if (!(a > 0)) continue;
       await put('tx', id, {kind: r.kind, a, cat: r.kind === 'move' ? '' : r.cat, note: r.n, d: recDate(r, ym), acc: r.acc || mainAcc(), to: r.kind === 'move' ? (r.to || 'Fondo casa') : '', xb: false, src: '', goal: '', over: false, rec: r.id, pid: r.pid || '', skip: false, by: S.uid || '', ts: Date.now()});
     }
-    const done = cfg().goals.filter(g => g.type === 'debt' && g.recId && +g.cur > 0 && debtCur(g) <= 0);
-    if (done.length) {
-      const c = clone(cfg());
-      for (const d of done) { const g = c.goals.find(x => x.id === d.id); g.cur = 0; g.curTs = Date.now(); const b = c.budgets.find(x => x.k === (g.cat || 'finanz') && !x.auto); if (b && g.rata) b.a = Math.max(0, r2(b.a - g.rata)); }
-      await saveConfig(c); toast(`${done.map(g => g.n).join(', ')} chiuso con le rate 🎉`);
-    }
+    autoBusy = false; await debtSync();
   } finally { autoBusy = false; }
 }
 setInterval(() => autoPost(), 10 * 60e3);
@@ -1466,15 +1487,54 @@ async function put(coll, id, doc) {
 }
 async function del(coll, id) {
   if (!canWriteNow()) return false;
-  let txYM = '';
-  if (coll === 'tx') { const t0 = D().tx.find(x => x.id === id); txYM = t0 ? t0.d.slice(0, 7) : ''; for (const sh of D().shifts.filter(x => x.tx === id)) await del('shifts', sh.id); for (const m of D().tx.filter(x => x.lnk === id)) await del('tx', m.id); }
+  let txYM = '', t0 = null;
+  let net0 = null;
+  if (coll === 'tx') { t0 = D().tx.find(x => x.id === id) || null; txYM = t0 ? t0.d.slice(0, 7) : ''; if (isClosedM(txYM)) net0 = monthClose(txYM).net; for (const sh of D().shifts.filter(x => x.tx === id)) await del('shifts', sh.id); for (const m of D().tx.filter(x => x.lnk === id || x.par === id)) await del('tx', m.id); }
   let ok = true;
   if (S.preview) { S.demo[coll] = S.demo[coll].filter(x => x.id !== id); render(); }
   else if (B.kind === 'db') { const ref = B.db.collection(coll).doc(id); try { await ref.delete(); if (S.real[coll]) S.real[coll] = S.real[coll].filter(x => x.id !== id); } catch (e) { ok = await dbErr(e, () => ref.delete()); } }
   else { S.real[coll] = S.real[coll].filter(x => x.id !== id); saveLocal(); render(); }
-  if (ok !== false && coll === 'tx') { await cushSync(id, null); await reconcileCovers([txYM, curYM()]); }
+  if (ok !== false && coll === 'tx') {
+    await cushSync(id, null);
+    if (net0 !== null) await closedAdjust(txYM, net0);
+    if (t0 && t0.goal) { const g = cfg().goals.find(x => x.id === t0.goal); if (g && g.type === 'debt' && isDebtPay(t0, g) && (+t0.ts || 0) <= (+g.curTs || 0) && !t0.fin) { const c = clone(cfg()), cg = c.goals.find(x => x.id === g.id); cg.cur = r2((+cg.cur || 0) + t0.a); await saveConfig(c); } }
+    if (t0 && (t0.goal || t0.rec)) await debtSync();
+    await reconcileCovers([txYM, curYM()]);
+  }
   if (ok !== false && coll === 'waits') await reconcileCovers([curYM()]);
   return ok;
+}
+/* eliminazione di un movimento: un solo percorso per tutta l'app */
+async function delTxFlow(ex) {
+  if (!ex) return false;
+  const M = ex.d.slice(0, 7), closedTxt = isClosedM(M) ? `<br><br>${MONTHS[+M.slice(5) - 1]} è già chiuso: la differenza dell\u2019avanzo va al cuscinetto (o si prende da lì).` : '';
+  if (ex.rec) {
+    const r = recs().find(x => x.id === ex.rec), manual = !r || r.var || r.self || r.kind === 'in';
+    const opts = (manual && !ex.skip ? [['unpaid', ex.kind === 'in' ? 'Non è ancora arrivato' : 'Non l\u2019ho ancora pagato']] : []).concat(ex.skip ? [['unpaid', 'Non saltarlo: torna da pagare']] : [['skip', 'Salta questo mese']]);
+    const ch = await choiceSheet(ex.note || catName(ex), `È un pagamento ricorrente${manual ? '' : ' con addebito automatico: si segna da solo quando arriva il giorno'}. I mesi successivi restano.${closedTxt}`, opts);
+    if (!ch) return false;
+    if (ch === 'unpaid') { if (await del('tx', ex.id) === false) return false; toast(ex.kind === 'in' ? 'Torna tra le entrate in arrivo' : 'Torna da pagare'); S.anim = true; render(); return true; }
+    const net0 = isClosedM(M) ? monthClose(M).net : null;
+    await put('tx', ex.id, {kind: ex.kind, a: 0, cat: ex.cat, note: ex.note, d: ex.d, acc: ex.acc, to: ex.to, rec: ex.rec, skip: true, by: S.uid || '', ts: Date.now()});
+    await cushSync(ex.id, null); if (net0 !== null) await closedAdjust(M, net0); await debtSync(); await reconcileCovers([M]);
+    toast('Saltato per questo mese'); S.anim = true; render(); return true;
+  }
+  const kids = D().tx.filter(x => x.par === ex.id || x.lnk === ex.id);
+  const extra = kids.length ? `<br><br>Si eliminano anche ${kids.length === 1 ? 'il movimento collegato' : 'i ' + kids.length + ' movimenti collegati'}: ${kids.map(k => esc(k.note || catName(k)) + ' ' + eur(k.a)).join(', ')}.` : '';
+  if (!(await confirmSheet('Eliminare il movimento?', `${esc(ex.note || catName(ex))} · ${eur(ex.a)} del ${dm(ex.d)}.${extra}${closedTxt}`, 'Elimina', true))) return false;
+  if (await del('tx', ex.id) === false) return false; toast('Eliminato'); S.anim = true; render(); return true;
+}
+/* mesi chiusi: se cambia un movimento, la differenza dell'avanzo va (o si prende) dal cuscinetto */
+const isClosedM = M => !!M && !S.preview && (cfg().closed || '') >= M;
+async function closedAdjust(M, net0) {
+  if (!isClosedM(M) || !S.canWrite) return;
+  const net1 = monthClose(M).net, d = r2(net1 - net0); if (Math.abs(d) <= 0.005) return;
+  const c = clone(cfg()), mn = MONTHS[+M.slice(5) - 1].toLowerCase();
+  const dd = d < 0 ? -Math.min(-d, c.cushion.bal) : d;
+  c.cushion.bal = r2(Math.max(0, c.cushion.bal + d));
+  c.avzLog = (c.avzLog || []).filter(x => x.m !== M).concat({m: M, a: net1}).slice(-24);
+  c.cushionLog = (c.cushionLog || []).concat({m: curYM(), a: r2(dd), why: `Correzione ${mn} (mese già chiuso)`, ts: Date.now()}).slice(-60);
+  await saveConfig(c); toast(`${MONTHS[+M.slice(5) - 1]} era chiuso: ${d > 0 ? '+' : '−'}${eur(Math.abs(d))} ${d > 0 ? 'al' : 'dal'} cuscinetto`);
 }
 /* coperture: ogni spostamento che copre uno sforamento vale solo finché lo sforamento esiste */
 const isCover = s => !!(s.cv || s.tx || /^(Copre lo sforamento|Copertura)/.test(s.why || ''));
@@ -1490,8 +1550,7 @@ async function reconcileCovers(yms, quiet) {
         if (b.auto || b.sav) continue;
         const covs = D().shifts.filter(x => x.m === ym && x.to === b.k && isCover(x)).sort((p, q) => q.ts - p.ts);
         if (!covs.length) continue;
-        const reserve = ym === curYM() ? D().waits.filter(w => w.cat === b.k && w.st !== 'no' && ['48h', 'over', 'loan'].includes(w.type)).reduce((v, w) => v + w.a, 0) : 0;
-        let ex = r2(Math.min(b.left - reserve, covs.reduce((v, x) => v + x.a, 0)));
+        let ex = r2(Math.min(b.left, covs.reduce((v, x) => v + x.a, 0)));
         if (ex <= 0.005) continue;
         const per = {};
         for (const x of covs) {
@@ -2377,6 +2436,9 @@ function suggHTML(w, form) {
 
 /* ---------------- Posso comprarlo? ---------------- */
 function openCheck(pre = {}) {
+  S.exWait = pre.waitId || ''; try { return openCheck0(pre); } finally { S.exWait = ''; }
+}
+function openCheck0(pre) {
   const q = Object.assign({desc: '', a: '', cat: 'spesa', acc: mainAcc(), need: 'need'}, pre);
   const w = openSheet(`<h3 class="sh-title">Posso comprarlo?</h3><p class="sh-sub">${pre.waitId ? waitIntro(pre.waitId) : 'Tu inserisci, il budget risponde.'}</p>
     <label class="fld"><span>Cosa vuoi comprare</span><input id="ck-desc" placeholder="es. Lavaggio auto" value="${esc(q.desc)}" autocomplete="off"></label><div class="sugg" id="ck-sugg"></div>
@@ -2396,7 +2458,7 @@ function runCheck(w, extra = {}) {
   const q = Object.assign(readCheck(w), {skip: extra.skip || (w._last && w._last.q.skip) || [], skipWait: !!w._pre.waitId});
   if (w._pre.pid && !q.skip.includes(7)) q.skip = q.skip.concat(7);
   if (!(q.a > 0)) { toast('Inserisci un importo'); $('#ck-a', w).focus(); return; }
-  const res = evaluate(q); w._last = res;
+  S.exWait = w._pre.waitId || ''; let res; try { res = evaluate(q); } finally { S.exWait = ''; } w._last = res;
   const box = $('#ck-res', w);
   box.innerHTML = verdictHTML(res, w._pre) + (w._pre.pid ? '' : simHTML(simImpact(q.a, q.cat, curYM()), true));
   buzz(res.v === 'yes' ? 15 : res.v === 'no' ? [40, 60, 40] : [20, 40]);
@@ -2703,13 +2765,6 @@ function readTx(w) {
   if (g('#tx-rep')) w._rep = g('#tx-rep').checked;
   return t;
 }
-function choiceSheet(title, msg, opts) {
-  return new Promise(res => {
-    const w = openSheet(`<h3 class="sh-title">${esc(title)}</h3><p class="sh-sub">${msg}</p>` + opts.map(([v, l, cls]) => `<button class="btn ${cls || ''}" data-ch="${esc(v)}">${l}</button>`).join(''));
-    let done = false; const fin = v => { if (!done) { done = true; res(v); } };
-    w.addEventListener('click', e => { const b = e.target.closest('[data-ch]'); if (b) { fin(b.dataset.ch); closeSheet(w); } else if (e.target.closest('[data-act="close-sheet"]')) fin(null); });
-  });
-}
 async function saveTx(w, coverFrom, asOver) {
   const t = readTx(w), ex = w._ex;
   if (t.kind === 'in' && !w._split && !ex && !w._tredAsked) {
@@ -2717,8 +2772,8 @@ async function saveTx(w, coverFrom, asOver) {
     if (inc && y && a0 - (+inc.a || 0) >= Math.max(300, (+y.a || 0) * 0.5)) {
       const extra = r2(a0 - inc.a);
       const ch = await choiceSheet(`Dentro c\u2019è la ${y.n}?`, `${eur(a0)} è molto più dello stipendio previsto (${eur(inc.a)}). Se c\u2019è dentro la ${y.n.toLowerCase()}, la registro a parte: così il piano debiti non la conta due volte e ${esc(shareN())} riceve la sua quota.`,
-        [['si', `Sì: ${esc(t.cat)} ${eur(inc.a)} + ${esc(y.n)} ${eur(extra)}`, 'primary'], ['no', 'No, è tutto stipendio', '']]);
-      if (ch === null) return;
+        [['si', `Sì: ${t.cat} ${eur(inc.a)} + ${y.n} ${eur(extra)}`], ['no', 'No, è tutto stipendio']]);
+      if (!ch) return;
       w._tredAsked = true;
       if (ch === 'si') w._split = [{cat: t.cat, a: String(inc.a)}, {cat: y.n, a: String(extra)}];
     }
@@ -2767,6 +2822,13 @@ async function saveTx(w, coverFrom, asOver) {
   const doc = {kind: t.kind, a, cat: t.kind === 'move' ? '' : t.cat, note: t.note, d: t.d, acc: t.acc, to: t.kind === 'move' ? t.to : '', xb: t.kind === 'out' ? !!t.xb : false, src: t.kind === 'out' ? t.src : '', goal: t.goal || '', over: !!asOver, rec: (ex && ex.rec) || w._rec || '', plan: planF, unpaid: unp, due: unp ? (t.due || '') : (ex && ex.due) || '', og: ogG ? ogG.id : ''};
   if (ogG) w._txid = ex ? ex.id : w._fixedId || w._txid || newId();
   if (ex && ex.pid) Object.assign(doc, {pid: ex.pid, who: ex.who || ''});
+  let resetX = false;
+  if (ex) {
+    Object.assign(doc, {todo: ex.todo || 0, dest: ex.dest || '', keepAmt: ex.keepAmt || 0, grp: ex.grp || '', lnk: ex.lnk || '', par: ex.par || '', fin: ex.fin || 0, pid: doc.pid || ex.pid || ''});
+    if (!doc.goal && ex.goal && ex.src === doc.src) doc.goal = ex.goal;
+    const kids = D().tx.filter(x => x.par === ex.id);
+    if (ex.kind === 'in' && (ex.dest || kids.length) && (Math.abs(a - ex.a) > 0.005 || t.kind !== 'in')) { resetX = true; Object.assign(doc, {todo: t.kind === 'in' ? 1 : 0, dest: '', keepAmt: 0}); }
+  }
   const recPid = recTx ? ((recs().find(r => r.id === recTx) || {}).pid || '') : ''; if (recPid) doc.pid = recPid;
   // le coperture collegate si riallineano da sole dopo il salvataggio (reconcileCovers)
   if (t.kind === 'out' && !doc.xb && coverFrom === undefined && !asOver) {
@@ -2789,6 +2851,11 @@ async function saveTx(w, coverFrom, asOver) {
     w._txid = ex ? ex.id : w._fixedId || w._txid || newId();
     for (const p of plan) await addShift({m: w._cover.ym, from: p.from, to: t.cat, a: p.a, why: 'Copertura: ' + (t.note || bud(t.cat).n), tx: w._txid});
   }
+  const cms = ex ? [...new Set([ex.d.slice(0, 7), t.d.slice(0, 7)])].filter(isClosedM) : [];
+  if (cms.length && (Math.abs(a - ex.a) > 0.005 || t.cat !== ex.cat || t.d.slice(0, 7) !== ex.d.slice(0, 7) || t.kind !== ex.kind || !!doc.xb !== !!ex.xb)) {
+    if (!(await confirmSheet('Mese già chiuso', `${cms.map(m => MONTHS[+m.slice(5) - 1]).join(' e ')} è già chiuso. Se salvi, la differenza dell\u2019avanzo va al cuscinetto (o si prende da lì).`, 'Salva lo stesso'))) return;
+  }
+  const net0s = cms.map(m => [m, monthClose(m).net]);
   let ok;
   if (ex) ok = await put('tx', ex.id, Object.assign(doc, {by: ex.by || S.uid || '', ts: ex.ts || Date.now()}));
   else if (w._fixedId) ok = await put('tx', w._fixedId, Object.assign(doc, {by: S.uid || '', ts: Date.now()}));
@@ -2796,7 +2863,15 @@ async function saveTx(w, coverFrom, asOver) {
   else { if (t.kind === 'out') w._txid = w._txid || newId(); ok = await addTx(Object.assign(doc, {_id: w._txid || ''})); }
   if (ok === false) return;
   if (w._apprWait) await del('waits', w._apprWait);
-  if (ex) { await cushSync(ex.id, Object.assign({}, doc, {a})); await reconcileCovers([ex.d.slice(0, 7), t.d.slice(0, 7), curYM()]); }
+  if (ex) {
+    if (resetX) { for (const k of D().tx.filter(x => x.par === ex.id)) await del('tx', k.id); toast('Importo cambiato: l\u2019entrata torna «da destinare»'); }
+    const g0 = ex.goal && cfg().goals.find(x => x.id === ex.goal);
+    if (g0 && g0.type === 'debt' && isDebtPay(ex, g0) && (+ex.ts || 0) <= (+g0.curTs || 0) && !ex.fin && Math.abs(a - ex.a) > 0.005) { const c = clone(cfg()), cg = c.goals.find(x => x.id === g0.id); cg.cur = r2(Math.max(0, (+cg.cur || 0) + ex.a - a)); await saveConfig(c); }
+    await cushSync(ex.id, Object.assign({}, doc, {a}));
+    for (const [m, n0] of net0s) await closedAdjust(m, n0);
+    if (ex.goal || ex.rec || doc.goal) await debtSync();
+    await reconcileCovers([ex.d.slice(0, 7), t.d.slice(0, 7), curYM()]);
+  }
   let ogShort = 0;
   if (ogG && !planF) ogShort = await goalSettle(w._txid, ogG, a, t.acc, t.d, t.note);
   else if (ex && ex.og) await goalSettle(ex.id, null);
@@ -2835,9 +2910,9 @@ function extraSheet(txId, info) {
     if (v === 'later') { closeSheet(sh); toast('Resta in Home tra le entrate da destinare'); render(); return; }
     const withMiro = !!($('#ex-miro', sh) || {}).checked, amt = withMiro ? rest : a;
     closeSheet(sh);
-    if (withMiro) await addTx({kind: 'out', a: miro, cat: 'miro', note: `${pctTxt(shareXp())} ${shareN()} su ` + (info.note || cat).toLowerCase(), d: today(), acc, xb: true, src: 'extra'});
-    if (v === 'fondo') await addTx({kind: 'move', a: amt, note: 'Extra al fondo casa', d: today(), acc, to: 'Fondo casa'});
-    if (v === 'debt' && debt) { await addTx({kind: 'out', a: amt, cat: debt.cat, note: 'Rimborso extra ' + debt.n, d: today(), acc, xb: true, src: 'extra', goal: debt.id}); const c = clone(cfg()); const g = c.goals.find(x => x.id === debt.id); g.cur = Math.max(0, r2(g.cur - amt)); await saveConfig(c); }
+    if (withMiro) await addTx({kind: 'out', a: miro, cat: 'miro', note: `${pctTxt(shareXp())} ${shareN()} su ` + (info.note || cat).toLowerCase(), d: today(), acc, xb: true, src: 'extra', par: txId});
+    if (v === 'fondo') await addTx({kind: 'move', a: amt, note: 'Extra al fondo casa', d: today(), acc, to: 'Fondo casa', par: txId});
+    if (v === 'debt' && debt) { await addTx({kind: 'out', a: amt, cat: debt.cat, note: 'Rimborso extra ' + debt.n, d: today(), acc, xb: true, src: 'extra', goal: debt.id, par: txId}); await debtSync(); }
     const t = D().tx.find(x => x.id === txId);
     if (t) await put('tx', txId, Object.assign(stripId(t), {todo: 0, dest: v, goal: v === 'keep' && debt ? debt.id : (t.goal || ''), keepAmt: v === 'keep' ? amt : 0}));
     toast(v === 'keep' ? `${eur(amt)} accantonati per l\u2019estinzione ✓` : v === 'fondo' ? `${eur(amt)} nel fondo casa ✓` : `${eur(amt)} sul ${debt ? debt.n : 'debito'} ✓`); S.anim = true; render();
@@ -2857,7 +2932,7 @@ function oldExtraSheet(a, acc, cat) {
     closeSheet(sh);
     if (withMiro) await addTx({kind: 'out', a: miro, cat: 'miro', note: `${pctTxt(shareXp())} ${shareN()} su ` + cat.toLowerCase(), d: today(), acc, xb: true, src: 'extra'});
     if (v === 'fondo') await addTx({kind: 'move', a: amt, note: 'Extra al fondo casa', d: today(), acc, to: 'Fondo casa'});
-    if (v === 'debt' && debt) { await addTx({kind: 'out', a: amt, cat: debt.cat, note: 'Rimborso extra ' + debt.n, d: today(), acc, xb: true, src: 'extra', goal: debt.id}); const c = clone(cfg()); const g = c.goals.find(x => x.id === debt.id); g.cur = Math.max(0, r2(g.cur - amt)); await saveConfig(c); }
+    if (v === 'debt' && debt) { await addTx({kind: 'out', a: amt, cat: debt.cat, note: 'Rimborso extra ' + debt.n, d: today(), acc, xb: true, src: 'extra', goal: debt.id}); await debtSync(); }
     toast('Fatto ✓'); S.anim = true; render();
   });
 }
@@ -2951,7 +3026,6 @@ async function applyClose(w, act) {
         if (w._dest === 'fondo') await put('tx', `c-${r.M}-avanzo`, Object.assign({kind: 'move', a: r.rest, note: `Avanzo di ${mn.toLowerCase()}`, d: lastDay, acc: mainAcc(), to: 'Fondo casa'}, base));
         else if (w._dest === 'debt' && r.debt) {
           await put('tx', `c-${r.M}-avanzo`, Object.assign({kind: 'out', a: r.rest, cat: r.debt.cat || 'finanz', note: `Avanzo di ${mn.toLowerCase()} → ${r.debt.n}`, d: lastDay, acc: mainAcc(), xb: true, src: 'avanzo', goal: r.debt.id}, base));
-          const g = c.goals.find(x => x.id === r.debt.id); if (g) g.cur = Math.max(0, r2(g.cur - r.rest));
         }
       }
     } else c.cushion.bal = r2(c.cushion.bal - r.fromC);
@@ -2959,7 +3033,7 @@ async function applyClose(w, act) {
     c.cushionLog = (c.cushionLog || []).concat({m: r.M, a: r.net >= 0 ? r.toC : -r.fromC, why: 'Chiusura ' + mn.toLowerCase(), ts: Date.now()}).slice(-60);
   }
   c.closed = r.M > (c.closed || '') ? r.M : c.closed;
-  await saveConfig(c); closeSheet(w); S.anim = true; render();
+  await saveConfig(c); await debtSync(); closeSheet(w); S.anim = true; render();
   toast(act === 'ok' ? `${mn} chiuso ✓` : `${mn} chiuso senza movimenti`);
 }
 function openCushion() {
@@ -3426,8 +3500,8 @@ async function saveGoalPay(w, id) {
   const c = clone(cfg()), g = c.goals.find(x => x.id === id);
   const ok = await addTx({kind: 'out', a, cat: g.kind === 'person' ? '' : (g.cat || 'finanz'), note: (g.kind === 'person' ? 'Restituiti: ' : 'Rimborso extra ') + g.n, d: today(), acc: $('#gp-acc', w).value, xb: true, src: 'extra', goal: g.id});
   if (ok === false) return;
-  g.cur = Math.max(0, r2(debtCur(cfg().goals.find(x => x.id === id)) - a)); g.curTs = Date.now(); if (g.cur <= 0) closeDebtLinks(c, g); await saveConfig(c);
-  buzz(15); toast(g.cur <= 0 ? `${g.n} chiuso! 🎉` : 'Pagamento registrato ✓'); closeSheet(w); S.anim = true; render();
+  const left = debtCur(cfg().goals.find(x => x.id === id)); await debtSync();
+  buzz(15); if (left > 0.005) toast('Pagamento registrato ✓'); closeSheet(w); S.anim = true; render();
 }
 
 /* ---------------- rules & settings ---------------- */
@@ -3841,8 +3915,8 @@ const personOf = pid => peopleL().find(x => x.id === pid);
 function personBal(pid) { let v = 0; for (const t of LTX()) if (t.pid === pid) v += (t.kind === 'in' ? -t.a : t.a); return r2(v); }
 const loansTotal = () => r2(peopleL().reduce((v, x) => v + Math.max(0, personBal(x.id)), 0));
 function loanFlows() { const f = {}; let tot = 0; for (const x of peopleL()) { const b = personBal(x.id); if (b > 0.009 && x.exp && x.exp >= today()) { const k = monthsFromNow(x.exp.slice(0, 7)); f[k] = r2((f[k] || 0) + b); tot = r2(tot + b); } } return {f, tot}; }
-const personDebts = pid => cfg().goals.filter(g => g.type === 'debt' && g.kind === 'person' && g.pid === pid && g.cur > 0);
-const personOwe = pid => r2(personDebts(pid).reduce((v, g) => v + g.cur, 0));
+const personDebts = pid => cfg().goals.filter(g => g.type === 'debt' && g.kind === 'person' && g.pid === pid && debtCur(g) > 0.005);
+const personOwe = pid => r2(personDebts(pid).reduce((v, g) => v + debtCur(g), 0));
 const oweTotal = () => r2(peopleL().reduce((v, x) => v + personOwe(x.id), 0));
 function personFlags(pid, isNew) {
   const L = LTX().filter(t => t.pid === pid), m6 = isoDate(new Date(Date.now() - 182 * 864e5)), m3 = isoDate(new Date(Date.now() - 91 * 864e5));
@@ -4069,7 +4143,7 @@ async function decideWait(id, ok, note) {
   const x = D().waits.find(v => v.id === id); if (!x) return false;
   if (!(await authFor(x.appr))) { toast(`Decide ${x.appr} dal suo telefono`); return false; }
   const r = await put('waits', id, Object.assign(stripId(x), {st: ok ? 'ok' : 'no', dby: x.appr, dts: Date.now(), dnote: note || ''}));
-  if (r !== false) pushDecided(id, x, ok, note);
+  if (r !== false) { pushDecided(id, x, ok, note); if (!ok) await reconcileCovers([curYM()]); }
   return r;
 }
 
@@ -4202,9 +4276,7 @@ const ACT = {
   },
   'edit-tx': el => { const t = D().tx.find(x => x.id === el.dataset.id); if (t) openTx(t); },
   'tx-save': el => saveTx(el.closest('.wrap')),
-  'tx-del': async el => { const w = el.closest('.wrap'), ex = w._ex;
-    if (ex.rec) { if (await confirmSheet('Saltare questo mese?', `${esc(ex.note || catName(ex))} è un pagamento ricorrente: lo tolgo solo da questo mese, i prossimi restano.`, 'Salta questo mese', true)) { await put('tx', ex.id, {kind: ex.kind, a: 0, cat: ex.cat, note: ex.note, d: ex.d, acc: ex.acc, to: ex.to, rec: ex.rec, skip: true, by: S.uid || '', ts: Date.now()}); closeSheet(w); toast('Saltato per questo mese'); render(); } return; }
-    if (await confirmSheet('Eliminare il movimento?', `${esc(ex.note || catName(ex))} · ${eur(ex.a)}`, 'Elimina', true)) { await del('tx', ex.id); closeSheet(w); toast('Eliminato'); render(); } },
+  'tx-del': async el => { const w = el.closest('.wrap'); if (await delTxFlow(w._ex)) closeSheet(w); },
   filter: el => { S.filter = el.dataset.f; render(); },
   shift: () => openShift(),
   'shift-sv': () => openShift('fondo'),
@@ -4320,9 +4392,7 @@ const ACT = {
     await put('tx', t.id, {kind: t.kind, a: 0, cat: t.cat, note: t.note, d: t.d, acc: t.acc, to: t.to, rec: t.rec, skip: true, by: S.uid || '', ts: Date.now()}); toast('Saltato per questo mese'); S.anim = true; render(); },
   'tx-dup': el => { const t = D().tx.find(x => x.id === el.dataset.id); if (!t) return;
     openTx(Object.assign(stripId(t), {d: today(), rec: '', plan: 0, unpaid: 0, todo: 0, dest: '', keepAmt: 0, grp: '', goal: '', over: false, pid: '', due: '', _new: true})); },
-  'tx-del2': async el => { const t = D().tx.find(x => x.id === el.dataset.id); if (!t) return;
-    if (!(await confirmSheet('Eliminare il movimento?', `${esc(t.note || catName(t))} · ${eur(t.a)} del ${dm(t.d)}.`, 'Elimina', true))) return;
-    if (await del('tx', t.id) === false) return; toast('Eliminato'); S.anim = true; render(); },
+  'tx-del2': async el => { const t = D().tx.find(x => x.id === el.dataset.id); if (t) await delTxFlow(t); },
   'plan-del': async el => { const t = D().tx.find(x => x.id === el.dataset.id); if (!t) return;
     if (await confirmSheet(t.kind === 'in' ? 'Togliere l\u2019entrata prevista?' : 'Togliere la spesa prevista?', `${esc(t.note || catName(t))} · ${eur(t.a)}: la tolgo dal budget e dal piano.`, 'Togli', true)) { await del('tx', t.id); toast('Tolta dal piano'); render(); } },
   'rec-edit2': el => { closeSheet(el.closest('.wrap')); setTimeout(() => openRecEdit(el.dataset.id), 300); },
@@ -5959,8 +6029,9 @@ function collapsePlans(v) {
 function revHTML() {
   if (S.preview || S.ym !== curYM()) return '';
   const L = TX().filter(t => t.rev).sort((a, b) => b.ts - a.ts); if (!L.length) return '';
+  const stR = catStats(curYM()), ovR = k => { const b = stR.find(x => x.k === k); return b && b.left < -0.005 ? -b.left : 0; };
   return `<div class="card stag" style="--i:0"><div class="h-label">⚡ ${L.length === 1 ? '1 spesa registrata da sola' : L.length + ' spese registrate da sole'} · controlla la voce</div>
-    ${L.slice(0, 4).map(t => `<div class="txr" data-act="edit-tx" data-id="${t.id}"><div class="bico" style="--c:${esc(catColor(t))}">${esc(catEmoji(t))}</div><div style="min-width:0"><div class="t1">${esc(t.note || 'Apple Pay')}</div><div class="t2">${esc(catName(t))} · ${esc(t.acc)}${t.who ? ' · ' + esc(t.who) : ''}</div></div><div class="amt num o">−${eur(t.a)}</div></div>`).join('')}
+    ${L.slice(0, 4).map(t => `<div class="txr" data-act="edit-tx" data-id="${t.id}"><div class="bico" style="--c:${esc(catColor(t))}">${esc(catEmoji(t))}</div><div style="min-width:0"><div class="t1">${esc(t.note || 'Apple Pay')}</div><div class="t2 ell">${ovR(t.cat) ? `<b class="r">sfora ${esc(catName(t))} di ${eur(ovR(t.cat))}</b>` : `${esc(catName(t))} · ${esc(t.acc)}${t.who ? ' · ' + esc(t.who) : ''}`}</div></div><div class="amt num o">−${eur(t.a)}</div></div>`).join('')}
     <button class="btn sm" data-act="rev-ok" style="margin-top:8px">Vanno bene così</button></div>`;
 }
 
