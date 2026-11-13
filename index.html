@@ -563,6 +563,7 @@ input,select,textarea{font-family:inherit}
 .sityd{margin-top:6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04)}
 @keyframes fcdraw{to{stroke-dashoffset:0}}
 .homewrap.hw-cur>*{order:0!important}
+.cathint{font-size:13px;color:var(--muted);margin:8px 4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cathint b{color:var(--text);font-weight:700}.cathint.r{color:var(--amber);white-space:normal}
 .hqb .hqb-ask{color:var(--amber);border:1.5px solid rgba(255,181,71,.55);background:linear-gradient(180deg,rgba(255,181,71,.16),rgba(255,181,71,.07))}
 .hqb{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin:14px 0}.hqb .btn{min-height:54px;font-size:15.5px;white-space:nowrap}
 body.lefty .hqb{grid-template-columns:1.3fr 1fr}body.lefty .hqb-add{order:-1}
@@ -2395,9 +2396,51 @@ function lockSheet(n, L, why) {
 async function lockGate(n) { const L = accLocked(n); if (!L) return true; if (L.m === 'word' && S.unlock && S.unlock.n === n && Date.now() - S.unlock.t < 120000) return true; return lockSheet(n, L); }
 
 /* ---------------- shared pickers ---------------- */
+/* voci in cui si «compra»: niente bollette, rate, quote o salvadanai */
+function buyable(b) { return !!b && !b.auto && !b.bills && !b.rec && !b.pct && !b.og && !cfg().goals.some(g => (g.type === 'debt' || g.type === 'mortgage') && g.cat === b.k); }
+const CAT_HINT = {spesa: 'alimentari, casa, detersivi', auto: 'benzina, parcheggi, officina', personali: 'vestiti, tech, cose tue', bimbo: 'pannolini, vestiti, giochi', svago: 'uscite, ristoranti, regali', salute: 'farmacia, visite', fuori: 'imprevisti, acquisti grossi', utenze: 'luce, gas, internet, telefono', condo: 'spese condominiali'};
+const catHint = b => b ? (b.d || CAT_HINT[b.k] || '') : '';
+const CAT_KW = [
+  ['bimbo', /pannolin|omogeneizz|latte in polvere|passeggin|seggiolin|giocattol|ciuccio|biberon|asilo|nido\b|pediatr/],
+  ['salute', /farmac|parafarm|medic|visita|dentist|ottic|occhial|analisi|ticket|tachipirin|integrator/],
+  ['auto', /benzin|carbur|diesel|gasolio|\beni\b|q8|tamoil|esso|agip|autostrad|telepass|parchegg|meccanic|gommist|gomme|tagliando|lavaggio|bollo|revisione|carrozz/],
+  ['svago', /\bbar\b|caff|ristor|pizz|trattor|osteria|sushi|mcdonald|burger|kfc|starbucks|gelat|aperitiv|cinema|teatro|concerto|netflix|spotify|disney|regalo|uscita/],
+  ['spesa', /supermerc|spesa\b|coop|esselunga|lidl|carrefour|conad|eurospin|aldi|\bpam\b|penny|despar|famila|tigros|bennet|detersiv|alimentar|frutta|verdura|macell|panett|forno/],
+  ['personali', /vestit|maglia|maglion|felpa|pantalon|jeans|giacca|giubbott|camicia|scarpe|scarpa|sneaker|profum|borsa|orolog|abbigliament|zara|shein|h&m|amazon|zalando|decathlon|ikea|mediaworld|unieuro|apple|iphone|cuffie|airpods|telefono|cellulare|caricatore|cavo|libro|barbiere|parrucch/],
+];
+function guessCat(desc, ok) {
+  const n = norm(desc).trim(); if (n.length < 3) return null;
+  const allow = k => { const b = bud(k); return b && (!ok || ok(b)); };
+  const past = TX().filter(t => t.kind === 'out' && t.cat && norm(t.note || '').trim() === n).sort((a, b) => (b.ts || 0) - (a.ts || 0))[0];
+  if (past && allow(past.cat)) return past.cat;
+  for (const [k, re] of CAT_KW) if (re.test(n) && allow(k)) return k;
+  const byName = budgets().find(b => allow(b.k) && norm(b.n).length > 2 && n.includes(norm(b.n)));
+  return byName ? byName.k : null;
+}
+function catHintHTML(k, auto, desc) {
+  const b = bud(k); if (!b) return '';
+  const h = catHint(b), t = norm(desc || ''), rr = t ? cfg().rules.find(r => !(r.until && r.until < today()) && matchKw(t, r.kw)) : null;
+  return `<div class="cathint">${esc(b.e)} <b>${esc(b.n)}</b>${h ? ': ' + esc(h) : ''}</div>${rr ? `<div class="cathint r">⚠️ Tocca la regola ${rr.n}: ${esc(ruleText(rr))}</div>` : ''}`;
+}
+function selCat(w, group, k) {
+  const g = $(`[data-group="${group}"]`, w); if (!g) return false;
+  let el = $$('[data-v]', g).find(x => x.dataset.v === k);
+  if (!el && group === 'ck-cat') { const all = $('[data-act="ck-all"]', w); const box = $('#ck-cats', w); if (box && buyable(bud(k))) { box.innerHTML = catGrid(k, 'ck-cat', {noBills: true, buy: true}); if (all) all.remove(); return true; } return false; }
+  if (!el) return false; $$('.on', g).forEach(x => x.classList.remove('on')); el.classList.add('on'); return true;
+}
+function ckGuess(w) {
+  const d = ($('#ck-desc', w) || {}).value || '';
+  if (!w._catManual) { const k = guessCat(d, buyable); if (k && selCat(w, 'ck-cat', k)) w._catAuto = true; }
+  const h = $('#ck-hint', w); if (h) h.innerHTML = catHintHTML(picked(w, 'ck-cat') || 'spesa', !w._catManual && w._catAuto, d);
+}
+function txGuess(w) {
+  if (!w._t || w._t.kind !== 'out' || w._ex || w._catManual) return;
+  const k = guessCat(w._t.note || '', b => !b.bills); if (!k || k === w._t.cat) return;
+  if (selCat(w, 'tx-cat', k)) { w._t.cat = k; const h = $('#tx-hint', w); if (h) h.innerHTML = catHintHTML(k, true, ''); }
+}
 function catGrid(sel, group, opts = {}) {
   const st = opts.stats || catStats(curYM());
-  return `<div class="cats" data-group="${group}">` + budgets().filter(b => !b.auto && (!opts.noBills || !b.bills) && (!opts.flexOnly || !b.l || freeLocked(b))).map(b => { const s = st.find(x => x.k === b.k); return `<button class="cat ${b.k === sel ? 'on' : ''}" style="--c:${esc(b.c)}" data-act="pick" data-v="${esc(b.k)}"><span class="e">${esc(b.e)}</span>${esc(b.n)}${s ? `<small class="${s.left < 0 ? 'r' : ''}">${s.left < 0 ? '−' + eur0(-s.left) : eur0(s.left)}</small>` : ''}</button>`; }).join('') + '</div>';
+  return `<div class="cats" data-group="${group}">` + budgets().filter(b => !b.auto && (!opts.noBills || !b.bills) && (!opts.buy || buyable(b)) && (!opts.flexOnly || !b.l || freeLocked(b))).map(b => { const s = st.find(x => x.k === b.k); return `<button class="cat ${b.k === sel ? 'on' : ''}" style="--c:${esc(b.c)}" data-act="pick" data-v="${esc(b.k)}"><span class="e">${esc(b.e)}</span>${esc(b.n)}${s ? `<small class="${s.left < 0 ? 'r' : ''}">${s.left < 0 ? '−' + eur0(-s.left) : eur0(s.left)}</small>` : ''}</button>`; }).join('') + '</div>';
 }
 function chipsGrid(list, sel, group) { return `<div class="toolbar" data-group="${group}" style="flex-wrap:wrap">` + list.map(x => `<button class="chip ${x === sel ? 'on' : ''}" data-act="pick" data-v="${esc(x)}">${esc(x)}</button>`).join('') + '</div>'; }
 function segHTML(group, opts, sel) { return `<div class="seg" data-group="${group}">` + opts.map(([v, l]) => `<button class="${v === sel ? 'on' : ''}" data-act="pick" data-v="${v}">${l}</button>`).join('') + '</div>'; }
@@ -2443,7 +2486,7 @@ function openCheck0(pre) {
   const w = openSheet(`<h3 class="sh-title">Posso comprarlo?</h3><p class="sh-sub">${pre.waitId ? waitIntro(pre.waitId) : 'Tu inserisci, il budget risponde.'}</p>
     <label class="fld"><span>Cosa vuoi comprare</span><input id="ck-desc" placeholder="es. Lavaggio auto" value="${esc(q.desc)}" autocomplete="off"></label><div class="sugg" id="ck-sugg"></div>
     <label class="fld"><span>Importo</span><div class="amtin"><input id="ck-a" inputmode="decimal" placeholder="0,00" value="${q.a ? esc(String(q.a).replace('.', ',')) : ''}"><b>€</b></div></label>
-    <div class="fld"><span>Voce di budget · quanto resta</span><div id="ck-cats">${catGrid(q.cat, 'ck-cat', {flexOnly: !(bud(q.cat) && bud(q.cat).l), noBills: true})}</div>${bud(q.cat) && bud(q.cat).l ? '' : '<button class="chipbtn" data-act="ck-all" style="margin-top:8px" type="button">Mostra anche le voci intoccabili</button>'}</div>
+    <div class="fld"><span>Voce di budget · quanto resta</span><div id="ck-cats">${catGrid(q.cat, 'ck-cat', {flexOnly: !(bud(q.cat) && bud(q.cat).l), noBills: true, buy: true})}</div><div id="ck-hint">${catHintHTML(q.cat, false, q.desc)}</div>${(bud(q.cat) && bud(q.cat).l) || !budgets().some(b => b.l && buyable(b)) ? '' : '<button class="chipbtn" data-act="ck-all" style="margin-top:8px" type="button">Mostra anche le voci intoccabili</button>'}</div>
     <div class="row2"><label class="fld"><span>Conto</span><select id="ck-acc">${accOpts(q.acc)}</select></label>
     <div class="fld"><span>È…</span>${segHTML('ck-need', [['need', 'Necessaria'], ['rinv', 'Rinviabile']], q.need)}</div></div>
     <button class="btn primary" data-act="ck-go">Verifica</button>${pre.pid || pre.waitId ? '' : '<button class="chipbtn" data-act="ck-straord" type="button" style="margin-top:10px">🧾 È una spesa straordinaria obbligata (rientro, medico, guasto)</button>'}<div id="ck-res"></div>`);
@@ -2722,7 +2765,7 @@ function drawTx(w) {
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="chipbtn" data-act="sp-add" type="button">+ Aggiungi parte</button><button class="chipbtn" data-act="sp-off" type="button">Una sola voce</button></div></div>`;
   const ogL = t.kind === 'out' && !w._rec && !(ex && ex.rec) ? cfg().goals.filter(g => isSpendGoal(g) && (gPhase(g) === 'live' || g.id === t.og)) : [];
   const ogPart = ogL.length ? `<div class="fld"><span>Dove va</span><div class="toolbar" style="flex-wrap:wrap;margin:0">${[['', '📊 Budget del mese']].concat(ogL.map(g => [g.id, `🎯 ${esc(g.n)} · restano ${eur0(r2((+g.target || 0) - goalSpent(g.id)))}`])).map(([v, l]) => `<button class="chip ${(t.og || '') === v ? 'on' : ''}" data-act="tx-og" data-v="${esc(v)}" type="button">${l}</button>`).join('')}</div>${t.og ? `<p class="muted" style="font-size:12.5px;margin:6px 2px 0">Fuori dal budget del mese. I soldi escono dal salvadanaio dell\u2019obiettivo (oggi ${eur(Math.max(0, goalPot(goalById(t.og))))}); se non bastano, il resto dal conto scelto.</p>` : ''}</div>` : '';
-  const catPart = ogPart + (t.kind === 'out' && (t.oblig || t.og) ? '' : t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}</div>`
+  const catPart = ogPart + (t.kind === 'out' && (t.oblig || t.og) ? '' : t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}<div id="tx-hint">${catHintHTML(t.cat, false, '')}</div></div>`
     : t.kind === 'in' ? (w._split ? splitRows() : `<div class="fld"><span>Tipo di entrata</span>${chipsGrid(cfg().incomeCats.filter(c => c !== 'Rientro prestito').concat('Rientro prestito'), t.cat, 'tx-icat').replace('data-v="Rientro prestito">Rientro prestito<', 'data-v="Rientro prestito">🤝 Rientro prestito<')}${!ex && t.cat !== 'Rientro prestito' ? '<button class="chipbtn" data-act="sp-on" type="button" style="margin-top:4px">＋ Dividi in più voci (es. stipendio + tredicesima)</button>' : ''}</div>${t.cat === 'Rientro prestito' ? rpFieldHTML(t) : ''}`)
     : `<div class="row2"><label class="fld"><span>Da</span><select id="tx-acc">${accOpts(t.acc)}</select></label><label class="fld"><span>A</span><select id="tx-to">${accOpts(t.to || 'Fondo casa')}</select></label></div>`);
   $('#tx-body', w).innerHTML = `<h3 class="sh-title">${ex ? 'Modifica movimento' : 'Nuovo movimento'}</h3><p class="sh-sub">${ex && (ex.who || ex.by) ? 'Registrato da ' + esc(ex.who || nameOf(ex.by) || 'qualcuno') + ' · ' : ''}${ex ? dateShort(ex.d) : 'Entrate, uscite e versamenti, insieme.'}</p>
@@ -4157,6 +4200,8 @@ const ACT = {
   pick: el => { const g = el.parentElement; $$('.on', g).forEach(x => x.classList.remove('on')); el.classList.add('on');
     const w = el.closest('.wrap'); if (!w) return;
     if (g.dataset.group === 'la-type') { readLoanAdd(w); w._l.type = el.dataset.v; drawLoanAdd(w); }
+    if (g.dataset.group === 'ck-cat') { w._catManual = true; const h = $('#ck-hint', w); if (h) h.innerHTML = catHintHTML(el.dataset.v, false, ($('#ck-desc', w) || {}).value); }
+    if (g.dataset.group === 'tx-cat') { w._catManual = true; const h = $('#tx-hint', w); if (h) h.innerHTML = catHintHTML(el.dataset.v, false, ''); }
     if (g.dataset.group === 'tx-cat' && !!(bud(el.dataset.v) || {}).bills !== !!(bud(w._t.cat) || {}).bills) { readTx(w); drawTx(w); }
     if (g.dataset.group === 'tx-paid') { readTx(w); drawTx(w); }
     if (g.dataset.group === 'ng-when' && w._g) ngNeed(w);
@@ -4305,7 +4350,7 @@ const ACT = {
   'goal-pay': el => openGoalPay(el.dataset.id),
   'goal-new': () => openGoalNew(),
   'ck-goal': el => { const w = el.closest('.wrap'), r = w._last; if (!r) return; closeSheet(w); setTimeout(() => openGoalNew({type: 'fund', n: r.q.desc || 'Acquisto', target: String(r.q.a).replace('.', ','), monthly: String(r.monthly)}), 300); },
-  'ck-all': el => { const w = el.closest('.wrap'); const sel = picked(w, 'ck-cat') || 'spesa'; const box = $('#ck-cats', w); box.innerHTML = catGrid(sel, 'ck-cat', {noBills: true}); el.remove(); },
+  'ck-all': el => { const w = el.closest('.wrap'); const sel = picked(w, 'ck-cat') || 'spesa'; const box = $('#ck-cats', w); box.innerHTML = catGrid(sel, 'ck-cat', {noBills: true, buy: true}); el.remove(); },
   'ng-save': async el => { const w = el.closest('.wrap'); const g = readGoalNew(w); if (!g.n) { toast('Dai un nome all’obiettivo'); return; }
     const c = clone(cfg()); const id = 'g' + newId().slice(-7), obj = g.obj || (g.type === 'fund' ? 'month' : 'asap');
     if (g.type === 'fund') { const t = parseAmt(g.target); if (!(t > 0)) { toast('Inserisci la cifra da raggiungere'); return; }
@@ -4539,10 +4584,10 @@ document.addEventListener('input', e => {
   const w = e.target.closest && e.target.closest('.wrap');
   if (w && $('#bud-tot', w) && e.target.dataset.f) { syncRows(w); updBudTot(w); }
   if (w && e.target.dataset && e.target.dataset.sp !== undefined) { syncSplit(w); const a = $('#tx-a', w); if (a) a.value = nf2.format(splitSum(w)); const lab = a && a.closest('.wrap') ? $$('.fld>span', w).find(x => x.textContent.startsWith('Parti')) : null; if (lab) lab.textContent = 'Parti dell\u2019entrata · totale ' + eur(splitSum(w)); }
-  if (w && e.target.id === 'tx-note') { w._t.note = e.target.value; const b = $('#tx-sugg', w); if (b) b.innerHTML = suggHTML(w, 'tx'); }
+  if (w && e.target.id === 'tx-note') { w._t.note = e.target.value; const b = $('#tx-sugg', w); if (b) b.innerHTML = suggHTML(w, 'tx'); txGuess(w); }
   if (w && (e.target.id === 'ng-target' || e.target.id === 'ng-by' || e.target.id === 'ng-monthly')) ngNeed(w);
   if (w && e.target.id === 'faq-q') { const l = $('#faq-list', w); if (l) l.innerHTML = faqHTML(e.target.value); }
-  if (w && e.target.id === 'ck-desc') { const b = $('#ck-sugg', w); if (b) b.innerHTML = suggHTML(w, 'ck'); }
+  if (w && e.target.id === 'ck-desc') { const b = $('#ck-sugg', w); if (b) b.innerHTML = suggHTML(w, 'ck'); ckGuess(w); }
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if ($('#intro')) closeIntro(); else closeSheet(); }
