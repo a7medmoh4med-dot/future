@@ -815,7 +815,7 @@ function normTx(id, x) {
     d: /^\d{4}-\d{2}-\d{2}$/.test(x.d) ? x.d : today(), acc: String(x.acc || mainAcc()), to: String(x.to || ''),
     xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, og: String(x.og || ''), lnk: String(x.lnk || ''), by: String(x.by || ''), ts: +x.ts || 0};
 }
-function normShift(id, x) { x = x || {}; return {id, m: String(x.m || ''), from: String(x.from || ''), to: String(x.to || ''), a: Math.abs(r2(x.a)), why: String(x.why || ''), tx: String(x.tx || ''), who: String(x.who || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
+function normShift(id, x) { x = x || {}; return {id, m: String(x.m || ''), from: String(x.from || ''), to: String(x.to || ''), a: Math.abs(r2(x.a)), why: String(x.why || ''), tx: String(x.tx || ''), cv: x.cv ? 1 : 0, who: String(x.who || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
 function normWait(id, x) { x = x || {}; return {id, type: ['next', 'loan', 'extra', 'over', 'goal'].includes(x.type) ? x.type : '48h', desc: String(x.desc || ''), a: Math.abs(r2(x.a)), cat: String(x.cat || 'fuori'), acc: String(x.acc || mainAcc()), need: x.need === 'rinv' ? 'rinv' : 'need', until: +x.until || 0, pid: String(x.pid || ''), due: String(x.due || ''), xb: x.xb ? 1 : 0, gid: String(x.gid || ''),
   who: String(x.who || ''), appr: String(x.appr || ''), st: ['ok', 'no'].includes(x.st) ? x.st : 'ask', dby: String(x.dby || ''), dts: +x.dts || 0, dnote: String(x.dnote || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
 const NORM = {tx: normTx, shifts: normShift, waits: normWait};
@@ -1466,10 +1466,75 @@ async function put(coll, id, doc) {
 }
 async function del(coll, id) {
   if (!canWriteNow()) return false;
-  if (coll === 'tx') { for (const sh of D().shifts.filter(x => x.tx === id)) await del('shifts', sh.id); for (const m of D().tx.filter(x => x.lnk === id)) await del('tx', m.id); }
-  if (S.preview) { S.demo[coll] = S.demo[coll].filter(x => x.id !== id); render(); return true; }
-  if (B.kind === 'db') { const ref = B.db.collection(coll).doc(id); try { await ref.delete(); return true; } catch (e) { return dbErr(e, () => ref.delete()); } }
-  S.real[coll] = S.real[coll].filter(x => x.id !== id); saveLocal(); render(); return true;
+  let txYM = '';
+  if (coll === 'tx') { const t0 = D().tx.find(x => x.id === id); txYM = t0 ? t0.d.slice(0, 7) : ''; for (const sh of D().shifts.filter(x => x.tx === id)) await del('shifts', sh.id); for (const m of D().tx.filter(x => x.lnk === id)) await del('tx', m.id); }
+  let ok = true;
+  if (S.preview) { S.demo[coll] = S.demo[coll].filter(x => x.id !== id); render(); }
+  else if (B.kind === 'db') { const ref = B.db.collection(coll).doc(id); try { await ref.delete(); if (S.real[coll]) S.real[coll] = S.real[coll].filter(x => x.id !== id); } catch (e) { ok = await dbErr(e, () => ref.delete()); } }
+  else { S.real[coll] = S.real[coll].filter(x => x.id !== id); saveLocal(); render(); }
+  if (ok !== false && coll === 'tx') { await cushSync(id, null); await reconcileCovers([txYM, curYM()]); }
+  if (ok !== false && coll === 'waits') await reconcileCovers([curYM()]);
+  return ok;
+}
+/* coperture: ogni spostamento che copre uno sforamento vale solo finché lo sforamento esiste */
+const isCover = s => !!(s.cv || s.tx || /^(Copre lo sforamento|Copertura)/.test(s.why || ''));
+let recBusy = false;
+async function reconcileCovers(yms, quiet) {
+  if (recBusy || S.preview || !S.canWrite) return 0;
+  recBusy = true; let back = 0; const msg = [];
+  try {
+    for (const ym of [...new Set((yms || []).filter(Boolean))]) {
+      if ((cfg().closed || '') >= ym || isFut(ym)) continue;
+      const st = catStats(ym);
+      for (const b of st) {
+        if (b.auto || b.sav) continue;
+        const covs = D().shifts.filter(x => x.m === ym && x.to === b.k && isCover(x)).sort((p, q) => q.ts - p.ts);
+        if (!covs.length) continue;
+        const reserve = ym === curYM() ? D().waits.filter(w => w.cat === b.k && w.st !== 'no' && ['48h', 'over', 'loan'].includes(w.type)).reduce((v, w) => v + w.a, 0) : 0;
+        let ex = r2(Math.min(b.left - reserve, covs.reduce((v, x) => v + x.a, 0)));
+        if (ex <= 0.005) continue;
+        const per = {};
+        for (const x of covs) {
+          if (ex <= 0.005) break;
+          const cut = r2(Math.min(ex, x.a));
+          if (x.a - cut <= 0.005) await del('shifts', x.id); else await put('shifts', x.id, Object.assign(stripId(x), {a: r2(x.a - cut)}));
+          ex = r2(ex - cut); back = r2(back + cut); per[x.from] = r2((per[x.from] || 0) + cut);
+        }
+        for (const k in per) msg.push(`${eur(per[k])} a ${(bud(k) || {n: k}).n}`);
+      }
+    }
+  } catch (e) { console.warn('reconcile', e); }
+  recBusy = false;
+  if (back > 0.005) { if (!quiet) toast('Copertura non più necessaria: restituiti ' + msg.join(', ')); render(); }
+  return back;
+}
+/* cuscinetto: quello che una spesa obbligata ha preso torna indietro se la spesa sparisce o si riduce */
+async function cushSync(id, t) {
+  if (S.preview || !S.canWrite) return;
+  const log = cfg().cushionLog || [], drawn = r2(-log.filter(x => x.tx === id).reduce((v, x) => v + (+x.a || 0), 0));
+  if (drawn <= 0.005) return;
+  const keep = t && t.kind === 'out' && t.cat === 'straord' && !t.plan && t.acc === mainAcc() ? r2(Math.min(drawn, t.a)) : 0;
+  const back = r2(drawn - keep); if (back <= 0.005) return;
+  const c = clone(cfg()); c.cushion.bal = r2(c.cushion.bal + back);
+  c.cushionLog = (c.cushionLog || []).concat({m: curYM(), a: back, why: (t ? 'Restituito: spesa ridotta' : 'Restituito: spesa eliminata') + (t && t.note ? ' · ' + t.note : ''), ts: Date.now(), tx: id}).slice(-60);
+  await saveConfig(c); toast(`${eur(back)} tornati nel cuscinetto`);
+}
+async function coverBoot() {
+  if (S.preview || !S.canWrite) return;
+  try {
+    const c = clone(cfg()); let ch = false; const used = new Set((c.cushionLog || []).map(x => x.tx).filter(Boolean));
+    for (const e of c.cushionLog || []) {
+      if (e.tx || !(e.a < 0)) continue;
+      const m = /^Spesa (obbligata|straordinaria): (.*)$/.exec(e.why || ''); if (!m) continue;
+      const t = D().tx.find(x => !used.has(x.id) && x.kind === 'out' && x.cat === 'straord' && (x.note || '') === m[2] && x.d.slice(0, 7) === e.m);
+      if (t) { e.tx = t.id; used.add(t.id); ch = true; }
+      else if (!D().tx.some(x => x.kind === 'out' && x.cat === 'straord' && (x.note || '') === m[2])) { e.tx = 'gone-' + e.ts; ch = true; }
+    }
+    if (ch) await saveConfig(c);
+    for (const e of cfg().cushionLog || []) if (/^gone-/.test(e.tx || '')) await cushSync(e.tx, null);
+  } catch (e) { console.warn('coverBoot', e); }
+  const prev = addMonths(curYM(), -1);
+  await reconcileCovers([prev, curYM()]);
 }
 let cfgChain = Promise.resolve();
 function saveConfig(c) {
@@ -2565,10 +2630,11 @@ async function straordPay(w) {
   if (!(a > 0)) { toast('Inserisci un importo'); return; }
   if (a > x.a + 0.005) return straordReask(w);
   const cov = x.acc === mainAcc() ? r2(Math.min(a, cushion().bal)) : 0;
-  if (await addTx({kind: 'out', a, cat: 'straord', note: x.desc || 'Spesa straordinaria', d: today(), acc: x.acc, xb: true, src: 'straord'}) === false) return;
+  const sid = newId();
+  if (await addTx({_id: sid, kind: 'out', a, cat: 'straord', note: x.desc || 'Spesa straordinaria', d: today(), acc: x.acc, xb: true, src: 'straord'}) === false) return;
   if (cov > 0) {
     const c = clone(cfg()); c.cushion.bal = r2(Math.max(0, c.cushion.bal - cov));
-    c.cushionLog = (c.cushionLog || []).concat({m: curYM(), a: -cov, why: 'Spesa straordinaria: ' + (x.desc || ''), ts: Date.now()}).slice(-60);
+    c.cushionLog = (c.cushionLog || []).concat({m: curYM(), a: -cov, why: 'Spesa straordinaria: ' + (x.desc || ''), ts: Date.now(), tx: sid}).slice(-60);
     await saveConfig(c);
   }
   await del('waits', x.id);
@@ -2702,18 +2768,7 @@ async function saveTx(w, coverFrom, asOver) {
   if (ogG) w._txid = ex ? ex.id : w._fixedId || w._txid || newId();
   if (ex && ex.pid) Object.assign(doc, {pid: ex.pid, who: ex.who || ''});
   const recPid = recTx ? ((recs().find(r => r.id === recTx) || {}).pid || '') : ''; if (recPid) doc.pid = recPid;
-  if (ex && coverFrom === undefined && !asOver) {
-    const linked = D().shifts.filter(x => x.tx === ex.id);
-    if (linked.length) {
-      if (t.kind !== 'out' || doc.xb || t.cat !== ex.cat || t.d.slice(0, 7) !== ex.d.slice(0, 7)) { for (const x of linked) await del('shifts', x.id); }
-      else {
-        const b0 = catStats(t.d.slice(0, 7), ex.id, recTx).find(x => x.k === t.cat), L = r2(linked.reduce((v, x) => v + x.a, 0));
-        const need = r2(Math.max(0, a - ((b0 ? b0.left : 0) - L)));
-        let cut = r2(L - need);
-        for (const x of linked.slice().reverse()) { if (cut <= 0.005) break; if (x.a <= cut + 0.005) { await del('shifts', x.id); cut = r2(cut - x.a); } else { await put('shifts', x.id, Object.assign(stripId(x), {a: r2(x.a - cut)})); cut = 0; } }
-      }
-    }
-  }
+  // le coperture collegate si riallineano da sole dopo il salvataggio (reconcileCovers)
   if (t.kind === 'out' && !doc.xb && coverFrom === undefined && !asOver) {
     const ym = t.d.slice(0, 7), st = catStats(ym, ex && ex.id, recTx), b = st.find(x => x.k === t.cat);
     if (b && !b.bills && !(recTx && (b.rec || b.pct)) && a > b.left + 0.001) {
@@ -2738,9 +2793,10 @@ async function saveTx(w, coverFrom, asOver) {
   if (ex) ok = await put('tx', ex.id, Object.assign(doc, {by: ex.by || S.uid || '', ts: ex.ts || Date.now()}));
   else if (w._fixedId) ok = await put('tx', w._fixedId, Object.assign(doc, {by: S.uid || '', ts: Date.now()}));
   else if (t.kind === 'in' && !planF && (cfg().extraCats || []).includes(t.cat)) { w._xid = newId(); ok = await put('tx', w._xid, Object.assign(doc, {todo: 1, by: S.uid || '', ts: Date.now()})); }
-  else ok = await addTx(Object.assign(doc, {_id: w._txid || ''}));
+  else { if (t.kind === 'out') w._txid = w._txid || newId(); ok = await addTx(Object.assign(doc, {_id: w._txid || ''})); }
   if (ok === false) return;
   if (w._apprWait) await del('waits', w._apprWait);
+  if (ex) { await cushSync(ex.id, Object.assign({}, doc, {a})); await reconcileCovers([ex.d.slice(0, 7), t.d.slice(0, 7), curYM()]); }
   let ogShort = 0;
   if (ogG && !planF) ogShort = await goalSettle(w._txid, ogG, a, t.acc, t.d, t.note);
   else if (ex && ex.og) await goalSettle(ex.id, null);
@@ -2749,7 +2805,7 @@ async function saveTx(w, coverFrom, asOver) {
   let cushTxt = '';
   if (newOblig && !planF && t.acc === mainAcc()) {
     const cov = r2(Math.min(a, cushion().bal));
-    if (cov > 0) { const c = clone(cfg()); c.cushion.bal = r2(Math.max(0, c.cushion.bal - cov)); c.cushionLog = (c.cushionLog || []).concat({m: curYM(), a: -cov, why: 'Spesa obbligata: ' + (t.note || ''), ts: Date.now()}).slice(-60); await saveConfig(c); cushTxt = ` · ${eur(cov)} dal cuscinetto`; }
+    if (cov > 0) { const c = clone(cfg()); c.cushion.bal = r2(Math.max(0, c.cushion.bal - cov)); c.cushionLog = (c.cushionLog || []).concat({m: curYM(), a: -cov, why: 'Spesa obbligata: ' + (t.note || ''), ts: Date.now(), tx: ex ? ex.id : (w._fixedId || w._txid)}).slice(-60); await saveConfig(c); cushTxt = ` · ${eur(cov)} dal cuscinetto`; }
   }
   if (hasPartner() && !S.preview && window.FutureCloud && t.kind === 'out' && (newOblig || (asOver && !ex))) {
     const ovr = asOver ? (() => { const b0 = catStats(t.d.slice(0, 7)).find(x => x.k === t.cat); return b0 && b0.left < 0 ? -b0.left : 0; })() : 0;
@@ -2829,7 +2885,11 @@ async function saveShift(w) {
   if (from === to) { toast('Scegli due voci diverse'); return; }
   if (!(a > 0)) { toast('Inserisci un importo'); return; }
   if (a > src.left + .001) { toast(`Da ${src.n} puoi togliere al massimo ${eur(src.left)}`); return; }
-  const ok = await addShift({m: w._ym || curYM(), from, to, a, why: $('#sh-why', w).value.trim() || 'Spostamento'});
+  const tb = w._st.find(b => b.k === to), need = tb && !tb.auto && tb.left < -0.005 ? r2(-tb.left) : 0, why = $('#sh-why', w).value.trim() || 'Spostamento';
+  const cvA = r2(Math.min(a, need)), freeA = r2(a - cvA);
+  let ok = true;
+  if (cvA > 0.005) ok = await addShift({m: w._ym || curYM(), from, to, a: cvA, why: /^Copre lo sforamento/.test(why) ? why : 'Copre lo sforamento di ' + tb.n, cv: 1});
+  if (ok !== false && freeA > 0.005) ok = await addShift({m: w._ym || curYM(), from, to, a: freeA, why: /^Copre lo sforamento/.test(why) ? 'Spostamento' : why});
   if (ok === false) return;
   toast('Budget spostato ✓'); closeSheet(w); S.anim = true; render();
 }
@@ -5842,7 +5902,7 @@ async function scanReceipt(w) {
 /* ---------- avvio delle funzioni nuove ---------- */
 function featuresBoot() {
   document.body.classList.toggle('lefty', lsGet('future_lefty') === '1');
-  handleQuickAdd(); handleReportParam(); setTimeout(saveHistPoint, 6000); goalBoot();
+  handleQuickAdd(); handleReportParam(); setTimeout(saveHistPoint, 6000); goalBoot(); setTimeout(coverBoot, 4000);
   addEventListener('offline', () => { toast('Sei offline: quello che registri parte appena torna la rete'); render(); });
   addEventListener('online', () => { render(); });
   if (window.FutureCloud && window.FutureCloud.onQueue) window.FutureCloud.onQueue(() => render());
