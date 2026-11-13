@@ -737,7 +737,7 @@ function normConfig(c) {
   const d = clone(DEFAULT_CONFIG);
   const out = Object.assign({}, d, c);
   for (const k of ['income', 'budgets', 'incomeCats', 'extraCats', 'accounts', 'rules', 'goals']) if (!Array.isArray(out[k])) out[k] = d[k];
-  out.budgets = out.budgets.filter(b => b && b.k).map(b => ({k: String(b.k), n: String(b.n || b.k), a: +b.a || 0, l: b.l ? 1 : 0, auto: b.auto ? 1 : 0, e: String(b.e || '•'), c: String(b.c || '#999'), pct: Math.max(0, +b.pct || 0), rec: b.rec ? 1 : 0, bills: b.bills ? 1 : 0}));
+  out.budgets = out.budgets.filter(b => b && b.k).map(b => ({k: String(b.k), n: String(b.n || b.k), a: +b.a || 0, l: b.l ? 1 : 0, auto: b.auto ? 1 : 0, e: String(b.e || '•'), c: String(b.c || '#999'), pct: Math.max(0, +b.pct || 0), rec: b.rec ? 1 : 0, bills: b.bills ? 1 : 0, og: String(b.og || '')}));
   out.billEst = Math.max(0, +c.billEst || 105);
   out.hidden = Array.isArray(out.hidden) ? out.hidden.map(String) : [];
   out.cushion = {target: Math.max(0, (c.cushion && c.cushion.target != null) ? +c.cushion.target || 0 : 0), bal: Math.max(0, r2((c.cushion || {}).bal))};
@@ -755,10 +755,10 @@ function normTx(id, x) {
   x = x || {};
   return {id, kind: ['in', 'out', 'move', 'lend0'].includes(x.kind) ? x.kind : 'out', a: Math.abs(r2(x.a)), cat: String(x.cat || ''), note: String(x.note || ''),
     d: /^\d{4}-\d{2}-\d{2}$/.test(x.d) ? x.d : today(), acc: String(x.acc || mainAcc()), to: String(x.to || ''),
-    xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, by: String(x.by || ''), ts: +x.ts || 0};
+    xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, og: String(x.og || ''), lnk: String(x.lnk || ''), by: String(x.by || ''), ts: +x.ts || 0};
 }
 function normShift(id, x) { x = x || {}; return {id, m: String(x.m || ''), from: String(x.from || ''), to: String(x.to || ''), a: Math.abs(r2(x.a)), why: String(x.why || ''), tx: String(x.tx || ''), who: String(x.who || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
-function normWait(id, x) { x = x || {}; return {id, type: ['next', 'loan', 'extra', 'over'].includes(x.type) ? x.type : '48h', desc: String(x.desc || ''), a: Math.abs(r2(x.a)), cat: String(x.cat || 'fuori'), acc: String(x.acc || mainAcc()), need: x.need === 'rinv' ? 'rinv' : 'need', until: +x.until || 0, pid: String(x.pid || ''), due: String(x.due || ''), xb: x.xb ? 1 : 0,
+function normWait(id, x) { x = x || {}; return {id, type: ['next', 'loan', 'extra', 'over', 'goal'].includes(x.type) ? x.type : '48h', desc: String(x.desc || ''), a: Math.abs(r2(x.a)), cat: String(x.cat || 'fuori'), acc: String(x.acc || mainAcc()), need: x.need === 'rinv' ? 'rinv' : 'need', until: +x.until || 0, pid: String(x.pid || ''), due: String(x.due || ''), xb: x.xb ? 1 : 0, gid: String(x.gid || ''),
   who: String(x.who || ''), appr: String(x.appr || ''), st: ['ok', 'no'].includes(x.st) ? x.st : 'ask', dby: String(x.dby || ''), dts: +x.dts || 0, dnote: String(x.dnote || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
 const NORM = {tx: normTx, shifts: normShift, waits: normWait};
 
@@ -859,7 +859,7 @@ function catStats(ym, excludeTxId, excludeRec) {
     const inS = sh.filter(s => s.to === b.k).reduce((a, s) => a + s.a, 0);
     const outS = sh.filter(s => s.from === b.k).reduce((a, s) => a + s.a, 0);
     const eff = r2(base + inS - outS);
-    const spent = b.auto
+    const spent = b.og ? (() => { const ga = (goalById(b.og) || {}).acc; return ga ? tx.filter(t => t.kind === 'move' && t.to === ga && t.acc !== ga).reduce((a, t) => a + t.a, 0) : 0; })() : b.auto
       ? tx.filter(t => t.kind === 'move' && (t.to === 'Fondo casa' || potAccs().includes(t.to)) && t.acc !== 'Fondo casa').reduce((a, t) => a + t.a, 0)
       : tx.filter(t => t.kind === 'out' && t.cat === b.k && !t.xb).reduce((a, t) => a + t.a, 0);
     const pd = r2(b.auto ? (pend.__fondo || 0) : (pend[b.k] || 0) + planned.filter(t => t.cat === b.k).reduce((a, t) => a + t.a, 0));
@@ -1392,7 +1392,7 @@ async function put(coll, id, doc) {
 }
 async function del(coll, id) {
   if (!canWriteNow()) return false;
-  if (coll === 'tx') for (const sh of D().shifts.filter(x => x.tx === id)) await del('shifts', sh.id);
+  if (coll === 'tx') { for (const sh of D().shifts.filter(x => x.tx === id)) await del('shifts', sh.id); for (const m of D().tx.filter(x => x.lnk === id)) await del('tx', m.id); }
   if (S.preview) { S.demo[coll] = S.demo[coll].filter(x => x.id !== id); render(); return true; }
   if (B.kind === 'db') { const ref = B.db.collection(coll).doc(id); try { await ref.delete(); return true; } catch (e) { return dbErr(e, () => ref.delete()); } }
   S.real[coll] = S.real[coll].filter(x => x.id !== id); saveLocal(); render(); return true;
@@ -1400,6 +1400,7 @@ async function del(coll, id) {
 let cfgChain = Promise.resolve();
 function saveConfig(c) {
   if (!canWriteNow()) return Promise.resolve(false);
+  syncGoalBudgets(c);
   c = normConfig(c);
   if (S.preview) { S.demo.config = c; render(); return Promise.resolve(true); }
   S.real.config = c; render();
@@ -1410,17 +1411,17 @@ const stripId = o => { const c = Object.assign({}, o); delete c.id; return c; };
 const addTx = async t => ((t.kind === 'out' || t.kind === 'move') && t.acc && !(await lockGate(t.acc)) ? false : put('tx', t._id || newId(), Object.assign(stripId(normTx('x', t)), {who: t.who || meNow(), by: S.uid || '', ts: Date.now()})));
 const addShift = s => put('shifts', newId(), Object.assign(stripId(normShift('x', s)), {who: s.who || meNow(), by: S.uid || '', ts: Date.now()}));
 const addWait = async w => {
-  const id = newId(), needP = ['48h', 'loan', 'extra', 'over'].includes(w.type);
+  const id = newId(), needP = ['48h', 'loan', 'extra', 'over', 'goal'].includes(w.type);
   const base = needP && !hasPartner() ? {who: meNow(), appr: '', st: 'ok', dby: '', dts: Date.now(), dnote: ''} : {who: meNow(), appr: apprName(), st: 'ask'};
   const doc = Object.assign(stripId(normWait('x', Object.assign(base, w))), {by: S.uid || '', ts: Date.now()});
   const ok = await put('waits', id, doc);
   if (ok !== false && needP && doc.st === 'ask' && doc.appr) pushAsk(id, doc);
   return ok;
 };
-function waitWhat(x) { return x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'ha una spesa straordinaria' : x.type === 'over' ? (x.xb ? 'vuole una spesa fuori dal budget:' : 'vuole sforare il budget:') : 'vuole spendere'; }
+function waitWhat(x) { return x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'ha una spesa straordinaria' : x.type === 'goal' ? 'vuole iniziare:' : x.type === 'over' ? (x.xb ? 'vuole una spesa fuori dal budget:' : 'vuole sforare il budget:') : 'vuole spendere'; }
 function pushAsk(id, x, again) {
   if (S.preview || !window.FutureCloud) return;
-  window.FutureCloud.notify({title: `${again ? '🔔 Promemoria: ' : ''}${meNow()} chiede la tua autorizzazione`, body: `${waitWhat(x)} ${eur(x.a)} · ${x.desc || 'Spesa'}`, tag: 'wait-' + id, url: './?wait=' + encodeURIComponent(id)})
+  window.FutureCloud.notify({title: `${again ? '🔔 Promemoria: ' : ''}${meNow()} chiede la tua autorizzazione`, body: x.type === 'goal' ? `vuole ${String(x.desc || '').replace(/^Iniziare/, 'iniziare')}` : `${waitWhat(x)} ${eur(x.a)} · ${x.desc || 'Spesa'}`, tag: 'wait-' + id, url: './?wait=' + encodeURIComponent(id)})
     .then(r => { if (again) toast(r && r.sent ? `Promemoria inviato a ${apprName()} 🔔` : `${apprName()} non ha ancora attivato le notifiche: avvisala tu`); });
 }
 function pushDecided(id, x, ok, note) {
@@ -1557,7 +1558,7 @@ function homeHTML() {
   const fut = isFut(ym);
   const btns = isCur ? `<div class="homebtns stag" style="--i:3"><button class="ask" data-act="ask"><div class="q">?</div><div><b>Posso comprarlo?</b><span>Chiedi prima di spendere: decide il budget</span></div></button><button class="btn mt0 hb-sim" data-act="sim">📉 Prevedi</button><button class="btn mt0 hb-add" data-act="add">＋ Registra</button></div>`
     : fut ? `<div class="homebtns stag" style="--i:3"><button class="btn mt0" data-act="add" style="grid-column:1/-1">＋ Prevedi una spesa o un’entrata</button></div>` : '';
-  return `<div class="homewrap"><div class="hw-top">${(isCur ? heroHTML() + revHTML() + firstStepsHTML() + annualSoonHTML() + chHomeHTML() + sitAlertHTML() + cushionAlertsHTML() + planAlertsHTML() : '') + (fut ? '' : waitsH)}</div>${kpisHTML(ym, st)}${isCur ? forecastHTML() + sitCardHTML() : ''}<div class="hw-todo">${isCur ? todoHTML() : fut ? agendaHTML(ym) : ''}</div>${btns}</div>`;
+  return `<div class="homewrap"><div class="hw-top">${(isCur ? heroHTML() + liveGoalsHomeHTML() + revHTML() + firstStepsHTML() + annualSoonHTML() + chHomeHTML() + sitAlertHTML() + cushionAlertsHTML() + planAlertsHTML() : '') + (fut ? '' : waitsH)}</div>${kpisHTML(ym, st)}${isCur ? forecastHTML() + sitCardHTML() : ''}<div class="hw-todo">${isCur ? todoHTML() : fut ? agendaHTML(ym) : ''}</div>${btns}</div>`;
 }
 function kpisHTML(ym, st) {
   const flex = st.filter(b => !b.l && !b.auto), spend = r2(flex.reduce((a, b) => a + Math.max(0, b.left), 0)), flexEff = r2(flex.reduce((a, b) => a + b.eff, 0));
@@ -1790,10 +1791,10 @@ function firstStepsHTML() {
     `<button class="btn ghost sm" data-act="setup-done" style="margin-top:8px">Ho finito, nascondi</button></div>`;
 }
 function waitRowHTML(w) {
-  const done = w.type === 'loan' || w.type === 'extra' || w.type === 'over' || Date.now() >= w.until, me = meNow();
+  const done = w.type === 'loan' || w.type === 'extra' || w.type === 'over' || w.type === 'goal' || Date.now() >= w.until, me = meNow();
   const row = (ico, col, line2, acts) => `<div class="wait"><div class="bico" style="--c:${col}">${ico}</div><div style="min-width:0"><div class="t1" style="font-weight:650">${w.type !== 'next' ? whoChip('', reqOf(w)) : ''}${esc(w.desc || 'Spesa')} · <span class="num" style="white-space:nowrap">${eur(w.a)}</span></div><div class="tm">${line2}</div></div><div class="acts">${acts}</div></div>`;
   const drop = `<button class="btn sm ghost" data-act="wait-drop" data-id="${w.id}" aria-label="Lascia perdere">✕</button>`;
-  const timer = w.type === 'loan' ? '<span>🤝 Prestito</span>' : w.type === 'over' ? '<span>⚖️ Sfora il budget</span>' : w.type === 'extra' ? '<span>🧾 Straordinaria obbligata</span>' : `<span data-until="${w.until}" data-type="${w.type}">${waitLabel(w)}</span>`;
+  const timer = w.type === 'loan' ? '<span>🤝 Prestito</span>' : w.type === 'goal' ? '<span>🎯 Obiettivo</span>' : w.type === 'over' ? '<span>⚖️ Sfora il budget</span>' : w.type === 'extra' ? '<span>🧾 Straordinaria obbligata</span>' : `<span data-until="${w.until}" data-type="${w.type}">${waitLabel(w)}</span>`;
   if (w.type === 'next') return row('🗓️', '#FFB547', timer, `<button class="btn sm ${done ? 'primary' : ''}" data-act="wait-reval" data-id="${w.id}" ${done ? '' : 'disabled'}>Rivaluta</button>` + drop);
   const ap = esc(w.appr), mine = !!w.appr && me === w.appr, said = !w.appr ? 'Via libera:' : mine ? 'Hai detto' : `${ap} ha detto`, mdrop = mine ? '' : drop;
   if (w.st === 'no') return row('✕', '#FF6B5E', `<span class="no">${said} no</span>${w.dnote ? ` <span class="mu">· “${esc(w.dnote)}”</span>` : ''}`, `<button class="btn sm" data-act="wait-arch" data-id="${w.id}">Archivia</button>`);
@@ -1818,11 +1819,12 @@ function catName(t) {
   if (t.kind === 'in') return t.cat || 'Entrata';
   if (t.kind === 'move') return 'Trasferimento';
   if (t.cat === 'straord') return 'Spesa straordinaria';
+  if (t.og) return '🎯 ' + ((goalById(t.og) || {}).n || 'Obiettivo');
   if (t.cat === 'nonreg') return 'Spese non registrate';
   const b = bud(t.cat); return b ? b.n : (t.cat || 'Altro');
 }
-function catEmoji(t) { if (t.kind === 'in') return '💶'; if (t.kind === 'move') return t.to === 'Fondo casa' ? '🔐' : '⇄'; if (t.cat === 'straord') return '🧾'; if (t.cat === 'nonreg') return '❔'; const b = bud(t.cat); return b ? b.e : '•'; }
-function catColor(t) { if (t.kind === 'in') return '#2EE59D'; if (t.kind === 'move') return '#7C8CFF'; if (t.cat === 'straord') return '#FFB547'; if (t.cat === 'nonreg') return '#A7A7B8'; const b = bud(t.cat); return b ? b.c : '#999'; }
+function catEmoji(t) { if (t.kind === 'in') return '💶'; if (t.kind === 'move') return t.to === 'Fondo casa' ? '🔐' : '⇄'; if (t.cat === 'straord') return '🧾'; if (t.og && t.kind === 'out') return '🎯'; if (t.cat === 'nonreg') return '❔'; const b = bud(t.cat); return b ? b.e : '•'; }
+function catColor(t) { if (t.kind === 'in') return '#2EE59D'; if (t.kind === 'move') return '#7C8CFF'; if (t.cat === 'straord') return '#FFB547'; if (t.og && t.kind === 'out') return '#B57CFF'; if (t.cat === 'nonreg') return '#A7A7B8'; const b = bud(t.cat); return b ? b.c : '#999'; }
 function txListHTML() {
   const q = norm(S.q);
   let list = monthTx(S.ym).filter(t => (S.filter === 'all' || t.kind === S.filter) && (!S.fwho || !hasPartner() || whoOf(t) === S.fwho));
@@ -2005,13 +2007,7 @@ function goalsHTML() {
   const cards = goals.map((g, i) => {
     if (isMort(g)) return mortCardHTML(g, i);
     const gi = goalInfo(g);
-    if (g.type === 'fund' && g.id !== 'casa') {
-      return `<div class="card goal" style="--i:${i + 1}"><div class="top"><div><div class="gt">🎯 ${esc(g.n)}</div><div class="gs">${esc(g.sub || (g.acc ? 'Collegato al conto ' + g.acc : ''))}</div></div><span class="badge g">${gi.done ? 'Raggiunto ✓' : Math.round(gi.pct * 100) + '%'}</span></div>
-        <div class="gv num">${eur0(gi.cur)} <small class="m" style="font-size:16px;font-weight:600">/ ${eur0(g.target)}</small></div>
-        <div class="gbar"><i style="width:${r2(gi.pct * 100)}%;background:linear-gradient(90deg,#5AA9FF,#B57CFF)"></i></div>
-        <div class="gd"><span>${gi.monthly ? eur0(gi.monthly) + ' al mese' : 'Imposta quanto metti da parte al mese'}</span><span>${gi.done ? '' : gi.ym ? ymLabel(gi.ym) : '—'}</span></div>
-        <div class="row2" style="margin-top:6px">${g.acc ? `<button class="btn primary" data-act="versa" data-acc="${esc(g.acc)}">Versa ora</button>` : '<span></span>'}<button class="btn" data-act="goal-edit" data-id="${esc(g.id)}">Modifica</button></div></div>`;
-    }
+    if (g.type === 'fund' && g.id !== 'casa') return spendGoalCardHTML(g, i);
     if (g.type === 'fund') {
       return `<div class="card goal" style="--i:${i + 1}"><div class="top"><div><div class="gt">🏡 ${esc(g.n)}</div><div class="gs">${esc(g.sub || '')}</div></div><span class="badge g">${Math.round(gi.pct * 100)}%</span></div>
         <div class="gv num">${eur0(gi.cur)} <small class="m" style="font-size:16px;font-weight:600">/ ${eur0(g.target)}</small></div>
@@ -2485,9 +2481,11 @@ function drawTx(w) {
   const tred = treddResidual();
   const splitRows = () => `<div class="fld"><span>Parti dell\u2019entrata · totale ${eur(splitSum(w))}</span>${w._split.map((p, i) => `<div class="edrow3" style="grid-template-columns:minmax(0,1fr) 112px 42px"><select class="plain" data-sp="${i}" data-spf="cat">${cfg().incomeCats.map(c => `<option ${c === p.cat ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select><input class="plain" data-sp="${i}" data-spf="a" inputmode="decimal" value="${esc(p.a || '')}" placeholder="0,00"><button class="tg" data-act="sp-del" data-i="${i}" type="button" aria-label="Togli parte">✕</button></div>`).join('')}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="chipbtn" data-act="sp-add" type="button">+ Aggiungi parte</button><button class="chipbtn" data-act="sp-off" type="button">Una sola voce</button></div></div>`;
-  const catPart = t.kind === 'out' && t.oblig ? '' : t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}</div>`
+  const ogL = t.kind === 'out' && !w._rec && !(ex && ex.rec) ? cfg().goals.filter(g => isSpendGoal(g) && (gPhase(g) === 'live' || g.id === t.og)) : [];
+  const ogPart = ogL.length ? `<div class="fld"><span>Dove va</span><div class="toolbar" style="flex-wrap:wrap;margin:0">${[['', '📊 Budget del mese']].concat(ogL.map(g => [g.id, `🎯 ${esc(g.n)} · restano ${eur0(r2((+g.target || 0) - goalSpent(g.id)))}`])).map(([v, l]) => `<button class="chip ${(t.og || '') === v ? 'on' : ''}" data-act="tx-og" data-v="${esc(v)}" type="button">${l}</button>`).join('')}</div>${t.og ? `<p class="muted" style="font-size:12.5px;margin:6px 2px 0">Fuori dal budget del mese. I soldi escono dal salvadanaio dell\u2019obiettivo (oggi ${eur(Math.max(0, goalPot(goalById(t.og))))}); se non bastano, il resto dal conto scelto.</p>` : ''}</div>` : '';
+  const catPart = ogPart + (t.kind === 'out' && (t.oblig || t.og) ? '' : t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}</div>`
     : t.kind === 'in' ? (w._split ? splitRows() : `<div class="fld"><span>Tipo di entrata</span>${chipsGrid(cfg().incomeCats.filter(c => c !== 'Rientro prestito').concat('Rientro prestito'), t.cat, 'tx-icat').replace('data-v="Rientro prestito">Rientro prestito<', 'data-v="Rientro prestito">🤝 Rientro prestito<')}${!ex && t.cat !== 'Rientro prestito' ? '<button class="chipbtn" data-act="sp-on" type="button" style="margin-top:4px">＋ Dividi in più voci (es. stipendio + tredicesima)</button>' : ''}</div>${t.cat === 'Rientro prestito' ? rpFieldHTML(t) : ''}`)
-    : `<div class="row2"><label class="fld"><span>Da</span><select id="tx-acc">${accOpts(t.acc)}</select></label><label class="fld"><span>A</span><select id="tx-to">${accOpts(t.to || 'Fondo casa')}</select></label></div>`;
+    : `<div class="row2"><label class="fld"><span>Da</span><select id="tx-acc">${accOpts(t.acc)}</select></label><label class="fld"><span>A</span><select id="tx-to">${accOpts(t.to || 'Fondo casa')}</select></label></div>`);
   $('#tx-body', w).innerHTML = `<h3 class="sh-title">${ex ? 'Modifica movimento' : 'Nuovo movimento'}</h3><p class="sh-sub">${ex && (ex.who || ex.by) ? 'Registrato da ' + esc(ex.who || nameOf(ex.by) || 'qualcuno') + ' · ' : ''}${ex ? dateShort(ex.d) : 'Entrate, uscite e versamenti, insieme.'}</p>
     <div class="fld">${segHTML('tx-kind', [['out', 'Uscita'], ['in', 'Entrata'], ['move', 'Trasferimento']], t.kind)}</div>
     <label class="fld"><span>${w._split ? 'Totale' : 'Importo'}</span><div class="amtin"><input id="tx-a" inputmode="decimal" placeholder="${w._hint ? 'ultima: ' + nf2.format(w._hint) : '0,00'}" value="${w._split ? esc(nf2.format(splitSum(w))) : t.a ? esc(String(t.a).replace('.', ',')) : ''}" ${w._split ? 'readonly' : ''}><b>€</b></div></label>
@@ -2497,9 +2495,9 @@ function drawTx(w) {
     <div class="row2"><label class="fld"><span>Data</span><input id="tx-d" type="date" value="${esc(t.d)}"></label>${t.kind !== 'move' ? `<label class="fld"><span>Conto</span><select id="tx-acc">${accOpts(t.acc)}</select></label>` : '<div></div>'}</div>
     ${!w._fixedId && !(ex && ex.rec) && (t.d > today() || (ex && ex.plan)) ? `<div class="vrule" style="margin-top:0">📌 <b>Prevista</b>: con una data futura conta nel budget di quel mese e nel piano debiti, ma non tocca i saldi. Quando arriva il giorno la trovi in Da fare.</div>` : ''}
     ${t.kind === 'out' && (bud(t.cat) || {}).bills ? `<div class="fld"><span>Bolletta</span>${segHTML('tx-paid', [['paid', 'Già pagata'], ['due', 'Da pagare']], t.unpaid ? 'due' : 'paid')}</div>${t.unpaid ? `<label class="fld"><span>Scade il</span><input id="tx-due" type="date" value="${esc(t.due || '')}"></label>` : ''}` : ''}
-    ${t.kind === 'out' && !w._rec && !(ex && ex.rec) && !(ex && ex.pid) ? `<label class="check" style="margin:2px 0 10px"><input type="checkbox" id="tx-oblig" ${t.oblig ? 'checked' : ''}> 🧾 <span><b>Spesa obbligata</b> (viaggio necessario, medico, guasto…): fuori dal budget del mese, la paga prima il cuscinetto${hasPartner() ? ` · ${esc(apprName())} riceve un avviso` : ''}</span></label>` : ''}
+    ${t.kind === 'out' && !t.og && !w._rec && !(ex && ex.rec) && !(ex && ex.pid) ? `<label class="check" style="margin:2px 0 10px"><input type="checkbox" id="tx-oblig" ${t.oblig ? 'checked' : ''}> 🧾 <span><b>Spesa obbligata</b> (viaggio necessario, medico, guasto…): fuori dal budget del mese, la paga prima il cuscinetto${hasPartner() ? ` · ${esc(apprName())} riceve un avviso` : ''}</span></label>` : ''}
     ${t.kind === 'out' && !t.oblig && (tred > 0 || t.src === 'tredicesima') ? `<label class="check"><input type="checkbox" id="tx-tred" ${t.src === 'tredicesima' ? 'checked' : ''}> Pagata con la tredicesima (restano ${eur(tred)}) · escluso dal budget</label>` : ''}
-    ${!ex && !w._fixedId && t.kind !== 'move' && !(t.kind === 'in' && t.cat === 'Rientro prestito') ? `<label class="check"><input type="checkbox" id="tx-rep" ${w._rep ? 'checked' : ''}> 🔁 Si ripete ogni mese in questo giorno</label>` : ''}
+    ${!ex && !w._fixedId && !t.og && !t.oblig && t.kind !== 'move' && !(t.kind === 'in' && t.cat === 'Rientro prestito') ? `<label class="check"><input type="checkbox" id="tx-rep" ${w._rep ? 'checked' : ''}> 🔁 Si ripete ogni mese in questo giorno</label>` : ''}
     <button class="btn primary" data-act="tx-save">${ex ? 'Salva modifiche' : 'Registra'}</button>
     ${ex ? txActions(ex).filter(a => a[0] !== 'bill-paid' && a[0] !== 'bill-unpay').map(a => txBtn(ex, a.slice(0, 2).concat(a[2] === 'primary' ? '' : a[2]))).join('') : ''}`;
 }
@@ -2566,9 +2564,11 @@ async function saveTx(w, coverFrom, asOver) {
   }
   const a = parseAmt(t.a);
   if (!(a > 0)) { toast('Inserisci un importo valido'); return; }
-  const oblig = t.kind === 'out' && !!t.oblig && !w._rec && !(ex && ex.rec);
-  if (oblig) { t.cat = 'straord'; t.xb = true; t.src = 'straord'; t.unpaid = 0; } else if (t.src === 'straord') { t.xb = false; t.src = ''; }
-  if (t.kind === 'out' && !oblig && !bud(t.cat)) { toast(t.cat === 'straord' ? 'Era una spesa obbligata: scegli una voce di budget' : 'Scegli una voce di budget'); return; }
+  const ogG = t.kind === 'out' && t.og ? goalById(t.og) : null;
+  if (ogG) { t.oblig = false; t.cat = 'obj'; t.xb = true; if (t.src !== 'applepay') t.src = 'obj'; t.unpaid = 0; }
+  const oblig = t.kind === 'out' && !ogG && !!t.oblig && !w._rec && !(ex && ex.rec);
+  if (oblig) { t.cat = 'straord'; t.xb = true; t.src = 'straord'; t.unpaid = 0; } else if (t.src === 'straord') { t.xb = false; t.src = ''; } else if (!ogG && (t.src === 'obj' || t.cat === 'obj')) { t.xb = false; if (t.src === 'obj') t.src = ''; if (t.cat === 'obj') t.cat = ''; }
+  if (t.kind === 'out' && !oblig && !ogG && !bud(t.cat)) { toast(t.cat === 'straord' ? 'Era una spesa obbligata: scegli una voce di budget' : 'Scegli una voce di budget'); return; }
   if (t.kind === 'move' && t.acc === t.to) { toast('Scegli due conti diversi'); return; }
   const fromAcc = t.kind === 'out' || t.kind === 'move' ? t.acc : '';
   const wasAcc = ex && (ex.kind === 'out' || ex.kind === 'move') && ex.acc === fromAcc;
@@ -2587,7 +2587,8 @@ async function saveTx(w, coverFrom, asOver) {
   if (planF && t.kind === 'in' && cfg().income.some(i => i.n === t.cat)) { toast(`${t.cat} è già previsto ogni mese: qui aggiungi solo entrate in più`); return; }
   if (planF && t.kind === 'in' && (cfg().yearly || []).some(y => norm(y.n) === norm(t.cat))) { toast(`La ${t.cat.toLowerCase()} è già nel piano: la cambi in Obiettivi → Entrate in arrivo ogni anno`); return; }
   const unp = t.kind === 'out' && (bud(t.cat) || {}).bills && t.unpaid ? 1 : 0;
-  const doc = {kind: t.kind, a, cat: t.kind === 'move' ? '' : t.cat, note: t.note, d: t.d, acc: t.acc, to: t.kind === 'move' ? t.to : '', xb: t.kind === 'out' ? !!t.xb : false, src: t.kind === 'out' ? t.src : '', goal: t.goal || '', over: !!asOver, rec: (ex && ex.rec) || w._rec || '', plan: planF, unpaid: unp, due: unp ? (t.due || '') : (ex && ex.due) || ''};
+  const doc = {kind: t.kind, a, cat: t.kind === 'move' ? '' : t.cat, note: t.note, d: t.d, acc: t.acc, to: t.kind === 'move' ? t.to : '', xb: t.kind === 'out' ? !!t.xb : false, src: t.kind === 'out' ? t.src : '', goal: t.goal || '', over: !!asOver, rec: (ex && ex.rec) || w._rec || '', plan: planF, unpaid: unp, due: unp ? (t.due || '') : (ex && ex.due) || '', og: ogG ? ogG.id : ''};
+  if (ogG) w._txid = ex ? ex.id : w._fixedId || w._txid || newId();
   if (ex && ex.pid) Object.assign(doc, {pid: ex.pid, who: ex.who || ''});
   const recPid = recTx ? ((recs().find(r => r.id === recTx) || {}).pid || '') : ''; if (recPid) doc.pid = recPid;
   if (ex && coverFrom === undefined && !asOver) {
@@ -2629,6 +2630,10 @@ async function saveTx(w, coverFrom, asOver) {
   else ok = await addTx(Object.assign(doc, {_id: w._txid || ''}));
   if (ok === false) return;
   if (w._apprWait) await del('waits', w._apprWait);
+  let ogShort = 0;
+  if (ogG && !planF) ogShort = await goalSettle(w._txid, ogG, a, t.acc, t.d, t.note);
+  else if (ex && ex.og) await goalSettle(ex.id, null);
+  if (ogG && hasPartner() && !S.preview && window.FutureCloud) { const left = r2((+ogG.target || 0) - goalSpent(ogG.id)); if (left < -0.005) window.FutureCloud.notify({title: `${meNow()} ha registrato una spesa`, body: `${t.note || 'Spesa'} · ${eur(a)} su «${ogG.n}» · oltre il budget di ${eur(-left)}`, tag: 'og-' + Date.now(), url: './'}); }
   const newOblig = oblig && !(ex && ex.cat === 'straord');
   let cushTxt = '';
   if (newOblig && !planF && t.acc === mainAcc()) {
@@ -2644,7 +2649,7 @@ async function saveTx(w, coverFrom, asOver) {
     c.recurring = (c.recurring || []).concat({id: 'r' + newId().slice(-7), n: t.note || catName(Object.assign({}, doc)), kind: t.kind, a, cat: doc.cat, acc: t.acc, to: '', day, var: 0, auto: 0, on: 1, from: addMonths(t.d.slice(0, 7), 1)});
     await saveConfig(c); toast('Registrato ✓ e impostato come ricorrente 🔁');
   }
-  buzz(15); toast(planF && !ex ? `Prevista a ${MONTHS[+t.d.slice(5, 7) - 1].toLowerCase()} ✓ · il piano è aggiornato` : unp && !ex ? 'Bolletta registrata · la trovi in Da fare finché non la paghi' : newOblig ? `Spesa obbligata registrata ✓${cushTxt}` : asOver ? 'Registrata come sforamento' : ex ? 'Modifica salvata ✓' : 'Registrato ✓');
+  buzz(15); toast(planF && !ex ? `Prevista a ${MONTHS[+t.d.slice(5, 7) - 1].toLowerCase()} ✓ · il piano è aggiornato` : unp && !ex ? 'Bolletta registrata · la trovi in Da fare finché non la paghi' : ogG ? (ogShort > 0.005 ? `Registrata su «${ogG.n}» · ${eur(ogShort)} dal conto, il salvadanaio non bastava` : `Registrata su «${ogG.n}» ✓`) : newOblig ? `Spesa obbligata registrata ✓${cushTxt}` : asOver ? 'Registrata come sforamento' : ex ? 'Modifica salvata ✓' : 'Registrato ✓');
   closeSheet(w); S.anim = true; render();
   if (!ex && w._xid) extraSheet(w._xid, {a, acc: t.acc, cat: t.cat, note: t.note});
 }
@@ -3140,7 +3145,7 @@ function openGoalEdit(id) {
   const fund = g.type === 'fund', custom = fund && g.id !== 'casa';
   const w = openSheet(`<h3 class="sh-title">${esc(g.n)}</h3><p class="sh-sub">${custom ? 'Il valore arriva dal conto collegato.' : fund ? 'Il saldo arriva in automatico dal conto Fondo casa.' : 'Aggiorna il residuo quando lo vedi nell\u2019app della banca.'}</p>
     <label class="fld"><span>Nome</span><input id="ge-n" value="${esc(g.n)}"></label>${g.id === 'casa' ? '<p class="muted" style="font-size:12px;margin:-4px 0 10px">È il tuo obiettivo principale di risparmio: il nome che scegli compare in tutta l\u2019app.</p>' : ''}
-    ${custom ? `<label class="fld"><span>Obiettivo (€)</span><input id="ge-target" inputmode="decimal" value="${g.target}"></label><label class="fld"><span>Conto collegato</span><select id="ge-acc">${accOpts(g.acc)}</select></label><label class="fld"><span>Quanto metti da parte al mese</span><input id="ge-monthly" inputmode="decimal" value="${g.monthly || 0}"></label>`
+    ${custom ? `<label class="fld"><span>Obiettivo (€)</span><input id="ge-target" inputmode="decimal" value="${g.target}"></label><label class="fld"><span>Conto collegato</span><select id="ge-acc">${accOpts(g.acc)}</select></label><label class="fld"><span>Quanto metti da parte al mese</span><input id="ge-monthly" inputmode="decimal" value="${g.monthly || 0}"></label>${debtPhase() && gPhase(g) === 'save' ? `<div class="fld"><span>Quando metti da parte</span>${segHTML('ge-when', [['after', 'Dopo i debiti'], ['parallel', 'Subito, in parallelo']], g.when || 'after')}</div>` : ''}<div class="row2"><label class="fld"><span>Dal (facoltativo)</span><input id="ge-from" type="date" value="${esc(g.from || '')}"></label><label class="fld"><span>Al (facoltativo)</span><input id="ge-to" type="date" value="${esc(g.to || '')}"></label></div>`
     : fund ? `<label class="fld"><span>Obiettivo (€)</span><input id="ge-target" inputmode="decimal" value="${g.target}"></label><label class="fld"><span>Interesse conto deposito (%)</span><input id="ge-rate" inputmode="decimal" value="${String(g.rate || 0).replace('.', ',')}"></label>`
       : g.kind === 'person' ? `<div class="row2"><label class="fld"><span>Devi ancora (€)</span><input id="ge-cur" inputmode="decimal" value="${String(debtCur(g)).replace('.', ',')}"></label><label class="fld"><span>Restituisci entro (facoltativo)</span><input id="ge-plan" type="date" value="${esc(g.plan || '')}"></label></div><p class="muted" style="font-size:12.5px">Senza data l\u2019app calcola quando puoi restituirli.</p>`
       : `<div class="row2"><label class="fld"><span>Debito residuo (€)</span><input id="ge-cur" inputmode="decimal" value="${String(debtCur(g)).replace('.', ',')}"></label><label class="fld"><span>Bonifico mensile (quello che versi)</span><input id="ge-rata" inputmode="decimal" value="${String(g.rata || 0).replace('.', ',')}"></label></div>
@@ -3165,7 +3170,10 @@ function drawGoalNew(w) {
     ${fund ? `<label class="fld"><span>Cifra da raggiungere (€)</span><input id="ng-target" inputmode="decimal" value="${esc(g.target)}" placeholder="2.500"></label>
       <label class="fld"><span>Dove metti i soldi</span><select id="ng-acc"><option value="__new" ${g.acc === '__new' ? 'selected' : ''}>＋ Nuovo conto con questo nome</option>${cfg().accounts.filter(a => (x => !x || x.id === g.id)(accGoalOf(a.n))).map(a => `<option ${a.n === g.acc ? 'selected' : ''}>${esc(a.n)}</option>`).join('')}</select></label>
       <div class="fld"><span>Qual è l’obiettivo?</span>${segHTML('ng-obj', [['date', 'Arrivarci entro una data'], ['month', 'Una cifra al mese']], obj)}</div>
-      ${obj === 'date' ? `<label class="fld"><span>Entro quando</span><input id="ng-by" type="date" value="${esc(g.by || '')}"></label><p class="muted" id="ng-need" style="font-size:12.5px;margin:-4px 2px 10px"></p>` : `<label class="fld"><span>Quanto al mese</span><input id="ng-monthly" inputmode="decimal" value="${esc(g.monthly)}" placeholder="200"></label>`}`
+      ${obj === 'date' ? `<label class="fld"><span>Entro quando</span><input id="ng-by" type="date" value="${esc(g.by || '')}"></label><p class="muted" id="ng-need" style="font-size:12.5px;margin:-4px 2px 10px"></p>` : `<label class="fld"><span>Quanto al mese</span><input id="ng-monthly" inputmode="decimal" value="${esc(g.monthly)}" placeholder="200"></label>`}
+      ${debtPhase() ? `<div class="fld"><span>Quando metti da parte</span>${segHTML('ng-when', [['after', 'Dopo i debiti'], ['parallel', 'Subito, in parallelo']], g.when || 'after')}</div><p class="muted" id="ng-imp" style="font-size:12.5px;margin:-4px 2px 10px"></p>` : ''}
+      <div class="row2"><label class="fld"><span>Dal (facoltativo)</span><input id="ng-from" type="date" value="${esc(g.from || '')}"></label><label class="fld"><span>Al (facoltativo)</span><input id="ng-to" type="date" value="${esc(g.to || '')}"></label></div>
+      <p class="muted" style="font-size:12.5px;margin:-4px 2px 10px">Per un viaggio o le ferie. Quando inizi l\u2019obiettivo, ogni spesa la registri sotto di lui; le spese Apple Pay fatte in quei giorni ci vanno da sole.</p>`
     : `<div class="row2"><label class="fld"><span>Debito residuo</span><input id="ng-cur" inputmode="decimal" value="${esc(g.cur)}"></label><label class="fld"><span>Rata mensile</span><input id="ng-rata" inputmode="decimal" value="${esc(g.rata)}"></label></div>
       <label class="fld"><span>TAEG % (0 se senza interessi)</span><input id="ng-taeg" inputmode="decimal" value="${esc(g.taeg || '')}" placeholder="0"></label>
       <div class="fld"><span>Qual è l’obiettivo?</span>${segHTML('ng-obj', [['asap', 'Chiuderlo il prima possibile'], ['date', 'Entro una data']], obj)}</div>
@@ -3176,14 +3184,18 @@ function drawGoalNew(w) {
 }
 // risparmio con una data: quanto serve al mese
 function ngNeed(w) {
+  try { const ib = $('#ng-imp', w); if (ib) { const g0 = readGoalNew(w), t0 = parseAmt(g0.target) || 0, have0 = g0.acc && g0.acc !== '__new' ? Math.max(0, balance(g0.acc)) : 0;
+    const m0 = g0.obj === 'date' && g0.by && g0.by.slice(0, 7) > curYM() ? Math.ceil(Math.max(0, t0 - have0) / monthsBetween(curYM(), g0.by.slice(0, 7)) * 100) / 100 : parseAmt(g0.monthly) || 0;
+    if (g0.when === 'parallel') { const im = goalDebtImpact(m0, m0 > 0 ? Math.ceil(Math.max(0, t0 - have0) / m0) : 0); ib.innerHTML = im && m0 > 0 ? `Accantonando ${eur(m0)} al mese da subito, l\u2019ultimo debito si chiude <b style="color:var(--text)">${im.delay ? im.delay + (im.delay === 1 ? ' mese' : ' mesi') + ' dopo' : 'più tardi'}</b> (${ymTxt(im.a)} → ${ymTxt(im.b)}).` : 'Scrivi la cifra: ti dico quanto si allungano i debiti.'; }
+    else ib.textContent = 'Si inizia a mettere da parte quando chiudi l\u2019ultimo debito: i debiti restano com\u2019erano.'; } } catch (e) {}
   const box = $('#ng-need', w); if (!box) return; const g = readGoalNew(w), t = parseAmt(g.target), by = g.by;
   if (!(t > 0) || !by || by.slice(0, 7) <= curYM()) { box.textContent = by && by.slice(0, 7) <= curYM() ? 'Scegli una data dal mese prossimo in poi.' : 'Scrivi cifra e data: l’app ti dice quanto mettere da parte al mese.'; return; }
   const have = g.acc && g.acc !== '__new' ? Math.max(0, balance(g.acc)) : 0, n = monthsBetween(curYM(), by.slice(0, 7));
   box.innerHTML = `Servono <b style="color:var(--text)">${eur(Math.ceil(Math.max(0, t - have) / n * 100) / 100)} al mese</b> per ${n} ${n > 1 ? 'mesi' : 'mese'}${have > 0 ? ` (ci sono già ${eur(have)})` : ''}.`;
 }
 function readGoalNew(w) { const g = w._g, v = id => { const e = $(id, w); return e ? e.value : null; };
-  g.n = (v('#ng-n') ?? g.n).trim(); for (const [k, id] of [['target', '#ng-target'], ['monthly', '#ng-monthly'], ['acc', '#ng-acc'], ['cur', '#ng-cur'], ['rata', '#ng-rata'], ['taeg', '#ng-taeg'], ['plan', '#ng-plan'], ['by', '#ng-by']]) { const x = v(id); if (x !== null) g[k] = x; }
-  g.cat = picked(w, 'ng-cat') || g.cat; g.obj = picked(w, 'ng-obj') || g.obj; return g; }
+  g.n = (v('#ng-n') ?? g.n).trim(); for (const [k, id] of [['target', '#ng-target'], ['monthly', '#ng-monthly'], ['acc', '#ng-acc'], ['cur', '#ng-cur'], ['rata', '#ng-rata'], ['taeg', '#ng-taeg'], ['plan', '#ng-plan'], ['by', '#ng-by'], ['from', '#ng-from'], ['to', '#ng-to']]) { const x = v(id); if (x !== null) g[k] = x; }
+  g.cat = picked(w, 'ng-cat') || g.cat; g.obj = picked(w, 'ng-obj') || g.obj; g.when = picked(w, 'ng-when') || g.when || 'after'; return g; }
 async function saveGoalEdit(w, id) {
   const c = clone(cfg()), g = c.goals.find(x => x.id === id); if (!g) return;
   if (g.kind === 'person' && !($('#ge-fix', w) || {}).checked) {
@@ -3201,7 +3213,7 @@ async function saveGoalEdit(w, id) {
   const old = clone(g), oldRec = (recs().find(x => x.id === g.recId) || {}).n || '';
   const num = sel => { const el = $(sel, w); return el ? parseAmt(el.value) : NaN; };
   const nm = $('#ge-n', w); if (nm && nm.value.trim()) g.n = nm.value.trim();
-  if (g.type === 'fund' && g.id !== 'casa') { const t = num('#ge-target'); if (t > 0) g.target = t; g.acc = $('#ge-acc', w).value; g.monthly = num('#ge-monthly') || 0; }
+  if (g.type === 'fund' && g.id !== 'casa') { const t = num('#ge-target'); if (t > 0) g.target = t; g.acc = $('#ge-acc', w).value; g.monthly = num('#ge-monthly') || 0; const gw = picked(w, 'ge-when'); if (gw) g.when = gw; const gf = $('#ge-from', w), gt = $('#ge-to', w); if (gf) g.from = gf.value || ''; if (gt) g.to = gt.value || ''; }
   else if (g.type === 'fund') { const t = num('#ge-target'); if (t > 0) g.target = t; g.bonus = num('#ge-bonus') || 0; g.rate = num('#ge-rate') || 0; }
   else {
     const cur = num('#ge-cur'), fix = !!($('#ge-fix', w) || {}).checked; if (cur >= 0 && (fix || Math.abs(cur - debtCur(cfg().goals.find(x => x.id === id))) > 0.009)) { g.cur = cur; g.curTs = Date.now(); if (cur > g.start || fix) g.start = cur; }
@@ -3465,6 +3477,8 @@ const FAQ = [
     ['Come segue l\u2019app i debiti?', 'Niente extra mensili: paghi la rata e intanto metti da parte, poi saldi tutto in un colpo. Ogni euro libero va ai debiti: salvadanaio (la quota che dopo andrà al fondo casa), rate liberate, avanzi, entrate in arrivo ogni anno, conto (tolto il cuscinetto) e cassaforte. Mai il fondo casa. L\u2019ordine:<ol><li><b>Debiti verso persone con una data</b>: è una promessa, vengono prima di tutto e i soldi si tengono da parte.</li><li><b>Finanziamenti</b>: prima quelli con una data che desideri, in ordine di data; poi gli altri, prima l\u2019importo più basso (si chiude prima), a parità quello con più interessi. Ognuno si salda appena si può, purché restino i soldi per le date promesse.</li><li><b>Debiti verso persone senza data</b>: per ultimi.</li></ol>Se la data che desideri non è fattibile l\u2019app ti dice quella possibile; se entrano soldi e la data si avvicina, o diventa <b>saldabile ora</b>, te lo dice in Home.'],
     ['Come aggiorno un debito?', 'Obiettivi → <b>Aggiorna residuo</b>: scrivi il residuo che vedi nell\u2019app della banca. <b>Bonifico mensile</b> è quello che versi (lo usa il budget e il pagamento ricorrente); <b>Rata della banca</b> è quella vera del piano di ammortamento: il residuo scende di quella. Le date si ricalcolano.'],
     ['Posso pagare un po\u2019 in più sui finanziamenti?', 'No: niente extra mensili. Paghi la rata, i soldi restano sul conto e saldi tutto in un colpo con <b>🏛️ Salda ora</b> quando il piano dice “saldabile ora”. Solo sui debiti verso una persona puoi <b>restituire una parte</b>.'],
+    ['Come funziona un obiettivo come un viaggio o una macchina?', 'Ha tre fasi. <b>1 · Accumulo</b>: scegli cifra, data (o quanto al mese) e, se vuoi, le date <b>dal/al</b>; i soldi vanno sul suo conto-salvadanaio. Finché ci sono debiti scegli se mettere da parte <b>dopo i debiti</b> o <b>subito, in parallelo</b> (l\u2019app ti dice di quanto si allungano i debiti); in parallelo compare una voce 🎯 intoccabile nel budget. <b>2 · In corso</b>: tocca <b>▶ Inizia</b> (con il partner collegato serve il suo sì). Da lì registri ogni spesa <b>sull\u2019obiettivo</b>: dalla scheda (<b>＋ Spesa</b>) o con ＋ Registra scegliendo l\u2019obiettivo in <b>Dove va</b>. Le spese non toccano il budget del mese e i soldi escono dal salvadanaio; se non bastano, il resto dal conto. Le spese Apple Pay fatte tra le date dal/al ci vanno da sole. <b>3 · Chiuso</b>: tocca <b>Chiudi</b>, vedi speso, avanzato o sforato e scegli dove spostare quello che resta.'],
+    ['Le spese dell\u2019obiettivo si vedono anche in Movimenti?', 'Sì: compaiono con 🎯 e il nome dell\u2019obiettivo, insieme al prelievo dal salvadanaio. Se modifichi o elimini una spesa, il prelievo si aggiorna da solo. Nella scheda dell\u2019obiettivo trovi l\u2019elenco completo.'],
     ['Come creo un nuovo obiettivo?', 'Obiettivi → <b>+ Nuovo obiettivo</b>: prima scegli che cosa è (mutuo, finanziamento, carta, debito con una persona, risparmio), poi qual è l’obiettivo. <b>Risparmio</b>: cifra da raggiungere, crea anche il suo conto e ti dice quando ci arrivi. <b>Debito da chiudere</b>: residuo, rata e extra. Gli obiettivi si rinominano ed eliminano da Modifica/Aggiorna.'],
     ['Come calcola la data del fondo casa?', 'Segue il piano: finché ci sono debiti da attaccare il margine va lì; quando un debito finisce, la sua rata si aggiunge al versamento mensile. Conta tredicesima e quattordicesima (le cifre di Obiettivi → Entrate in arrivo ogni anno) e l\u2019interesse del conto deposito.']
   ]],
@@ -3788,7 +3802,7 @@ function openLoanRepay(pid) {
 
 /* ---------------- account e partner ---------------- */
 function acctSync() {}
-function pendingAsks() { const me = meNow(), d = D(); return me && d ? d.waits.filter(w => ['48h', 'loan', 'extra', 'over'].includes(w.type) && w.st === 'ask' && w.appr === me) : []; }
+function pendingAsks() { const me = meNow(), d = D(); return me && d ? d.waits.filter(w => ['48h', 'loan', 'extra', 'over', 'goal'].includes(w.type) && w.st === 'ask' && w.appr === me) : []; }
 async function authFor(p) { return p === meNow(); }
 function maybeAsk() {
   if (S.preview || S.mode === 'loading' || !S.me) return;
@@ -3868,9 +3882,9 @@ function promptSheet(title, sub, okLabel, val) {
 function openAsk(id) {
   const x = D().waits.find(v => v.id === id); if (!x) return;
   const b = bud(x.cat), req = reqOf(x), running = Date.now() < x.until;
-  openSheet(`<div class="ask-hd"><span class="pav" style="background:${pcolOf(req)}">${req[0]}</span><div><div class="h-label">Richiesta di autorizzazione</div><h3 class="sh-title" style="margin:2px 0 0">${esc(req)} ${x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'deve fare una spesa straordinaria' : x.type === 'over' ? 'vuole spendere oltre il budget' : 'vuole spendere'}</h3><div class="sh-sub" style="margin:2px 0 0">Decide ${esc(x.appr)}</div></div></div>
+  openSheet(`<div class="ask-hd"><span class="pav" style="background:${pcolOf(req)}">${req[0]}</span><div><div class="h-label">Richiesta di autorizzazione</div><h3 class="sh-title" style="margin:2px 0 0">${esc(req)} ${x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'deve fare una spesa straordinaria' : x.type === 'over' ? 'vuole spendere oltre il budget' : x.type === 'goal' ? 'vuole iniziare un obiettivo' : 'vuole spendere'}</h3><div class="sh-sub" style="margin:2px 0 0">Decide ${esc(x.appr)}</div></div></div>
     <div class="ask-amt num">${eur(x.a)}</div><div class="ask-desc">${esc(x.desc || 'Spesa')}</div>
-    ${x.type === 'extra' ? straordPrevHTML(x.a, x.acc) : ''}<div class="vrule">${x.type === 'over' ? overAskHTML(x, req) : x.type === 'extra' ? `🧾 Spesa obbligata: nessuna regola la blocca e niente 48 ore.<br>Se dici sì, ${esc(req)} può pagarla subito. Se dici no, la richiesta si chiude.` : x.type === 'loan' ? `🤝 Esce dal Fuori budget; se non basta, da una voce flessibile.<br>Se dici sì, ${esc(req)} può prestarli subito. Se dici no, la richiesta si chiude.${cronicoMsg(x.pid, true) ? `<br><b class="r">${esc(cronicoMsg(x.pid, true))}</b>` : ''}` : `${b ? esc(b.e) + ' ' + esc(b.n) + ' · ' : ''}${running ? 'timer: ' + waitLabel(x).toLowerCase() : 'le 48 ore sono già passate'}<br>Se dici sì, ${esc(req)} potrà comprarlo ${running ? 'quando finiscono le 48 ore' : 'subito'}. Se dici no, la richiesta si chiude.`}</div>
+    ${x.type === 'extra' ? straordPrevHTML(x.a, x.acc) : ''}<div class="vrule">${x.type === 'goal' ? `🎯 Da qui in poi le spese si registrano sull\u2019obiettivo e l\u2019accantonamento mensile si ferma.<br>Se dici sì, ${esc(req)} lo avvia. Se dici no, resta in accumulo.` : x.type === 'over' ? overAskHTML(x, req) : x.type === 'extra' ? `🧾 Spesa obbligata: nessuna regola la blocca e niente 48 ore.<br>Se dici sì, ${esc(req)} può pagarla subito. Se dici no, la richiesta si chiude.` : x.type === 'loan' ? `🤝 Esce dal Fuori budget; se non basta, da una voce flessibile.<br>Se dici sì, ${esc(req)} può prestarli subito. Se dici no, la richiesta si chiude.${cronicoMsg(x.pid, true) ? `<br><b class="r">${esc(cronicoMsg(x.pid, true))}</b>` : ''}` : `${b ? esc(b.e) + ' ' + esc(b.n) + ' · ' : ''}${running ? 'timer: ' + waitLabel(x).toLowerCase() : 'le 48 ore sono già passate'}<br>Se dici sì, ${esc(req)} potrà comprarlo ${running ? 'quando finiscono le 48 ore' : 'subito'}. Se dici no, la richiesta si chiude.`}</div>
     <div class="row2" style="margin-top:14px"><button class="btn danger mt0" data-act="ask-no" data-id="${x.id}">✕ No</button><button class="btn primary mt0" data-act="ask-ok" data-id="${x.id}">✓ Sì, autorizzo</button></div>
     <button class="btn ghost" data-act="close-sheet">Decido dopo</button>`);
   buzz([20, 40, 20]);
@@ -3900,6 +3914,7 @@ const ACT = {
     if (g.dataset.group === 'la-type') { readLoanAdd(w); w._l.type = el.dataset.v; drawLoanAdd(w); }
     if (g.dataset.group === 'tx-cat' && !!(bud(el.dataset.v) || {}).bills !== !!(bud(w._t.cat) || {}).bills) { readTx(w); drawTx(w); }
     if (g.dataset.group === 'tx-paid') { readTx(w); drawTx(w); }
+    if (g.dataset.group === 'ng-when' && w._g) ngNeed(w);
     if ((g.dataset.group === 'sim-kind' || g.dataset.group === 'sim-icat') && w._s) { simRead(w); if (g.dataset.group === 'sim-kind') w._s.kind = el.dataset.v; else w._s.icat = el.dataset.v; drawSim(w); }
     if (g.dataset.group === 'sim-cat' && w._s) { simUpdate(w); const rb = $('#sim-res', w); if (rb && rb.firstChild) rb.scrollIntoView({behavior: 'smooth', block: 'center'}); }
     if (g.dataset.group === 'tx-icat' && (el.dataset.v === 'Rientro prestito') !== (w._t.cat === 'Rientro prestito')) { readTx(w); drawTx(w); }
@@ -3932,7 +3947,7 @@ const ACT = {
   'ck-drop': async el => { const w = el.closest('.wrap'); const r = w._last; if (w._pre.waitId) { if (!(await confirmSheet('Lasci perdere?', 'La richiesta in attesa viene tolta.', 'Sì, lascio perdere'))) return; await del('waits', w._pre.waitId); } closeSheet(w); toast(r && r.q.a ? `Bravo: ${eur(r.q.a)} restano a voi 💪` : 'Ok'); S.anim = true; render(); },
   'ck-wait48': async el => { const w = el.closest('.wrap'), q = w._last.q; const ok = await addWait({type: '48h', desc: q.desc, a: q.a, cat: q.cat, acc: q.acc, need: q.need, until: Date.now() + 48 * 3600e3}); if (ok === false) return; closeSheet(w); toast(`${sentMsg(true)} ⏳`); S.anim = true; render(); },
   'ck-next': async el => { const w = el.closest('.wrap'), q = w._last.q; const [y, m] = addMonths(curYM(), 1).split('-').map(Number); const ok = await addWait({type: 'next', desc: q.desc, a: q.a, cat: q.cat, acc: q.acc, need: q.need, until: new Date(y, m - 1, 1).getTime()}); if (ok === false) return; closeSheet(w); toast('Rimandata al mese prossimo 🗓️'); S.anim = true; render(); },
-  'wait-reval': el => { const w = D().waits.find(x => x.id === el.dataset.id); if (!w) return; if (w.type === 'over') { if (w.st !== 'ok') { toast('Serve prima il sì di ' + w.appr); return; } openTx({_new: true, kind: 'out', a: nf2.format(w.a), cat: w.cat, note: w.desc, d: today(), acc: w.acc, to: 'Fondo casa', xb: !!w.xb, src: w.xb ? 'tredicesima' : ''}, {wait: w.id}); return; } if (w.type === 'extra') { if (w.st !== 'ok') { toast('Serve prima il sì di ' + w.appr); return; } openStraordPay(w.id); return; } if (w.type !== 'next' && !(w.st === 'ok' && (w.type === 'loan' || Date.now() >= w.until))) { toast(w.st === 'ok' ? 'Le 48 ore non sono ancora passate' : 'Serve prima il sì di ' + w.appr); return; } const sh = openCheck({desc: w.desc, a: w.a, cat: w.cat, acc: w.acc, need: w.need, waitId: w.id, pid: w.pid, due: w.due}); if (sh) setTimeout(() => runCheck(sh), 420); },
+  'wait-reval': async el => { const w = D().waits.find(x => x.id === el.dataset.id); if (!w) return; if (w.type === 'goal') { if (w.st !== 'ok') { toast('Serve prima il sì di ' + w.appr); return; } await del('waits', w.id); goalStart(w.gid, true); return; } if (w.type === 'over') { if (w.st !== 'ok') { toast('Serve prima il sì di ' + w.appr); return; } openTx({_new: true, kind: 'out', a: nf2.format(w.a), cat: w.cat, note: w.desc, d: today(), acc: w.acc, to: 'Fondo casa', xb: !!w.xb, src: w.xb ? 'tredicesima' : ''}, {wait: w.id}); return; } if (w.type === 'extra') { if (w.st !== 'ok') { toast('Serve prima il sì di ' + w.appr); return; } openStraordPay(w.id); return; } if (w.type !== 'next' && !(w.st === 'ok' && (w.type === 'loan' || Date.now() >= w.until))) { toast(w.st === 'ok' ? 'Le 48 ore non sono ancora passate' : 'Serve prima il sì di ' + w.appr); return; } const sh = openCheck({desc: w.desc, a: w.a, cat: w.cat, acc: w.acc, need: w.need, waitId: w.id, pid: w.pid, due: w.due}); if (sh) setTimeout(() => runCheck(sh), 420); },
   'wait-arch': async el => { const w = D().waits.find(x => x.id === el.dataset.id); if (!w) return; if (!(await confirmSheet('Archiviare la richiesta?', `${esc(w.desc || 'Spesa')} · ${eur(w.a)}: sparisce dalla lista.`, 'Archivia'))) return; if (await del('waits', w.id) !== false) { toast(`Archiviata: ${eur(w.a)} restano a voi 💪`); render(); } },
   who: () => openAccount(),
   'rule-example': async el => { const x = RULE_EXAMPLES[+el.dataset.i]; if (!x) return; const c = clone(cfg()); const n = c.rules.reduce((m, r) => Math.max(m, r.n), 0) + 1; c.rules.push({n, t: x.t, kw: x.kw.slice(), until: '', ex: ''}); await saveConfig(c); toast('Regola aggiunta ✓'); render(); },
@@ -3946,6 +3961,11 @@ const ACT = {
   stress: () => openStress(),
   subs: () => openSubs(),
   'quick-help': () => openQuickHelp(),
+  'og-start': el => goalStart(el.dataset.id),
+  'og-close': el => goalClose(el.dataset.id),
+  'og-list': el => goalList(el.dataset.id),
+  'og-add': el => { const g = goalById(el.dataset.id); if (!g) return; openTx({_new: true, kind: 'out', a: '', cat: 'spesa', note: '', d: today(), acc: mainAcc(), to: 'Fondo casa', xb: false, src: '', og: g.id}); },
+  'tx-og': el => { const w = el.closest('.wrap'); readTx(w); w._t.og = el.dataset.v || ''; if (w._t.og) w._t.oblig = false; drawTx(w); },
   'autopay': el => { const w = el.closest('.wrap'); if (w) closeSheet(w); openAutoPay(); },
   'report': () => openReport(S.ym === curYM() ? null : S.ym),
   'trend': el => { S.trend = el.dataset.t; render(); },
@@ -4047,7 +4067,8 @@ const ACT = {
       if (obj === 'date' && (!g.by || g.by.slice(0, 7) <= curYM())) { toast('Scegli entro quando, dal mese prossimo in poi'); return; }
       let acc = g.acc; if (acc === '__new') { acc = g.n; if (c.accounts.some(a => norm(a.n) === norm(acc))) { toast('Esiste già un conto con questo nome: sceglilo dalla lista'); return; } c.accounts.push({n: acc, init: 0}); }
       const have = g.acc && g.acc !== '__new' ? Math.max(0, balance(g.acc)) : 0, monthly = obj === 'date' ? Math.ceil(Math.max(0, t - have) / monthsBetween(curYM(), g.by.slice(0, 7)) * 100) / 100 : parseAmt(g.monthly) || 0;
-      c.goals.push({id, type: 'fund', n: g.n, sub: '', target: t, acc, monthly, obj, by: obj === 'date' ? g.by : ''}); }
+      if (g.from && g.to && g.to < g.from) { toast('La data «Al» viene prima di «Dal»'); return; }
+      c.goals.push({id, type: 'fund', n: g.n, sub: '', target: t, acc, monthly, obj, by: obj === 'date' ? g.by : '', from: g.from || '', to: g.to || '', when: debtPhase() ? (g.when || 'after') : 'parallel', phase: 'save'}); }
     else { const cur = parseAmt(g.cur); if (!(cur > 0)) { toast('Inserisci il debito residuo'); return; }
       if (obj === 'date' && !g.plan) { toast('Scegli la data per saldarlo'); return; }
       const rt = parseAmt(g.rata) || 0, tg = parseAmt(g.taeg) || 0;
@@ -4276,7 +4297,7 @@ document.addEventListener('input', e => {
   if (w && $('#bud-tot', w) && e.target.dataset.f) { syncRows(w); updBudTot(w); }
   if (w && e.target.dataset && e.target.dataset.sp !== undefined) { syncSplit(w); const a = $('#tx-a', w); if (a) a.value = nf2.format(splitSum(w)); const lab = a && a.closest('.wrap') ? $$('.fld>span', w).find(x => x.textContent.startsWith('Parti')) : null; if (lab) lab.textContent = 'Parti dell\u2019entrata · totale ' + eur(splitSum(w)); }
   if (w && e.target.id === 'tx-note') { w._t.note = e.target.value; const b = $('#tx-sugg', w); if (b) b.innerHTML = suggHTML(w, 'tx'); }
-  if (w && (e.target.id === 'ng-target' || e.target.id === 'ng-by')) ngNeed(w);
+  if (w && (e.target.id === 'ng-target' || e.target.id === 'ng-by' || e.target.id === 'ng-monthly')) ngNeed(w);
   if (w && e.target.id === 'faq-q') { const l = $('#faq-list', w); if (l) l.innerHTML = faqHTML(e.target.value); }
   if (w && e.target.id === 'ck-desc') { const b = $('#ck-sugg', w); if (b) b.innerHTML = suggHTML(w, 'ck'); }
 });
@@ -5691,7 +5712,7 @@ async function scanReceipt(w) {
 
 /* ---------- avvio delle funzioni nuove ---------- */
 function featuresBoot() {
-  handleQuickAdd(); handleReportParam(); setTimeout(saveHistPoint, 6000);
+  handleQuickAdd(); handleReportParam(); setTimeout(saveHistPoint, 6000); goalBoot();
   addEventListener('offline', () => { toast('Sei offline: quello che registri parte appena torna la rete'); render(); });
   addEventListener('online', () => { render(); });
   if (window.FutureCloud && window.FutureCloud.onQueue) window.FutureCloud.onQueue(() => render());
@@ -5885,6 +5906,143 @@ function openReport(ym) {
   });
 }
 function handleReportParam() { try { const u = new URL(location.href), m = u.searchParams.get('report'); if (!m) return; u.searchParams.delete('report'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); if (/^\d{4}-\d{2}$/.test(m)) setTimeout(() => openReport(m), 700); } catch (e) {} }
+
+/* ================= Future · obiettivi di spesa: accumulo → in corso → chiuso ================= */
+const isSpendGoal = g => g && g.type === 'fund' && g.id !== 'casa';
+const gPhase = g => (g.phase === 'live' || g.phase === 'closed' ? g.phase : 'save');
+const liveGoals = () => cfg().goals.filter(g => isSpendGoal(g) && gPhase(g) === 'live');
+const goalById = id => cfg().goals.find(g => g.id === id) || null;
+const goalSpent = id => r2(TX().filter(t => t.og === id && t.kind === 'out' && !t.plan).reduce((s, t) => s + t.a, 0));
+const goalPot = g => (g && g.acc ? r2(balance(g.acc)) : 0);
+// accantonamento mensile come voce intoccabile del budget: così il piano debiti lo conta da solo
+function syncGoalBudgets(c) {
+  try {
+    const debts = (c.goals || []).some(g => g.type === 'debt' && debtCur(g) > 0);
+    const want = (c.goals || []).filter(g => isSpendGoal(g) && gPhase(g) === 'save' && +g.monthly > 0 && (g.when === 'parallel' || !debts) && (!g.acc || balance(g.acc) < (+g.target || 0) - 0.5));
+    const keep = new Set(want.map(g => g.id));
+    c.budgets = (c.budgets || []).filter(b => !b.og || keep.has(b.og));
+    for (const g of want) {
+      const b = c.budgets.find(x => x.og === g.id);
+      if (b) { b.a = r2(+g.monthly); b.n = g.n; } else c.budgets.push({k: 'og' + g.id, n: g.n, a: r2(+g.monthly), l: 1, auto: 0, e: '🎯', c: '#B57CFF', og: g.id});
+    }
+  } catch (e) {}
+  return c;
+}
+// quanto si allungano i debiti accantonando subito
+function goalDebtImpact(monthly, months) {
+  try {
+    if (!debtPhase() || !(monthly > 0)) return null;
+    const live = cfg().goals.filter(g => g.type === 'debt' && debtCur(g) > 0);
+    const endOf = sch => live.map(g => (sch[g.id] || {}).ym || '9999-12').reduce((m, x) => (x > m ? x : m), '0000-00');
+    const fl = {}; for (let k = 0; k < Math.min(months || 60, 120); k++) fl[k] = -monthly;
+    const a = endOf(debtSchedule()), b = endOf(debtSchedule(0, 0, fl));
+    return {a, b, delay: a < '9999' && b < '9999' ? monthsBetween(a, b) : null};
+  } catch (e) { return null; }
+}
+function gRange(g) { return g.from || g.to ? `${g.from ? dateShort(g.from) : '…'} → ${g.to ? dateShort(g.to) : '…'}` : ''; }
+
+/* ---------- scheda dell'obiettivo ---------- */
+function spendGoalCardHTML(g, i) {
+  const ph = gPhase(g), pot = goalPot(g), spent = goalSpent(g.id), tgt = +g.target || 0, rng = gRange(g);
+  const spents = TX().filter(t => t.og === g.id && t.kind === 'out' && !t.plan).sort((a, b) => b.d.localeCompare(a.d) || b.ts - a.ts);
+  if (ph === 'closed') {
+    const diff = r2(tgt - spent);
+    return `<div class="card goal" style="--i:${i + 1};opacity:.85"><div class="top"><div><div class="gt">🎯 ${esc(g.n)}</div><div class="gs">${rng ? rng + ' · ' : ''}chiuso ${g.closedAt ? 'il ' + dateShort(g.closedAt) : ''}</div></div><span class="badge g">Chiuso ✓</span></div>
+      <div class="gv num">${eur0(spent)} <small class="m" style="font-size:15px;font-weight:600">spesi su ${eur0(tgt)}</small></div>
+      <div class="gd"><span>${diff >= 0 ? `Avanzati ${eur(diff)}` : `<span class="r">Sforato di ${eur(-diff)}</span>`} · ${spents.length} spese</span></div>
+      <div class="row2" style="margin-top:6px"><button class="btn" data-act="og-list" data-id="${esc(g.id)}">Vedi le spese</button><button class="btn ghost" data-act="ge-del" data-id="${esc(g.id)}">Elimina</button></div></div>`;
+  }
+  if (ph === 'live') {
+    const left = r2(tgt - spent), pct = tgt > 0 ? Math.min(1, spent / tgt) : 0;
+    return `<div class="card goal" style="--i:${i + 1};border-color:rgba(181,124,255,.45)"><div class="top"><div><div class="gt">🎯 ${esc(g.n)}</div><div class="gs">${rng || 'In corso'} · sul salvadanaio ${eur0(Math.max(0, pot))}</div></div><span class="badge" style="background:rgba(181,124,255,.18);color:#C9A2FF">In corso</span></div>
+      <div class="gv num ${left < 0 ? 'r' : ''}">${left >= 0 ? eur0(left) : '−' + eur0(-left)} <small class="m" style="font-size:15px;font-weight:600">${left >= 0 ? 'restano' : 'oltre il budget'} · spesi ${eur0(spent)} su ${eur0(tgt)}</small></div>
+      <div class="gbar"><i style="width:${r2(pct * 100)}%;background:${left < 0 ? 'var(--red)' : 'linear-gradient(90deg,#B57CFF,#5AA9FF)'}"></i></div>
+      ${spents.length ? `<div style="margin-top:8px">${spents.slice(0, 4).map(t => `<div class="txr" data-act="edit-tx" data-id="${t.id}" style="padding:7px 2px"><div style="min-width:0;flex:1"><div class="t1" style="font-size:14px">${esc(t.note || 'Spesa')}</div><div class="t2">${esc(dateShort(t.d))} · ${esc(t.acc)}</div></div><div class="amt num o" style="font-size:14px">−${eur(t.a)}</div></div>`).join('')}${spents.length > 4 ? `<button class="chipbtn" data-act="og-list" data-id="${esc(g.id)}" style="margin-top:4px">Tutte le ${spents.length} spese</button>` : ''}</div>` : '<div class="muted" style="font-size:13px;margin-top:8px">Ancora nessuna spesa: registrale da qui o con ＋ scegliendo questo obiettivo.</div>'}
+      <button class="btn primary" style="margin-top:8px" data-act="og-add" data-id="${esc(g.id)}">＋ Spesa su «${esc(g.n)}»</button>
+      <div class="row2" style="margin-top:6px"><button class="btn" data-act="og-close" data-id="${esc(g.id)}">Chiudi l’obiettivo</button><button class="btn" data-act="goal-edit" data-id="${esc(g.id)}">Modifica</button></div></div>`;
+  }
+  const gi = goalInfo(g), debts = debtPhase(), waiting = debts && g.when !== 'parallel';
+  const imp = waiting ? null : null;
+  return `<div class="card goal" style="--i:${i + 1}"><div class="top"><div><div class="gt">🎯 ${esc(g.n)}</div><div class="gs">${rng ? rng + ' · ' : ''}${esc(g.acc ? 'sul conto ' + g.acc : '')}</div></div><span class="badge g">${gi.done ? 'Pronto ✓' : Math.round(gi.pct * 100) + '%'}</span></div>
+    <div class="gv num">${eur0(gi.cur)} <small class="m" style="font-size:16px;font-weight:600">/ ${eur0(g.target)}</small></div>
+    <div class="gbar"><i style="width:${r2(gi.pct * 100)}%;background:linear-gradient(90deg,#5AA9FF,#B57CFF)"></i></div>
+    <div class="gd"><span>${gi.done ? 'Cifra raggiunta: puoi iniziare quando vuoi' : waiting ? `Si accantona dopo i debiti${+g.monthly > 0 ? ' · ' + eur0(g.monthly) + ' al mese' : ''}` : +g.monthly > 0 ? `${eur0(g.monthly)} al mese · voce 🎯 nel budget` : 'Imposta quanto mettere da parte al mese'}</span><span>${gi.done ? '' : !waiting && gi.ym ? ymLabel(gi.ym) : g.by ? 'entro ' + ymShort(g.by.slice(0, 7)) : ''}</span></div>
+    <div class="row2" style="margin-top:6px">${g.acc ? `<button class="btn" data-act="versa" data-acc="${esc(g.acc)}">Versa ora</button>` : '<span></span>'}<button class="btn ${gi.done || (g.from && g.from <= today()) ? 'primary' : ''}" data-act="og-start" data-id="${esc(g.id)}">▶ Inizia</button></div>
+    <button class="btn ghost" style="margin-top:6px" data-act="goal-edit" data-id="${esc(g.id)}">Modifica</button></div>`;
+}
+
+/* ---------- inizia ---------- */
+async function goalStart(id, approved) {
+  const g = goalById(id); if (!g) return;
+  const pot = goalPot(g);
+  if (!approved && hasPartner()) {
+    const ok = await confirmSheet(`Iniziare «${g.n}»?`, `Da qui in poi le spese le registri sull’obiettivo: budget ${eur(g.target)}, sul salvadanaio ci sono ${eur(Math.max(0, pot))}.<br><br>È una decisione da prendere insieme: chiedo il sì di <b>${esc(apprName())}</b>.`, `Chiedi il sì di ${apprName()}`);
+    if (!ok) return;
+    if (await addWait({type: 'goal', gid: id, desc: `Iniziare «${g.n}» · budget ${eur(g.target)}`, a: +g.target || 0, cat: 'fuori', acc: g.acc || mainAcc(), need: 'need', until: Date.now()}) === false) return;
+    toast(`${sentMsg()} 🎯`); S.anim = true; render(); return;
+  }
+  if (!approved && !(await confirmSheet(`Iniziare «${g.n}»?`, `Da qui in poi le spese le registri sull’obiettivo: budget ${eur(g.target)}, sul salvadanaio ci sono ${eur(Math.max(0, pot))}. L’accantonamento mensile si ferma.`, 'Inizia'))) return;
+  const c = clone(cfg()), x = c.goals.find(v => v.id === id); if (!x) return;
+  x.phase = 'live'; x.startedAt = today();
+  if (await saveConfig(c) === false) return;
+  buzz(15); toast(`«${g.n}» è in corso 🎯`); S.tab = 'goals'; S.anim = true; render();
+}
+
+/* ---------- chiudi ---------- */
+async function goalClose(id) {
+  const g = goalById(id); if (!g) return;
+  const pot = goalPot(g), spent = goalSpent(id), tgt = +g.target || 0;
+  const dests = [[mainAcc(), `Torna su «${mainAcc()}»`]].concat(cfg().goals.filter(x => isSpendGoal(x) && x.id !== id && gPhase(x) !== 'closed' && x.acc).map(x => [x.acc, `Su «${x.n}»`]));
+  const msg = `Budget ${eur(tgt)} · spesi ${eur(spent)} · ${tgt - spent >= 0 ? 'avanzati ' + eur(r2(tgt - spent)) : '<span class="r">sforato di ' + eur(r2(spent - tgt)) + '</span>'}.`
+    + (pot > 0.005 ? `<br><br>Sul salvadanaio restano <b>${eur(pot)}</b>: dove li sposto?` : '<br><br>Il salvadanaio è vuoto.');
+  const ch = pot > 0.005 ? await choiceSheet(`Chiudere «${g.n}»?`, msg, dests.concat([['__keep', 'Lasciali sul conto dell’obiettivo']])) : ((await confirmSheet(`Chiudere «${g.n}»?`, msg, 'Chiudi')) ? '__keep' : '');
+  if (!ch) return;
+  if (ch !== '__keep' && pot > 0.005) { if (await addTx({kind: 'move', a: pot, note: `Avanzo «${g.n}»`, d: today(), acc: g.acc, to: ch, og: id}) === false) return; }
+  const c = clone(cfg()), x = c.goals.find(v => v.id === id); if (!x) return;
+  x.phase = 'closed'; x.closedAt = today(); x.spentFinal = spent;
+  if (await saveConfig(c) === false) return;
+  if (hasPartner() && !S.preview && window.FutureCloud) window.FutureCloud.notify({title: `${meNow()} ha chiuso «${g.n}»`, body: `Spesi ${eur(spent)} su ${eur(tgt)}${pot > 0.005 && ch !== '__keep' ? ' · avanzo ' + eur(pot) + ' spostato' : ''}`, tag: 'og-' + id, url: './'});
+  buzz(15); toast(`«${g.n}» chiuso ✓`); S.anim = true; render();
+}
+function goalList(id) {
+  const g = goalById(id); if (!g) return;
+  const L = TX().filter(t => t.og === id && t.kind === 'out' && !t.plan).sort((a, b) => b.d.localeCompare(a.d) || b.ts - a.ts);
+  openSheet(`<h3 class="sh-title">🎯 ${esc(g.n)}</h3><p class="sh-sub">${L.length} spese · ${eur(goalSpent(id))} su ${eur(g.target)}${gRange(g) ? ' · ' + gRange(g) : ''}</p>
+    <div class="card tight" style="margin:0">${L.map(t => `<div class="txr" data-act="edit-tx" data-id="${t.id}"><div style="min-width:0;flex:1"><div class="t1">${esc(t.note || 'Spesa')}</div><div class="t2">${whoChip(t.by, t.who)}${esc(dateShort(t.d))} · ${esc(t.acc)}</div></div><div class="amt num o">−${eur(t.a)}</div></div>`).join('') || '<div class="muted" style="padding:14px">Nessuna spesa.</div>'}</div>`);
+}
+
+/* ---------- dopo il salvataggio di una spesa sull'obiettivo: i soldi escono dal salvadanaio ---------- */
+async function goalSettle(txId, g, a, acc, d, note) {
+  const old = D().tx.filter(t => t.lnk === txId), back = g ? r2(old.filter(m => m.acc === g.acc).reduce((v, m) => v + m.a, 0)) : 0;
+  for (const m of old) await del('tx', m.id);
+  if (!g || !g.acc || acc === g.acc) return 0;
+  const pot = r2(goalPot(g) + (D().tx.some(t => old.some(m => m.id === t.id)) ? back : 0)), take = r2(Math.max(0, Math.min(a, pot)));
+  if (take > 0.005) await addTx({kind: 'move', a: take, note: `Dal salvadanaio «${g.n}»: ${note || 'spesa'}`, d, acc: g.acc, to: acc, og: g.id, lnk: txId});
+  return r2(a - take);
+}
+// spese Apple Pay fatte nelle date di un obiettivo in corso: vanno sull'obiettivo
+async function goalAutoAssign() {
+  try {
+    if (S.preview || B.kind !== 'db') return;
+    const L = liveGoals().filter(g => g.from || g.to); if (!L.length) return;
+    for (const t of D().tx.filter(t => t.src === 'applepay' && t.rev && !t.og && t.kind === 'out')) {
+      const g = L.find(x => (!x.from || t.d >= x.from) && (!x.to || t.d <= x.to)); if (!g) continue;
+      await put('tx', t.id, Object.assign(stripId(t), {og: g.id, cat: 'obj', xb: true}));
+      await goalSettle(t.id, g, t.a, t.acc, t.d, t.note);
+    }
+  } catch (e) {}
+}
+function liveGoalsHomeHTML() {
+  if (S.preview || S.ym !== curYM()) return '';
+  return liveGoals().map(g => { const left = r2((+g.target || 0) - goalSpent(g.id));
+    return `<div class="card stag" style="--i:0;border-color:rgba(181,124,255,.45);display:flex;align-items:center;gap:12px;padding:14px 16px"><div style="font-size:26px">🎯</div><div style="flex:1;min-width:0"><div style="font-weight:750">${esc(g.n)} · in corso</div><div class="muted" style="font-size:13px">${left >= 0 ? 'restano ' + eur(left) : '<span class="r">oltre il budget di ' + eur(-left) + '</span>'} su ${eur0(g.target)}${gRange(g) ? ' · ' + gRange(g) : ''}</div></div><button class="btn sm primary" data-act="og-add" data-id="${esc(g.id)}">＋ Spesa</button></div>`; }).join('');
+}
+function goalBoot() {
+  setTimeout(async () => {
+    try { if (S.preview || B.kind !== 'db') return; const c = clone(cfg()), before = JSON.stringify(c.budgets); syncGoalBudgets(c); if (JSON.stringify(c.budgets) !== before) await saveConfig(c); } catch (e) {}
+    goalAutoAssign();
+  }, 5000);
+}
 
 boot();
 })();
