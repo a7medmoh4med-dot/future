@@ -749,7 +749,7 @@ function normTx(id, x) {
     xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, by: String(x.by || ''), ts: +x.ts || 0};
 }
 function normShift(id, x) { x = x || {}; return {id, m: String(x.m || ''), from: String(x.from || ''), to: String(x.to || ''), a: Math.abs(r2(x.a)), why: String(x.why || ''), who: String(x.who || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
-function normWait(id, x) { x = x || {}; return {id, type: ['next', 'loan', 'extra'].includes(x.type) ? x.type : '48h', desc: String(x.desc || ''), a: Math.abs(r2(x.a)), cat: String(x.cat || 'fuori'), acc: String(x.acc || mainAcc()), need: x.need === 'rinv' ? 'rinv' : 'need', until: +x.until || 0, pid: String(x.pid || ''), due: String(x.due || ''),
+function normWait(id, x) { x = x || {}; return {id, type: ['next', 'loan', 'extra', 'over'].includes(x.type) ? x.type : '48h', desc: String(x.desc || ''), a: Math.abs(r2(x.a)), cat: String(x.cat || 'fuori'), acc: String(x.acc || mainAcc()), need: x.need === 'rinv' ? 'rinv' : 'need', until: +x.until || 0, pid: String(x.pid || ''), due: String(x.due || ''),
   who: String(x.who || ''), appr: String(x.appr || ''), st: ['ok', 'no'].includes(x.st) ? x.st : 'ask', dby: String(x.dby || ''), dts: +x.dts || 0, dnote: String(x.dnote || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
 const NORM = {tx: normTx, shifts: normShift, waits: normWait};
 
@@ -1400,14 +1400,14 @@ const stripId = o => { const c = Object.assign({}, o); delete c.id; return c; };
 const addTx = async t => ((t.kind === 'out' || t.kind === 'move') && t.acc && !(await lockGate(t.acc)) ? false : put('tx', newId(), Object.assign(stripId(normTx('x', t)), {who: t.who || meNow(), by: S.uid || '', ts: Date.now()})));
 const addShift = s => put('shifts', newId(), Object.assign(stripId(normShift('x', s)), {who: s.who || meNow(), by: S.uid || '', ts: Date.now()}));
 const addWait = async w => {
-  const id = newId(), needP = ['48h', 'loan', 'extra'].includes(w.type);
+  const id = newId(), needP = ['48h', 'loan', 'extra', 'over'].includes(w.type);
   const base = needP && !hasPartner() ? {who: meNow(), appr: '', st: 'ok', dby: '', dts: Date.now(), dnote: ''} : {who: meNow(), appr: apprName(), st: 'ask'};
   const doc = Object.assign(stripId(normWait('x', Object.assign(base, w))), {by: S.uid || '', ts: Date.now()});
   const ok = await put('waits', id, doc);
   if (ok !== false && needP && doc.st === 'ask' && doc.appr) pushAsk(id, doc);
   return ok;
 };
-function waitWhat(x) { return x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'ha una spesa straordinaria' : 'vuole spendere'; }
+function waitWhat(x) { return x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'ha una spesa straordinaria' : x.type === 'over' ? 'vuole sforare il budget:' : 'vuole spendere'; }
 function pushAsk(id, x, again) {
   if (S.preview || !window.FutureCloud) return;
   window.FutureCloud.notify({title: `${again ? '🔔 Promemoria: ' : ''}${meNow()} chiede la tua autorizzazione`, body: `${waitWhat(x)} ${eur(x.a)} · ${x.desc || 'Spesa'}`, tag: 'wait-' + id, url: './?wait=' + encodeURIComponent(id)})
@@ -1780,10 +1780,10 @@ function firstStepsHTML() {
     `<button class="btn ghost sm" data-act="setup-done" style="margin-top:8px">Ho finito, nascondi</button></div>`;
 }
 function waitRowHTML(w) {
-  const done = w.type === 'loan' || w.type === 'extra' || Date.now() >= w.until, me = meNow();
+  const done = w.type === 'loan' || w.type === 'extra' || w.type === 'over' || Date.now() >= w.until, me = meNow();
   const row = (ico, col, line2, acts) => `<div class="wait"><div class="bico" style="--c:${col}">${ico}</div><div style="min-width:0"><div class="t1" style="font-weight:650">${w.type !== 'next' ? whoChip('', reqOf(w)) : ''}${esc(w.desc || 'Spesa')} · <span class="num" style="white-space:nowrap">${eur(w.a)}</span></div><div class="tm">${line2}</div></div><div class="acts">${acts}</div></div>`;
   const drop = `<button class="btn sm ghost" data-act="wait-drop" data-id="${w.id}" aria-label="Lascia perdere">✕</button>`;
-  const timer = w.type === 'loan' ? '<span>🤝 Prestito</span>' : w.type === 'extra' ? '<span>🧾 Straordinaria obbligata</span>' : `<span data-until="${w.until}" data-type="${w.type}">${waitLabel(w)}</span>`;
+  const timer = w.type === 'loan' ? '<span>🤝 Prestito</span>' : w.type === 'over' ? '<span>⚖️ Sfora il budget</span>' : w.type === 'extra' ? '<span>🧾 Straordinaria obbligata</span>' : `<span data-until="${w.until}" data-type="${w.type}">${waitLabel(w)}</span>`;
   if (w.type === 'next') return row('🗓️', '#FFB547', timer, `<button class="btn sm ${done ? 'primary' : ''}" data-act="wait-reval" data-id="${w.id}" ${done ? '' : 'disabled'}>Rivaluta</button>` + drop);
   const ap = esc(w.appr), mine = !!w.appr && me === w.appr, said = !w.appr ? 'Via libera:' : mine ? 'Hai detto' : `${ap} ha detto`, mdrop = mine ? '' : drop;
   if (w.st === 'no') return row('✕', '#FF6B5E', `<span class="no">${said} no</span>${w.dnote ? ` <span class="mu">· “${esc(w.dnote)}”</span>` : ''}`, `<button class="btn sm" data-act="wait-arch" data-id="${w.id}">Archivia</button>`);
@@ -2444,7 +2444,7 @@ function openTx(existing, opts = {}) {
   delete t._new; if (isNew) existing = null;
   if (t.kind === 'in' && !t.cat) t.cat = 'Stipendio';
   const w = openSheet('<div id="tx-body"></div>');
-  w._t = t; w._ex = existing || null; w._fixedId = opts.fixedId || null; w._rec = opts.rec || '';
+  w._t = t; w._ex = existing || null; w._fixedId = opts.fixedId || null; w._rec = opts.rec || ''; w._apprWait = opts.wait || '';
   drawTx(w);
 }
 function drawTx(w) {
@@ -2553,6 +2553,20 @@ async function saveTx(w, coverFrom, asOver) {
   const doc = {kind: t.kind, a, cat: t.kind === 'move' ? '' : t.cat, note: t.note, d: t.d, acc: t.acc, to: t.kind === 'move' ? t.to : '', xb: t.kind === 'out' ? !!t.xb : false, src: t.kind === 'out' ? t.src : '', goal: t.goal || '', over: !!asOver, rec: (ex && ex.rec) || w._rec || '', plan: planF, unpaid: unp, due: unp ? (t.due || '') : (ex && ex.due) || ''};
   if (ex && ex.pid) Object.assign(doc, {pid: ex.pid, who: ex.who || ''});
   const recPid = recTx ? ((recs().find(r => r.id === recTx) || {}).pid || '') : ''; if (recPid) doc.pid = recPid;
+  if (t.kind === 'out' && !ex && !w._fixedId && !recTx && !planF && !doc.xb && !w._apprWait && hasPartner() && !S.preview && coverFrom === undefined && !asOver) {
+    const gb = catStats(t.d.slice(0, 7)).find(x => x.k === t.cat);
+    const gOver = gb && !gb.bills && a > gb.left + 0.001, gFuori = !gOver && t.cat === 'fuori' && a > 50;
+    if (gOver || gFuori) {
+      const desc = t.note || (gb ? gb.n : 'Spesa');
+      const ok48 = await choiceSheet(gOver ? `Serve il sì di ${apprName()}` : 'Fuori budget sopra 50 €',
+        gOver ? `${esc(desc)} · ${eur(a)} sfora <b>${esc(gb.n)}</b> di <b>${eur(r2(a - Math.max(0, gb.left)))}</b>. Non la registro finché ${esc(apprName())} non dice sì: le arriva subito la richiesta.` : `Per il Fuori budget sopra 50 € servono il sì di ${esc(apprName())} e 48 ore di attesa. Non la registro finché non sono passate.`,
+        [['ask', `Chiedi il sì di ${apprName()}`]]);
+      if (ok48 !== 'ask') return;
+      const okw = await addWait(gOver ? {type: 'over', desc, a, cat: t.cat, acc: t.acc, need: 'need', until: Date.now()} : {type: '48h', desc, a, cat: t.cat, acc: t.acc, need: 'need', until: Date.now() + 48 * 3600e3});
+      if (okw === false) return;
+      closeSheet(w); toast(`${sentMsg(gFuori)} ⏳`); S.anim = true; render(); return;
+    }
+  }
   if (t.kind === 'out' && !doc.xb && coverFrom === undefined && !asOver) {
     const ym = t.d.slice(0, 7), st = catStats(ym, ex && ex.id, recTx), b = st.find(x => x.k === t.cat);
     if (b && !b.bills && !(recTx && (b.rec || b.pct)) && a > b.left + 0.001) {
@@ -2578,6 +2592,7 @@ async function saveTx(w, coverFrom, asOver) {
   else if (t.kind === 'in' && !planF && (cfg().extraCats || []).includes(t.cat)) { w._xid = newId(); ok = await put('tx', w._xid, Object.assign(doc, {todo: 1, by: S.uid || '', ts: Date.now()})); }
   else ok = await addTx(doc);
   if (ok === false) return;
+  if (w._apprWait) await del('waits', w._apprWait);
   if (!ex && !w._fixedId && w._rep && t.kind !== 'move') {
     const c = clone(cfg()); const day = +t.d.slice(8);
     c.recurring = (c.recurring || []).concat({id: 'r' + newId().slice(-7), n: t.note || catName(Object.assign({}, doc)), kind: t.kind, a, cat: doc.cat, acc: t.acc, to: '', day, var: 0, auto: 0, on: 1, from: addMonths(t.d.slice(0, 7), 1)});
@@ -3780,12 +3795,16 @@ function promptSheet(title, sub, okLabel, val) {
 function openAsk(id) {
   const x = D().waits.find(v => v.id === id); if (!x) return;
   const b = bud(x.cat), req = reqOf(x), running = Date.now() < x.until;
-  openSheet(`<div class="ask-hd"><span class="pav" style="background:${pcolOf(req)}">${req[0]}</span><div><div class="h-label">Richiesta di autorizzazione</div><h3 class="sh-title" style="margin:2px 0 0">${esc(req)} ${x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'deve fare una spesa straordinaria' : 'vuole spendere'}</h3><div class="sh-sub" style="margin:2px 0 0">Decide ${esc(x.appr)}</div></div></div>
+  openSheet(`<div class="ask-hd"><span class="pav" style="background:${pcolOf(req)}">${req[0]}</span><div><div class="h-label">Richiesta di autorizzazione</div><h3 class="sh-title" style="margin:2px 0 0">${esc(req)} ${x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'deve fare una spesa straordinaria' : x.type === 'over' ? 'vuole spendere oltre il budget' : 'vuole spendere'}</h3><div class="sh-sub" style="margin:2px 0 0">Decide ${esc(x.appr)}</div></div></div>
     <div class="ask-amt num">${eur(x.a)}</div><div class="ask-desc">${esc(x.desc || 'Spesa')}</div>
-    ${x.type === 'extra' ? straordPrevHTML(x.a, x.acc) : ''}<div class="vrule">${x.type === 'extra' ? `🧾 Spesa obbligata: nessuna regola la blocca e niente 48 ore.<br>Se dici sì, ${esc(req)} può pagarla subito. Se dici no, la richiesta si chiude.` : x.type === 'loan' ? `🤝 Esce dal Fuori budget; se non basta, da una voce flessibile.<br>Se dici sì, ${esc(req)} può prestarli subito. Se dici no, la richiesta si chiude.${cronicoMsg(x.pid, true) ? `<br><b class="r">${esc(cronicoMsg(x.pid, true))}</b>` : ''}` : `${b ? esc(b.e) + ' ' + esc(b.n) + ' · ' : ''}${running ? 'timer: ' + waitLabel(x).toLowerCase() : 'le 48 ore sono già passate'}<br>Se dici sì, ${esc(req)} potrà comprarlo ${running ? 'quando finiscono le 48 ore' : 'subito'}. Se dici no, la richiesta si chiude.`}</div>
+    ${x.type === 'extra' ? straordPrevHTML(x.a, x.acc) : ''}<div class="vrule">${x.type === 'over' ? overAskHTML(x, req) : x.type === 'extra' ? `🧾 Spesa obbligata: nessuna regola la blocca e niente 48 ore.<br>Se dici sì, ${esc(req)} può pagarla subito. Se dici no, la richiesta si chiude.` : x.type === 'loan' ? `🤝 Esce dal Fuori budget; se non basta, da una voce flessibile.<br>Se dici sì, ${esc(req)} può prestarli subito. Se dici no, la richiesta si chiude.${cronicoMsg(x.pid, true) ? `<br><b class="r">${esc(cronicoMsg(x.pid, true))}</b>` : ''}` : `${b ? esc(b.e) + ' ' + esc(b.n) + ' · ' : ''}${running ? 'timer: ' + waitLabel(x).toLowerCase() : 'le 48 ore sono già passate'}<br>Se dici sì, ${esc(req)} potrà comprarlo ${running ? 'quando finiscono le 48 ore' : 'subito'}. Se dici no, la richiesta si chiude.`}</div>
     <div class="row2" style="margin-top:14px"><button class="btn danger mt0" data-act="ask-no" data-id="${x.id}">✕ No</button><button class="btn primary mt0" data-act="ask-ok" data-id="${x.id}">✓ Sì, autorizzo</button></div>
     <button class="btn ghost" data-act="close-sheet">Decido dopo</button>`);
   buzz([20, 40, 20]);
+}
+function overAskHTML(x, req) {
+  const b = catStats(curYM()).find(v => v.k === x.cat), left = b ? Math.max(0, b.left) : 0, over = r2(x.a - left);
+  return `⚖️ ${b ? esc(b.e) + ' ' + esc(b.n) + ': ' : ''}${left > 0.005 ? 'restano solo ' + eur(left) : 'la voce è finita'}, ${over > 0.005 ? 'sfora di <b>' + eur(over) + '</b>' : 'ora ci rientra'}.<br>Se dici sì, ${esc(req)} la registra e copre la differenza da un’altra voce o come sforamento. Se dici no, la spesa non si fa.`;
 }
 async function decideWait(id, ok, note) {
   const x = D().waits.find(v => v.id === id); if (!x) return false;
@@ -3838,7 +3857,7 @@ const ACT = {
   'ck-drop': async el => { const w = el.closest('.wrap'); const r = w._last; if (w._pre.waitId) { if (!(await confirmSheet('Lasci perdere?', 'La richiesta in attesa viene tolta.', 'Sì, lascio perdere'))) return; await del('waits', w._pre.waitId); } closeSheet(w); toast(r && r.q.a ? `Bravo: ${eur(r.q.a)} restano a voi 💪` : 'Ok'); S.anim = true; render(); },
   'ck-wait48': async el => { const w = el.closest('.wrap'), q = w._last.q; const ok = await addWait({type: '48h', desc: q.desc, a: q.a, cat: q.cat, acc: q.acc, need: q.need, until: Date.now() + 48 * 3600e3}); if (ok === false) return; closeSheet(w); toast(`${sentMsg(true)} ⏳`); S.anim = true; render(); },
   'ck-next': async el => { const w = el.closest('.wrap'), q = w._last.q; const [y, m] = addMonths(curYM(), 1).split('-').map(Number); const ok = await addWait({type: 'next', desc: q.desc, a: q.a, cat: q.cat, acc: q.acc, need: q.need, until: new Date(y, m - 1, 1).getTime()}); if (ok === false) return; closeSheet(w); toast('Rimandata al mese prossimo 🗓️'); S.anim = true; render(); },
-  'wait-reval': el => { const w = D().waits.find(x => x.id === el.dataset.id); if (!w) return; if (w.type === 'extra') { if (w.st !== 'ok') { toast('Serve prima il sì di ' + w.appr); return; } openStraordPay(w.id); return; } if (w.type !== 'next' && !(w.st === 'ok' && (w.type === 'loan' || Date.now() >= w.until))) { toast(w.st === 'ok' ? 'Le 48 ore non sono ancora passate' : 'Serve prima il sì di ' + w.appr); return; } const sh = openCheck({desc: w.desc, a: w.a, cat: w.cat, acc: w.acc, need: w.need, waitId: w.id, pid: w.pid, due: w.due}); if (sh) setTimeout(() => runCheck(sh), 420); },
+  'wait-reval': el => { const w = D().waits.find(x => x.id === el.dataset.id); if (!w) return; if (w.type === 'over') { if (w.st !== 'ok') { toast('Serve prima il sì di ' + w.appr); return; } openTx({_new: true, kind: 'out', a: nf2.format(w.a), cat: w.cat, note: w.desc, d: today(), acc: w.acc, to: 'Fondo casa', xb: false, src: ''}, {wait: w.id}); return; } if (w.type === 'extra') { if (w.st !== 'ok') { toast('Serve prima il sì di ' + w.appr); return; } openStraordPay(w.id); return; } if (w.type !== 'next' && !(w.st === 'ok' && (w.type === 'loan' || Date.now() >= w.until))) { toast(w.st === 'ok' ? 'Le 48 ore non sono ancora passate' : 'Serve prima il sì di ' + w.appr); return; } const sh = openCheck({desc: w.desc, a: w.a, cat: w.cat, acc: w.acc, need: w.need, waitId: w.id, pid: w.pid, due: w.due}); if (sh) setTimeout(() => runCheck(sh), 420); },
   'wait-arch': async el => { const w = D().waits.find(x => x.id === el.dataset.id); if (!w) return; if (!(await confirmSheet('Archiviare la richiesta?', `${esc(w.desc || 'Spesa')} · ${eur(w.a)}: sparisce dalla lista.`, 'Archivia'))) return; if (await del('waits', w.id) !== false) { toast(`Archiviata: ${eur(w.a)} restano a voi 💪`); render(); } },
   who: () => openAccount(),
   'rule-example': async el => { const x = RULE_EXAMPLES[+el.dataset.i]; if (!x) return; const c = clone(cfg()); const n = c.rules.reduce((m, r) => Math.max(m, r.n), 0) + 1; c.rules.push({n, t: x.t, kw: x.kw.slice(), until: '', ex: ''}); await saveConfig(c); toast('Regola aggiunta ✓'); render(); },
