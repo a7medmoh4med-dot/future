@@ -269,6 +269,7 @@ input,select,textarea{font-family:inherit}
 /* table */
 .trow{display:grid;grid-template-columns:minmax(0,1.75fr) .8fr .7fr .8fr;gap:6px;align-items:center;padding:10px 2px;font-size:13.5px}
 .trow+.trow{border-top:1px solid rgba(255,255,255,.05)}
+.trow .num{white-space:nowrap;text-align:right}.trow .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .trow.h{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .trow span:not(:first-child){text-align:right}
 .trow .nm{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -535,7 +536,7 @@ input,select,textarea{font-family:inherit}
 .sitlab .on{color:var(--text);font-weight:700}
 .sitg{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-top:10px}
 .sitg>div{background:rgba(255,255,255,.04);border-radius:14px;padding:9px 10px;min-width:0}
-.sitg span{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.sitg span{display:block;font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sitg b{white-space:nowrap}
 .sitg b{display:block;font-size:15px;font-weight:750;margin-top:2px;white-space:nowrap}
 @media (max-width:440px){.sitg b{font-size:13.5px}.sitg>div{padding:8px}}
 .sitf span{flex:1;min-width:0}
@@ -545,6 +546,7 @@ input,select,textarea{font-family:inherit}
 .arow .an2{grid-column:1/3}
 .sitrows{margin-top:8px}
 .sitr{display:flex;justify-content:space-between;gap:12px;padding:11px 2px;border-top:1px solid var(--stroke)}
+.sitd>summary{list-style:none;cursor:pointer}.sitd>summary::-webkit-details-marker{display:none}.sitc-c{color:var(--muted);display:inline-block;transition:transform .2s}.sitd[open] .sitc-c{transform:rotate(90deg)}.sitr .sv b{white-space:nowrap}
 .sitr .sn{font-size:14.5px;font-weight:700}
 .sitr .ss,.ss{font-size:12.5px;color:var(--muted);line-height:1.4;margin-top:2px}
 .sitr .sv{text-align:right;white-space:nowrap}
@@ -560,6 +562,14 @@ input,select,textarea{font-family:inherit}
 .sitleg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11.5px;color:var(--muted);font-weight:600;margin-top:6px}
 .sityd{margin-top:6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04)}
 @keyframes fcdraw{to{stroke-dashoffset:0}}
+.kpi .ks{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mob2{display:none}
+@media (max-width:959px){.kpis.two{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}.kpis.two .kpi{min-width:0}.kpis.two .kpi{padding:13px 14px!important}.kpis.two .kpi .kv{font-size:26px}.kpis.two .kpi .kl{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpis.two .kpi .ks{font-size:11.5px}}
+@media (min-width:960px){.kpis.two{grid-template-columns:1.3fr 1fr 1fr}.kpis.two .hero{margin:0!important}}
+@media (max-width:959px){.kpis.two .hero{grid-column:1/-1;margin:0!important}.kpis.two .pc2{display:none}.kpis.two .mob2{display:inline}.hw-mid{order:1}}
+.sitf span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.card.goal .top>.badge{flex:none}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.step .sl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.step .sd{white-space:nowrap}
 .ms-head{font-size:14px;color:var(--muted);margin:2px 0 10px}.ms-head b{color:var(--text)}
 .ms-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ms-t{background:rgba(255,255,255,.045);border:1px solid var(--stroke);border-radius:14px;padding:10px 12px;min-width:0}
@@ -1124,6 +1134,22 @@ function debtSchedule(extraAvz = 0, extraPool = 0, flows = null) {
   if (base) { schMemo = {seq: renderSeq, v: out}; schSnaps = snaps; }
   return out;
 }
+
+// scheda debito: i due numeri che contano
+function debtSubShort(g) {
+  if (g.kind === 'person') return 'Verso una persona · senza rate';
+  const t = rateOf(g); return `${t > 0 ? 'Tasso ' + String(t).replace('.', ',') + '%' : 'Senza interessi'}${+g.rata > 0 ? ' · rata ' + eurR(+g.rataB > 0 ? +g.rataB : +g.rata) : ''}`;
+}
+function debtTilesHTML(g) {
+  const s = debtSchedule()[g.id] || {}, pers = g.kind === 'person', T = [];
+  const nowOK = s.ym && !s.hard && s.k === 0 && nowAvail() >= (s.need || 0);
+  if (s.hard) T.push(['Data promessa', g.plan ? dateShort(g.plan) : '—', s.margin >= 0 ? 'soldi coperti ✓' : `mancano ${eurR(-s.margin)}`, s.margin >= 0 ? 'g' : 'r']);
+  else if (s.byRate) T.push(['Si chiude', s.ym ? ymShort(s.ym) : '—', 'da solo, con le rate', '']);
+  else T.push([pers ? 'Lo restituisci' : 'Lo chiudi', s.ym ? ymShort(s.ym) : 'non ancora', nowOK ? 'si può già ora ✓' : s.k === 0 ? 'questo mese' : s.st === 'late' ? 'dopo la data voluta' : s.st === 'early' ? 'prima della data voluta' : 'in un colpo solo', nowOK || s.k === 0 || s.st === 'early' ? 'g' : s.st === 'late' ? 'a' : '']);
+  if (pers) T.push(['Devi ancora', eurR(debtCur(g)), 'niente interessi', '']);
+  else { const t = rateOf(g); T.push(['Rata', eurR(+g.rataB > 0 ? +g.rataB : +g.rata || 0), t > 0 ? `tasso ${String(t).replace('.', ',')}%` : 'senza interessi', '']); }
+  return `<div class="ms-tiles" style="margin:10px 0 2px">${T.map(([k, v, sub, c]) => `<div class="ms-t ${c}"><span>${k}</span><b>${v}</b><small>${sub}</small></div>`).join('')}</div>`;
+}
 function debtPlanHTML(g) {
   const s = debtSchedule()[g.id]; if (!s) return '';
   if (s.byRate) return `<div class="plan"><div class="ph"><span>Si chiude da solo con le rate</span><span class="a">${ymLabel(s.ym)}</span></div></div>`;
@@ -1139,11 +1165,11 @@ function debtPlanHTML(g) {
     + s.before.map(b => `<div class="pr"><span>Prima: ${esc(b.n)} (${ymShort(b.ym)})</span><b class="num">−${eur0(b.a)}</b></div>`).join('');
   let head, verdict, good = true;
   if (s.hard) {
-    head = ['Data promessa', want];
+    head = ['Come ci arrivi', ''];
     good = s.margin >= 0;
     verdict = good ? '<div class="pv g">✓ Coperto: per la data promessa i soldi ci sono</div>' : `<div class="pv r">✕ Mancano ${eur0(-s.margin)}: metti da parte ${eur0(Math.ceil(-s.margin / Math.max(1, s.k)))} al mese</div>`;
   } else {
-    head = [pers ? 'Senza scadenza' : 'Piano di saldo', ymShort(s.ym)];
+    head = ['Come ci arrivi', ''];
     if (nowOK) verdict = '<div class="pv g">✓ Saldabile ora: i soldi ci sono già</div>';
     else if (s.k === 0) verdict = '<div class="pv g">✓ Saldabile questo mese, appena arrivano le entrate previste</div>';
     else if (s.st === 'late') { good = false; verdict = `<div class="pv" style="color:var(--amber)">⚠️ Il ${want} non è fattibile. Data possibile: fine ${ymLabel(s.ym)}</div>`; }
@@ -1585,7 +1611,7 @@ function homeHTML() {
   const fut = isFut(ym);
   const btns = isCur ? `<div class="homebtns stag" style="--i:3"><button class="ask" data-act="ask"><div class="q">?</div><div><b>Posso comprarlo?</b><span>Chiedi prima di spendere: decide il budget</span></div></button><button class="btn mt0 hb-sim" data-act="sim">📉 Prevedi</button><button class="btn mt0 hb-add" data-act="add">＋ Registra</button></div>`
     : fut ? `<div class="homebtns stag" style="--i:3"><button class="btn mt0" data-act="add" style="grid-column:1/-1">＋ Prevedi una spesa o un’entrata</button></div>` : '';
-  return `<div class="homewrap"><div class="hw-top">${(isCur ? heroHTML() + liveGoalsHomeHTML() + revHTML() + firstStepsHTML() + annualSoonHTML() + chHomeHTML() + sitAlertHTML() + cushionAlertsHTML() + planAlertsHTML() : '') + (fut ? '' : waitsH)}</div>${kpisHTML(ym, st)}${isCur ? forecastHTML() + sitCardHTML() : ''}<div class="hw-todo">${isCur ? todoHTML() : fut ? agendaHTML(ym) : ''}</div>${btns}</div>`;
+  return `<div class="homewrap"><div class="hw-top">${(isCur ? liveGoalsHomeHTML() + revHTML() + firstStepsHTML() + annualSoonHTML() + chHomeHTML() + sitAlertHTML() + cushionAlertsHTML() + planAlertsHTML() : '') + (fut ? '' : waitsH)}</div>${kpisHTML(ym, st)}${isCur ? `<div class="hw-mid">${forecastHTML() + sitCardHTML()}</div>` : ''}<div class="hw-todo">${isCur ? todoHTML() : fut ? agendaHTML(ym) : ''}</div>${btns}</div>`;
 }
 function kpisHTML(ym, st) {
   const flex = st.filter(b => !b.l && !b.auto), spend = r2(flex.reduce((a, b) => a + Math.max(0, b.left), 0)), flexEff = r2(flex.reduce((a, b) => a + b.eff, 0));
@@ -1595,7 +1621,7 @@ function kpisHTML(ym, st) {
   const k1 = `<div class="card kpi stag" style="--i:0" data-act="tab" data-tab="bil"><div class="kl">💳 ${fut ? 'Potrai spendere' : 'Puoi ancora spendere'}</div><div class="kv num">${eur0(spend)}</div><div class="ks">${parts.length ? parts.join(' · ') : 'voci flessibili finite'}<br>su ${eur0(flexEff)} nelle voci flessibili</div></div>`;
   const ib = incomeBreak(ym), voci = r2(st.filter(b => !b.auto).reduce((a, b) => a + b.eff, 0)), diff = r2(ib.tot - voci), dp = phaseAt(ym);
   const plus = fut ? [].concat(ib.yearly.map(y => `${esc(y.n.toLowerCase())} ${eur0(y.a)}`), ib.planIn ? [`previste ${eur0(ib.planIn)}`] : []) : [];
-  const k2 = `<div class="card kpi stag" style="--i:1" data-act="tab" data-tab="bil"><div class="kl">🗓️ ${MONTHS[+ym.slice(5) - 1]}${fut ? ' · previsto' : ''}</div><div class="kv num ${diff >= 0 ? 'g' : 'r'}">${diff >= 0 ? '+' : '−'}${eur0(Math.abs(diff))}</div><div class="ks">${diff >= 0 ? (dp ? 'avanzano per i debiti' : activeMort() ? 'avanzano per il mutuo e il fondo casa' : 'avanzano per il fondo casa') : 'mancano: le voci superano le entrate'}${plus.length ? ` · in più ${plus.join(' + ')}` : ''}<br>entrate ${eur0(ib.tot)} · voci ${eur0(voci)}</div></div>`;
+  const k2 = `<div class="card kpi stag" style="--i:1" data-act="tab" data-tab="bil"><div class="kl">🗓️ ${MONTHS[+ym.slice(5) - 1]}${fut ? ' · previsto' : ''}</div><div class="kv num ${diff >= 0 ? 'g' : 'r'}">${diff >= 0 ? '+' : '−'}${eurR(Math.abs(diff))}</div><div class="ks">${diff >= 0 ? (dp ? 'avanzano per i debiti' : activeMort() ? 'avanzano per mutuo e fondo' : 'avanzano per il fondo casa') : 'mancano: voci oltre le entrate'}${plus.length ? ` · in più ${plus.join(' + ')}` : ''}<span class="pc2"><br>entrate ${eurR(ib.tot)} − voci ${eurR(voci)}</span></div></div>`;
   let k3;
   if (fut) return `<div class="kpis">${k1}${k2}${futK3(ym)}</div>`;
   const sch = debtSchedule(), L = debtsInOrder().filter(g => debtCur(g) > 0 && sch[g.id]);
@@ -1603,12 +1629,12 @@ function kpisHTML(ym, st) {
     const yms = L.map(g => sch[g.id].ym), end = yms.some(x => !x) ? null : yms.reduce((m, x) => (x > m ? x : m), '0000-00');
     const g = L[0], s0 = sch[g.id], nm = g.kind === 'person' ? ((personOf(g.pid) || {}).n || g.n) : g.n;
     const stt = s0.hard ? (s0.margin >= 0 ? ' · coperto ✓' : ` · mancano ${eur0(-s0.margin)}`) : '';
-    k3 = `<div class="card kpi stag" style="--i:2" data-act="tab" data-tab="goals"><div class="kl">🏁 Libero dai debiti</div><div class="kv num ${end ? '' : 'r'}">${end ? ymShort(end) : 'non ancora'}</div><div class="ks">prossimo: ${esc(nm)}<br>${planWhen(g, s0)}${stt}</div></div>`;
+    k3 = `<div class="card kpi stag" style="--i:2" data-act="tab" data-tab="goals"><div class="kl">🏁 Libero dai debiti</div><div class="kv num ${end ? '' : 'r'}">${end ? ymShort(end) : 'non ancora'}</div><div class="ks"><span class="pc2">prossimo: ${esc(nm)}<br>${planWhen(g, s0)}${stt}</span><span class="mob2">prossimo: ${planWhen(g, s0)}</span></div></div>`;
   } else {
     const f = cfg().goals.find(x => x.id === 'casa'), gi = f ? goalInfo(f) : null;
     k3 = `<div class="card kpi stag" style="--i:2" data-act="tab" data-tab="goals"><div class="kl">🏡 Fondo casa</div><div class="kv num">${gi ? eur0(gi.cur) : '—'}</div><div class="ks">${gi ? `su ${eur0(f.target)} · traguardo ${gi.ym ? ymShort(gi.ym) : '—'}` : ''}</div></div>`;
   }
-  return `<div class="kpis">${k1}${k2}${k3}</div>`;
+  return S.ym === curYM() && heroHTML() ? `<div class="kpis two">${heroHTML()}${k2}${k3}</div>` : `<div class="kpis">${k1}${k2}${k3}</div>`;
 }
 // conto corrente a fine mese, contando solo quello che deve ancora entrare o uscire per forza (ricorrenti, bollette da pagare, spese previste)
 function contoAfterMonth() {
@@ -2001,7 +2027,7 @@ function bilHTML() {
   const st = catStats(S.ym), sh = D().shifts.filter(s => s.m === S.ym).sort((a, b) => b.ts - a.ts), fut = isFut(S.ym), dpm = phaseAt(S.ym);
   const locked = st.filter(b => b.l && !b.auto && !(b.bills && !b.eff && !b.spent)), flex = st.filter(b => !b.l && !b.auto), fondo = st.find(b => b.auto);
   const sum = a => a.reduce((x, b) => x + b.eff, 0);
-  const row = b => `<div class="trow"><span class="nm">${esc(b.e)} ${esc(b.n)}</span><span class="num">${eur0(b.eff)}${b.inS || b.outS ? `<br><small class="m">${b.inS ? '+' + eur0(b.inS) : ''}${b.outS ? ' −' + eur0(b.outS) : ''}</small>` : ''}</span><span class="num">${eur0(b.spent)}${b.pend ? `<br><small class="a">+${eur0(b.pend)}</small>` : ''}</span><span class="num ${b.left < -0.005 ? 'r' : b.auto ? 'g' : b.l ? (b.pend && b.left < 0.01 ? 'a' : 'g') : txtColor(b.pct)}">${b.auto ? (b.eff < -0.005 ? '<span class="r">−' + eur0(-b.eff) + '</span>' : b.savWait ? '—' : b.left <= 0.01 ? '✓' : eur0(b.left)) : b.l && b.pend && Math.abs(b.left) < 0.01 ? eur(0) : eur0(b.left)}</span></div>`;
+  const row = b => `<div class="trow"><span class="nm">${esc(b.e)} ${esc(b.n)}</span><span class="num">${eurR(b.eff)}${b.inS || b.outS ? `<br><small class="m">${b.inS ? '+' + eurR(b.inS) : ''}${b.outS ? ' −' + eurR(b.outS) : ''}</small>` : ''}</span><span class="num">${eurR(b.spent)}${b.pend ? `<br><small class="a">+${eurR(b.pend)}</small>` : ''}</span><span class="num ${b.left < -0.005 ? 'r' : b.auto ? 'g' : b.l ? (b.pend && b.left < 0.01 ? 'a' : 'g') : txtColor(b.pct)}">${b.auto ? (b.eff < -0.005 ? '<span class="r">−' + eurR(-b.eff) + '</span>' : b.savWait ? '—' : b.left <= 0.01 ? '✓' : eurR(b.left)) : b.l && b.pend && Math.abs(b.left) < 0.01 ? eurR(0) : eurR(b.left)}</span></div>`;
   return `<div class="grid2b"><div>
     ${spendDonutHTML()}${trendHTML()}${coupleHTML()}${S.ym === curYM() ? bilToolsHTML() : ''}${S.ym === curYM() ? sitBilHTML() + `<div class="card tight bil-saldi" style="--i:0">${balancesHTML(true)}</div>` + assetsCardHTML() : ''}
     <div class="card bil-budget" style="--i:0"><div class="h-label">${fut ? 'Budget previsto' : 'Budget del mese'} · ${ymLabel(S.ym)}</div>
@@ -2036,26 +2062,31 @@ function goalsHTML() {
     const gi = goalInfo(g);
     if (g.type === 'fund' && g.id !== 'casa') return spendGoalCardHTML(g, i);
     if (g.type === 'fund') {
-      return `<div class="card goal" style="--i:${i + 1}"><div class="top"><div><div class="gt">🏡 ${esc(g.n)}</div><div class="gs">${esc(g.sub || '')}</div></div><span class="badge g">${Math.round(gi.pct * 100)}%</span></div>
-        <div class="gv num">${eur0(gi.cur)} <small class="m" style="font-size:16px;font-weight:600">/ ${eur0(g.target)}</small></div>
-        <div class="gbar"><i style="width:${r2(gi.pct * 100)}%;background:linear-gradient(90deg,#2EE59D,#7C8CFF)"></i></div>
-        <div class="gd"><span>${gi.paused ? `Fermo finché ci sono debiti · riparte ${gi.startYM ? 'a ' + ymLabel(gi.startYM) + ' ' : ''}con ${eur0(gi.afterAll)}/mese${yearlyTxt()}` : `${eur0(gi.afterAll)}/mese${yearlyTxt()}`}</span></div>
-        <div class="gd" style="margin-top:6px"><span>Traguardo seguendo il piano</span><span class="g">${gi.ym ? ymLabel(gi.ym) : '—'}</span></div>
-        ${gi.paused && accUse('Fondo casa').debt && gi.cur > 0.5 ? `<div class="gd" style="margin-top:6px"><span>🏛️ I ${eur(gi.cur)} di oggi servono a chiudere i debiti: quello che avanza dopo l’ultimo debito torna qui</span></div>` : ''}
-        ${gi.lr ? `<div class="gd" style="margin-top:6px"><span>🏠 Conta la strada del mutuo «${esc(mTitle(gi.lr.fam, gi.lr.sp))}»${gi.lr.split0 && gi.lr.split0.m > 0.005 ? `: ${eur0(gi.lr.split0.m)} al mese vanno al mutuo${gi.lr.fam === 'lower' && gi.lr.pre.length ? ' fino a ' + ymShort(gi.lr.pre[gi.lr.pre.length - 1].ym) : ''}` : ''}</span></div>` : ''}
+      const tl = [['Oggi', eurR(gi.cur), gi.paused && accUse('Fondo casa').debt && gi.cur > 0.5 ? 'servono ai debiti' : 'sul conto', ''],
+        ['Pieno a', gi.ym ? ymShort(gi.ym) : 'mai', gi.ym ? `tra ${durTxt(monthsBetween(curYM(), gi.ym)).replace(' e ', ' ')}` : 'con questi numeri', 'g'],
+        ['Al mese', eurR(gi.afterAll), gi.paused ? `da ${gi.startYM ? ymShort(gi.startYM) : 'dopo i debiti'}` : 'più 13ª e 14ª', ''],
+        ['Obiettivo', eurR(g.target), (cfg().yearly || []).length ? 'con 13ª e 14ª' : '', '']];
+      const notes = [gi.paused ? `Fermo finché ci sono debiti: riparte ${gi.startYM ? 'a ' + ymFull(gi.startYM) : 'dopo l’ultimo debito'}.` : '',
+        gi.paused && accUse('Fondo casa').debt && gi.cur > 0.5 ? `I ${eurR(gi.cur)} di oggi servono a chiudere i debiti: quello che avanza torna qui.` : '',
+        gi.lr && gi.lr.split0 && gi.lr.split0.m > 0.005 ? `Una parte va al mutuo («${esc(mTitle(gi.lr.fam, gi.lr.sp))}»): ${eurR(gi.lr.split0.m)} al mese.` : ''].filter(Boolean);
+      return `<div class="card goal" style="--i:${i + 1}"><div class="top"><div style="min-width:0"><div class="gt ell">🏡 ${esc(g.n)}</div><div class="gs ell">${esc(g.sub || '')}</div></div><span class="badge g">${Math.round(gi.pct * 100)}%</span></div>
+        <div class="gbar" style="margin-top:4px"><i style="width:${r2(gi.pct * 100)}%;background:linear-gradient(90deg,#2EE59D,#7C8CFF)"></i></div>
+        <div class="ms-tiles" style="margin:10px 0 4px">${tl.map(([k, v, sub, c]) => `<div class="ms-t ${c}"><span>${k}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`).join('')}</div>
+        ${notes.length ? `<details class="ms-more"><summary>Perché ${gi.ym ? ymShort(gi.ym) : 'questa data'} ›</summary>${notes.map(n => `<div class="ms-how" style="margin-top:4px">${n}</div>`).join('')}</details>` : ''}
         <div class="row2" style="margin-top:6px">${gi.paused ? '<span></span>' : '<button class="btn primary" data-act="versa">Versa ora</button>'}<button class="btn" data-act="goal-edit" data-id="${g.id}">Modifica</button></div></div>`;
     }
     const sct = gi.sch || {}, late = sct.st === 'late';
     const status = gi.done ? '<span class="badge g">Chiuso ✓</span>' : gi.planned ? `<span class="badge a">Promesso ${dateShort(gi.planned)}</span>` : `<span class="badge ${late ? 'a' : ''}">${late ? 'Possibile ' : ''}${gi.ym ? ymShort(gi.ym) : '—'}</span>`;
-    return `<div class="card goal" style="--i:${i + 1}"><div class="top"><div><div class="gt">${g.kind === 'person' ? '🤝' : g.cat === 'carta' ? '💳' : '🏛️'} ${esc(g.n)}</div><div class="gs">${esc(debtSub(g))}</div></div>${status}</div>
-      <div class="gv num">${eur0(debtCur(g))} <small class="m" style="font-size:14px;font-weight:600">residuo</small></div>
+    return `<div class="card goal" style="--i:${i + 1}"><div class="top"><div style="min-width:0"><div class="gt ell">${g.kind === 'person' ? '🤝' : g.cat === 'carta' ? '💳' : '🏛️'} ${esc(g.n)}</div><div class="gs ell">${esc(debtSubShort(g))}</div></div>${status}</div>
+      <div class="gv num">${eur0(debtCur(g))} <small class="m" style="font-size:14px;font-weight:600">da pagare</small></div>
       <div class="gbar"><i style="width:${r2(gi.pct * 100)}%;background:linear-gradient(90deg,#FFB547,#2EE59D)"></i></div>
-      <div class="gd"><span>Pagati ${eur0(gi.paid)}${cfg().startYM ? ' da ' + ymLabel(cfg().startYM).toLowerCase() : ' di ' + eur0(g.start)}</span><span>${Math.round(gi.pct * 100)}%</span></div>
+      <div class="gd"><span class="ell">Pagati ${eurR(gi.paid)}${cfg().startYM ? ' da ' + ymShort(cfg().startYM) : ''}</span><span>${Math.round(gi.pct * 100)}%</span></div>
+      ${gi.done ? '' : debtTilesHTML(g)}
       ${gi.done ? '' : debtPlanHTML(g)}
-      ${g.kind === 'person' ? `<div class="row2" style="margin-top:6px"><button class="btn" data-act="goal-pay" data-id="${g.id}">Restituisci una parte</button><button class="btn" data-act="goal-edit" data-id="${g.id}">Aggiorna</button></div>` : `<button class="btn" style="margin-top:6px" data-act="goal-edit" data-id="${g.id}">Aggiorna residuo</button>`}</div>`;
+      ${g.kind === 'person' ? `<div class="row2" style="margin-top:6px"><button class="btn" data-act="goal-pay" data-id="${g.id}">Restituisci</button><button class="btn" data-act="goal-edit" data-id="${g.id}">Aggiorna</button></div>` : `<button class="btn" style="margin-top:6px" data-act="goal-edit" data-id="${g.id}">Aggiorna residuo</button>`}</div>`;
   }).join('');
   const c = cushion(), cp = c.target > 0 ? Math.min(1, c.bal / c.target) : 0;
-  const cushionCard = `<div class="card goal" style="--i:0"><div class="top"><div><div class="gt">🛟 Cuscinetto</div><div class="gs">Dentro «${esc(mainAcc())}» · per mesi scarsi, assicurazione, conguagli</div></div><span class="badge ${cp >= 1 ? 'g' : ''}">${cp >= 1 ? 'Pieno ✓' : Math.round(cp * 100) + '%'}</span></div>
+  const cushionCard = `<div class="card goal" style="--i:0"><div class="top"><div style="min-width:0"><div class="gt">🛟 Cuscinetto</div><div class="gs ell">Dentro «${esc(mainAcc())}» · per i mesi scarsi</div></div><span class="badge ${cp >= 1 ? 'g' : ''}">${cp >= 1 ? 'Pieno ✓' : Math.round(cp * 100) + '%'}</span></div>
     <div class="gv num">${eur0(c.bal)} <small class="m" style="font-size:16px;font-weight:600">/ ${eur0(c.target)}</small></div>
     <div class="gbar"><i style="width:${r2(cp * 100)}%;background:linear-gradient(90deg,#FFB547,#2EE59D)"></i></div>
     <div class="gd"><span>Si riempie con gli avanzi di fine mese</span></div>
@@ -2368,9 +2399,9 @@ function verdictHTML(r, pre) {
   if (r.v === 'wait48') return mk('v-wait', '⏳', 'ASPETTA 48 ORE', r.msg, `<div class="vacts"><button class="btn amber" data-act="ck-wait48">Avvia il timer di 48 ore</button><button class="btn ghost" data-act="ck-drop">Lascio perdere</button></div>`);
   if (r.v === 'next') return mk('v-wait', '🗓️', 'ASPETTA IL MESE PROSSIMO', r.msg, `<div class="vacts"><button class="btn amber" data-act="ck-next">Rimando al mese prossimo</button><button class="btn ghost" data-act="ck-need">In realtà è necessaria</button></div>`);
   if (r.kind === 'lock') return mk('v-no', '🔐', 'NO', r.msg, `<div class="vrule">La protezione dei conti la decidete voi: <b>Impostazioni → A cosa servono i conti</b>.</div><div class="vacts"><button class="btn" data-act="acc-use" data-n="${esc(r.q.acc)}">🔐 Cambia la protezione</button><button class="btn ghost" data-act="ck-drop">Ok, lascio perdere</button></div>`);
-  if (r.kind === 'rule') return mk('v-no', '✕', 'NO', r.msg, `<div class="vrule"><b>Regola ${r.rule.n}</b><br>${esc(ruleText(r.rule))}${r.hit ? `<br><small class="m">Parola che l\u2019ha fatto scattare: “${esc(r.hit)}”</small>` : ''}</div><div class="vacts">${r.rule.ex ? `<button class="btn" data-act="ck-ex" data-n="${r.rule.n}">${esc(r.rule.ex)} → rivaluta</button>` : ''}${pre.pid || pre.waitId ? '' : '<button class="btn" data-act="ck-straord">🧾 È una spesa straordinaria obbligata</button>'}<button class="btn ghost" data-act="ck-drop">Ok, lascio perdere</button></div>`);
+  if (r.kind === 'rule') return mk('v-no', '✕', 'NO', r.msg, `<div class="vrule"><b>Regola ${r.rule.n}</b><br>${esc(ruleText(r.rule))}${r.hit ? `<br><small class="m">Parola che l\u2019ha fatto scattare: “${esc(r.hit)}”</small>` : ''}</div><div class="vacts">${r.rule.ex ? `<button class="btn" data-act="ck-ex" data-n="${r.rule.n}">${esc(r.rule.ex)} → rivaluta</button>` : ''}${pre.pid || pre.waitId ? '' : '<button class="btn" data-act="ck-straord">🧾 È una spesa obbligata</button>'}<button class="btn ghost" data-act="ck-drop">Ok, lascio perdere</button></div>`);
   if (r.kind === 'big') return mk('v-no', '✕', 'NO', r.msg, `<div class="vrule">${debtPhase() ? 'Le spese grandi non si pagano con il budget di un mese, e finché ci sono debiti non si mette da parte per altro. Se non si può evitare, è una <b>spesa straordinaria obbligata</b>.' : `Le spese grandi non si pagano con il budget di un mese: <b>si mettono da parte</b>. Con ${eur0(r.monthly)} al mese ci arrivi a <b>${ymLabel(r.ym)}</b>, senza toccare il resto.`}</div>
-    <div class="vacts">${pre.pid || debtPhase() ? '' : `<button class="btn primary" data-act="ck-goal">🎯 Crea obiettivo «${esc(r.q.desc || 'Acquisto')}» da ${eur0(r.q.a)}</button>`}${pre.pid || pre.waitId ? '' : '<button class="btn" data-act="ck-straord">🧾 È una spesa straordinaria obbligata</button>'}<button class="btn ghost" data-act="ck-drop">Lascio perdere</button></div>`);
+    <div class="vacts">${pre.pid || debtPhase() ? '' : `<button class="btn primary" data-act="ck-goal">🎯 Crea obiettivo «${esc(r.q.desc || 'Acquisto')}» da ${eur0(r.q.a)}</button>`}${pre.pid || pre.waitId ? '' : '<button class="btn" data-act="ck-straord">🧾 È una spesa obbligata</button>'}<button class="btn ghost" data-act="ck-drop">Lascio perdere</button></div>`);
   if (r.kind === 'over') {
     let body = '';
     if (r.q.need === 'rinv') body += '<div class="vrule">È rinviabile: la scelta giusta è <b>aspettare il mese prossimo</b>.</div>';
@@ -2380,7 +2411,7 @@ function verdictHTML(r, pre) {
         singles.map(s => `<button class="btn" data-act="ck-cover" data-from="${esc(s.k)}">${esc(s.e)} Togli ${eur(r.over)} da ${esc(s.n)} <small class="m">(restano ${eur(s.left - r.over)})</small></button>`).join('') +
         (!singles.length || r.sources.length > 1 ? `<button class="btn" data-act="ck-cover" data-from="">Copri in automatico da più voci</button>` : '') + '</div>';
     } else body += `<div class="vrule">Le voci flessibili hanno solo <b>${eur(r.flexTot)}</b> liberi: questo mese il budget è esaurito.</div>`;
-    return mk('v-no', '✕', 'NO', r.msg, body + `<div class="vacts">${pre.pid || pre.waitId ? '' : '<button class="btn" data-act="ck-straord">🧾 È una spesa straordinaria obbligata</button>'}<button class="btn ghost" data-act="ck-drop">Lascio perdere</button></div>`);
+    return mk('v-no', '✕', 'NO', r.msg, body + `<div class="vacts">${pre.pid || pre.waitId ? '' : '<button class="btn" data-act="ck-straord">🧾 È una spesa obbligata</button>'}<button class="btn ghost" data-act="ck-drop">Lascio perdere</button></div>`);
   }
   return mk('v-no', '✕', 'NO', r.msg, '');
 }
@@ -3756,7 +3787,7 @@ function openLoanPerson(pid) {
   const msg = cronicoMsg(pid, false);
   const ds = personDebts(pid), sch = debtSchedule();
   openSheet(`<h3 class="sh-title">${esc(x.n)}</h3><p class="sh-sub">${b > 0.009 ? `Ti deve <b class="g">${eur(b)}</b>` : ds.length ? '' : 'In pari'}${ds.length ? `${b > 0.009 ? ' · ' : ''}Gli devi <b class="a">${eur(personOwe(pid))}</b>` : ''} ${flagsHTML(pid)}</p>
-    ${ds.map(g => { const t = sch[g.id] || {}; return `<div class="card tight" style="margin-bottom:10px"><div class="wait"><div class="bico" style="--c:#FFB547">🤝</div><div style="min-width:0"><div class="t1" style="font-weight:650">Gli devi ${eur(g.cur)}</div><div class="tm" style="color:var(--muted)">${g.plan ? 'Entro il ' + dateShort(g.plan) + (t.hard ? (t.margin >= 0 ? ' · coperto ✓' : ' · mancano ' + eur0(-t.margin)) : '') : t.ym ? 'Puoi restituirli a fine ' + ymLabel(t.ym) : 'Nel piano debiti'}</div></div><div class="acts"><button class="btn sm primary" data-act="goal-pay" data-id="${esc(g.id)}">Ho restituito</button></div></div></div>`; }).join('')}
+    ${ds.map(g => { const t = sch[g.id] || {}; return `<div class="card tight" style="margin-bottom:10px"><div class="wait"><div class="bico" style="--c:#FFB547">🤝</div><div style="min-width:0"><div class="t1" style="font-weight:650">Gli devi ${eur(g.cur)}</div><div class="tm" style="color:var(--muted)">${g.plan ? 'Entro il ' + dateShort(g.plan) + (t.hard ? (t.margin >= 0 ? ' · coperto ✓' : ' · mancano ' + eur0(-t.margin)) : '') : t.ym ? 'Puoi restituirli a fine ' + ymLabel(t.ym) : 'Nel piano debiti'}</div></div><div class="acts"><button class="btn sm primary" data-act="goal-pay" data-id="${esc(g.id)}">Restituito</button></div></div></div>`; }).join('')}
     ${msg ? `<div class="banner red" style="margin:0 0 12px"><div class="ic">⚠️</div><div>${esc(msg.replace('⚠️ ', ''))}</div></div>` : ''}
     ${b > 0.009 ? `<div class="row2" style="margin-bottom:10px"><label class="fld" style="margin:0"><span>Rientro previsto (facoltativo)</span><input id="lp-exp" type="date" value="${esc(x.exp || '')}"></label><div class="fld" style="margin:0"><span>&nbsp;</span><button class="btn mt0" data-act="loan-exp" data-id="${esc(pid)}">Salva data</button></div></div>` : ''}
     <div class="row2">${b > 0.009 ? `<button class="btn primary mt0" data-act="loan-repay" data-id="${esc(pid)}">💶 Ha reso</button>` : '<span></span>'}<button class="btn mt0" data-act="loan-add" data-id="${esc(pid)}">＋ Nuovo prestito</button></div>
@@ -5169,14 +5200,14 @@ function sitCardHTML() {
   const x = sitNow(), L = SIT_LV[x.lv - 1];
   return `<div class="card sitc stag" style="--i:2" data-act="sit"><div class="sith"><span>📊 La tua situazione</span><span class="sitlv" style="--c:${L[1]}">Livello ${x.lv} di 5</span></div>
     <div class="sitn">${x.rp < 0.0001 && !(cushion().bal > 0) ? 'Si parte: costruisci il cuscinetto' : L[0]}</div>${sitBarHTML(x.lv)}
-    <div class="sitf"><span>${x.rp < 0.0001 && !(cushion().bal > 0) ? `Nessuna rata. Il livello sale appena metti da parte il cuscinetto${cushion().target > 0 ? ' (' + eur(cushion().target) + ')' : ''}` : `Rate ${pc1(x.rp)} delle entrate · ${x.margin >= 0 ? `avanzano ${eur(x.margin)}` : `mancano ${eur(-x.margin)}`} al mese`}</span><b>Perché ›</b></div></div>`;
+    <div class="sitf"><span>${x.rp < 0.0001 && !(cushion().bal > 0) ? `Nessuna rata. Il livello sale appena metti da parte il cuscinetto${cushion().target > 0 ? ' (' + eur(cushion().target) + ')' : ''}` : `Rate ${Math.round(x.rp * 100)}% delle entrate · ${x.margin >= 0 ? `+${eurR(x.margin)}` : `−${eurR(-x.margin)}`}`}</span><b>Perché ›</b></div></div>`;
 }
 function sitBilHTML() {
   if (S.preview || (B.kind === 'db' && !S.stateLoaded)) return '';
   const x = sitNow(), L = SIT_LV[x.lv - 1];
   return `<div class="card sitc" style="--i:0" data-act="sit"><div class="sith"><span>📊 Fotografia ${alD(today())}</span><span class="sitlv" style="--c:${L[1]}">${x.lv} di 5</span></div>
     <div class="sitn">${L[0]}</div>${sitBarHTML(x.lv)}
-    <div class="sitg"><div><span>Rate / entrate</span><b class="num">${pc1(x.rp)}</b></div><div><span>Riserva (cuscinetto)</span><b class="num">${mesi(x.reserveM)}</b></div><div><span>Patrimonio netto${x.house || !morts().length ? '' : ', casa esclusa'}</span><b class="num">${eur(x.nw)}</b></div></div>
+    <div class="sitg"><div><span>Rate / entrate</span><b class="num">${pc1(x.rp)}</b></div><div><span>Riserva</span><b class="num">${mesi(x.reserveM)}</b></div><div><span>Patrimonio${x.house || !morts().length ? '' : ' (no casa)'}</span><b class="num">${eur(x.nw)}</b></div></div>
     <div class="sitf"><span>migliora di ${eur(x.grow)} al mese</span><b>Vedi tutto ›</b></div></div>`;
 }
 function sitAlertHTML() {
@@ -5191,7 +5222,7 @@ function sitAlertHTML() {
 function sitRow(n, sub, v, st) {
   const S2 = {bad: ['r', '✕ oltre'], warn: ['a', '⚠︎ sotto'], busy: ['a', '⚠︎ impegnata'], has: ['a', '⚠︎ presenti'], ok: ['g', '✓ nella soglia'], none: ['g', '✓ nessuno'], info: ['m', '']};
   const s = S2[st] || S2.info;
-  return `<div class="sitr"><div><div class="sn">${n}</div><div class="ss">${sub}</div></div><div class="sv"><b class="num">${v}</b>${s[1] ? `<small class="${s[0]}">${s[1]}</small>` : ''}</div></div>`;
+  return `<details class="sitd"><summary class="sitr"><div style="min-width:0"><div class="sn">${n} <span class="sitc-c">›</span></div></div><div class="sv"><b class="num">${v}</b>${s[1] ? `<small class="${s[0]}">${s[1]}</small>` : ''}</div></summary><div class="ss" style="padding:0 2px 10px">${sub}</div></details>`;
 }
 // i punti del grafico: oggi e ogni anno nello stesso mese, fino a 10 anni
 function sitSeries() { const cur = curYM(); return [...Array(11)].map((_, k) => sitParts(addMonths(cur, 12 * k))); }
@@ -5572,8 +5603,8 @@ function forecastHTML() {
   const neg = f.min.v < 0, zero = lo < 0 ? `<line x1="0" x2="${W}" y1="${sy(0).toFixed(1)}" y2="${sy(0).toFixed(1)}" stroke="rgba(255,107,138,.5)" stroke-dasharray="4 4"/>` : '';
   return `<div class="card stag" style="--i:0"><div class="h-label">📈 Saldo previsto fino a fine mese</div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block;margin:8px 0 4px"><defs><linearGradient id="fcg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${neg ? '#FF6B8A' : '#2EE59D'}" stop-opacity=".35"/><stop offset="1" stop-color="${neg ? '#FF6B8A' : '#2EE59D'}" stop-opacity="0"/></linearGradient></defs>${zero}<path d="${path} L${W},${H} L0,${H} Z" fill="url(#fcg)"/><path d="${path}" fill="none" stroke="${neg ? '#FF6B8A' : '#2EE59D'}" stroke-width="2.2" stroke-linejoin="round" style="stroke-dasharray:900;stroke-dashoffset:900;animation:fcdraw 1.1s ease forwards"/></svg>
-    <div style="display:flex;justify-content:space-between;font-size:13px" class="muted"><span>Oggi</span><span>Fine mese: <b class="num ${f.end < 0 ? 'r' : 'g'}">${eur(f.end)}</b></span></div>
-    ${neg ? `<div class="vrule" style="margin-top:8px;color:#FFB3C1">⚠️ Il <b>${+f.min.d.slice(8)}</b> il conto va sotto di <b>${eur(-f.min.v)}</b> con i pagamenti previsti: sposta dei soldi prima di quel giorno o rinvia una spesa.</div>` : `<div class="muted" style="font-size:13px;margin-top:4px">Il punto più basso: <b class="num">${eur(f.min.v)}</b> il ${+f.min.d.slice(8)} · conta solo entrate e pagamenti fissi.</div>`}</div>`;
+    <div class="ms-tiles" style="margin-top:8px"><div class="ms-t ${f.end < 0 ? 'r' : 'g'}"><span>A fine mese</span><b>${eurR(f.end)}</b><small>sui conti</small></div><div class="ms-t ${neg ? 'r' : ''}"><span>Punto più basso</span><b>${eurR(f.min.v)}</b><small>il ${+f.min.d.slice(8)} ${MONTHS[+f.min.d.slice(5, 7) - 1].toLowerCase()}</small></div></div>
+    ${neg ? `<div class="ms-how a">⚠️ Il ${+f.min.d.slice(8)} il conto va sotto zero: sposta dei soldi prima o rinvia una spesa.</div>` : '<div class="ms-how" style="font-size:12px">Conta solo entrate e pagamenti fissi.</div>'}</div>`;
 }
 
 /* ---------- spese annuali ---------- */
@@ -5791,7 +5822,7 @@ function heroHTML() {
   const days = Math.max(1, daysIn(ym) - +today().slice(8) + 1), perDay = r2(left / days), over = st.filter(b => b.left < -0.005);
   return `<div class="card hero stag" style="--i:0"><div class="h-label">Oggi puoi spendere</div>
     <div class="hero-n num ${perDay > 0 ? 'g' : 'r'}">${eur(perDay)}<small> al giorno</small></div>
-    <div class="hero-s">${eur(left)} in tutto fino a fine mese · ${days} ${days === 1 ? 'giorno' : 'giorni'}${over.length ? ` · <span class="r">sforato: ${over.map(b => esc(b.n)).join(', ')}</span>` : ''}</div></div>`;
+    <div class="hero-s ell">${eurR(left)} fino a fine mese · ${days} ${days === 1 ? 'giorno' : 'giorni'}</div>${over.length ? `<div class="hero-s ell r" style="margin-top:2px">Sforato: ${over.map(b => esc(b.n)).join(', ')}</div>` : ''}</div>`;
 }
 /* ---------- Obiettivi: dettagli a scomparsa ---------- */
 function collapsePlans(v) {
@@ -5801,7 +5832,7 @@ function collapsePlans(v) {
     const card = pl.closest('.card'), key = ((card && card.querySelector('.gt')) || {}).textContent || '';
     const d = document.createElement('details'); d.className = 'gdet'; if (S.gOpen[key]) d.open = true;
     const sm = document.createElement('summary'); const ph = pl.querySelector('.ph');
-    sm.innerHTML = `<span class="gdet-t">${ph ? ([...ph.children].length > 1 ? [...ph.children].map(c => c.innerHTML).join(': ') : ph.innerHTML) : 'Dettagli'}</span><span class="gdet-c">dettagli</span>`;
+    sm.innerHTML = `<span class="gdet-t">${ph ? ([...ph.children].filter(c => c.textContent.trim()).length > 1 ? [...ph.children].filter(c => c.textContent.trim()).map(c => c.innerHTML).join(': ') : ([...ph.children].find(c => c.textContent.trim()) || ph).innerHTML) : 'Dettagli'}</span><span class="gdet-c">dettagli</span>`;
     pl.parentNode.insertBefore(d, pl); d.appendChild(sm); d.appendChild(pl);
     d.addEventListener('toggle', () => { S.gOpen[key] = d.open; });
   });
@@ -5865,9 +5896,9 @@ function lineSVG(pts, col, opt = {}) {
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block"><path d="${d} L${x(pts.length - 1)},${H - 18} L${x(0)},${H - 18} Z" fill="${col}" opacity=".12"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linejoin="round" style="stroke-dasharray:1200;stroke-dashoffset:1200;animation:fcdraw 1.2s ease forwards"/>${pts.length < 40 ? pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.v)}" r="2.6" fill="${col}"/>`).join('') : ''}${lab}</svg>`;
 }
 function barsSVG(pts, col) {
-  const W = 320, H = 120, mx = Math.max(...pts.map(p => p.v), 1), bw = W / pts.length, avg = pts.filter(p => p.v > 0).reduce((s, p, _, a) => s + p.v / a.length, 0);
+  const W = 320, H = 120, mx = Math.max(...pts.map(p => p.v), 1), bw = Math.min(W / pts.length, 44), x0 = (W - bw * pts.length) / 2, avg = pts.filter(p => p.v > 0).reduce((s, p, _, a) => s + p.v / a.length, 0);
   const y = v => H - 18 - (v / mx) * (H - 30);
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block">${pts.map((p, i) => `<rect x="${(i * bw + bw * 0.18).toFixed(1)}" y="${y(p.v).toFixed(1)}" width="${(bw * 0.64).toFixed(1)}" height="${Math.max(0, H - 18 - y(p.v)).toFixed(1)}" rx="3" fill="${p.cur ? col : col}" opacity="${p.cur ? 1 : 0.55}" style="transform-origin:bottom;animation:dnfade .6s ease both"/><text x="${(i * bw + bw / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle" fill="currentColor" style="font-size:9px;opacity:.55">${esc(p.l)}</text>`).join('')}${avg > 0 ? `<line x1="0" x2="${W}" y1="${y(avg).toFixed(1)}" y2="${y(avg).toFixed(1)}" stroke="currentColor" stroke-dasharray="4 4" opacity=".35"/>` : ''}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block">${pts.map((p, i) => `<rect x="${(x0 + i * bw + bw * 0.18).toFixed(1)}" y="${y(p.v).toFixed(1)}" width="${(bw * 0.64).toFixed(1)}" height="${Math.max(0, H - 18 - y(p.v)).toFixed(1)}" rx="3" fill="${p.cur ? col : col}" opacity="${p.cur ? 1 : 0.55}" style="transform-origin:bottom;animation:dnfade .6s ease both"/><text x="${(x0 + i * bw + bw / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle" fill="currentColor" style="font-size:9px;opacity:.55">${esc(p.l)}</text>`).join('')}${avg > 0 ? `<line x1="0" x2="${W}" y1="${y(avg).toFixed(1)}" y2="${y(avg).toFixed(1)}" stroke="currentColor" stroke-dasharray="4 4" opacity=".35"/>` : ''}</svg>`;
 }
 function trendHTML() {
   if (S.ym !== curYM()) return '';
