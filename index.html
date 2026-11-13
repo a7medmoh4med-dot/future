@@ -562,6 +562,27 @@ input,select,textarea{font-family:inherit}
 .sitleg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11.5px;color:var(--muted);font-weight:600;margin-top:6px}
 .sityd{margin-top:6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04)}
 @keyframes fcdraw{to{stroke-dashoffset:0}}
+.homewrap.hw-cur>*{order:0!important}
+.hqb .hqb-ask{color:var(--amber);border:1.5px solid rgba(255,181,71,.55);background:linear-gradient(180deg,rgba(255,181,71,.16),rgba(255,181,71,.07))}
+.hqb{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin:14px 0}.hqb .btn{min-height:54px;font-size:15.5px;white-space:nowrap}
+body.lefty .hqb{grid-template-columns:1.3fr 1fr}body.lefty .hqb-add{order:-1}
+@media (max-width:959px){
+  .hqb{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 94px);width:min(496px,calc(100% - 24px));z-index:49;margin:0}
+  .hqb .btn{box-shadow:0 14px 34px rgba(0,0,0,.55);background-color:rgba(28,28,36,.96)}.hqb .hqb-ask{background-color:#2a2418}.hqb .btn.primary{background-color:transparent}
+  body:has(.hqb) #app{padding-bottom:calc(env(safe-area-inset-bottom) + 186px)}
+}
+.hfl-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.hfl-i{display:flex;flex-direction:column;align-items:flex-start;gap:1px;background:rgba(255,255,255,.045);border:1px solid var(--stroke);border-radius:13px;padding:9px 11px;font-size:13.5px;cursor:pointer;min-width:0}
+.hfl-i span{font-size:12px;color:var(--muted);font-weight:650;max-width:100%}.hfl-i b{white-space:nowrap;color:var(--green);font-size:16px}.hfl-i.z b{color:var(--muted)}.hfl-i.r b{color:var(--red)}
+@media (min-width:960px){.hfl-g{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+.hqb{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}.hqb .btn{min-height:54px;font-size:16px;white-space:nowrap}
+.hdone{padding:14px 18px!important;color:var(--green);font-weight:650;font-size:14.5px}
+.mline{display:flex;align-items:center;gap:14px;padding:14px 18px!important;cursor:pointer}.mline .chev{color:var(--muted);font-size:22px;margin-left:auto}
+.mline span{display:block;font-size:12px;color:var(--muted);font-weight:650}.mline b{display:block;font-size:22px;font-weight:800;white-space:nowrap}.mline small{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.mline .ml-r{padding-left:14px;border-left:1px solid var(--stroke)}.mline b.g{color:var(--green)}.mline b.r{color:var(--red)}
+.hmore{width:100%;margin-top:4px!important;font-size:14px}
+@media (min-width:960px){.homewrap.hw-cur{max-width:760px;margin:0 auto;display:flex;flex-direction:column}.homewrap.hw-cur>*{width:100%}.homewrap.hw-cur>.hero{order:-2!important}.homewrap.hw-cur>.hqb{order:-1!important;margin:0 0 14px}}
 .kpi .ks{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mob2{display:none}
 @media (max-width:959px){.kpis.two{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}.kpis.two .kpi{min-width:0}.kpis.two .kpi{padding:13px 14px!important}.kpis.two .kpi .kv{font-size:26px}.kpis.two .kpi .kl{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpis.two .kpi .ks{font-size:11.5px}}
 @media (min-width:960px){.kpis.two{grid-template-columns:1.3fr 1fr 1fr}.kpis.two .hero{margin:0!important}}
@@ -1611,7 +1632,37 @@ function homeHTML() {
   const fut = isFut(ym);
   const btns = isCur ? `<div class="homebtns stag" style="--i:3"><button class="ask" data-act="ask"><div class="q">?</div><div><b>Posso comprarlo?</b><span>Chiedi prima di spendere: decide il budget</span></div></button><button class="btn mt0 hb-sim" data-act="sim">📉 Prevedi</button><button class="btn mt0 hb-add" data-act="add">＋ Registra</button></div>`
     : fut ? `<div class="homebtns stag" style="--i:3"><button class="btn mt0" data-act="add" style="grid-column:1/-1">＋ Prevedi una spesa o un’entrata</button></div>` : '';
+  if (isCur) {
+    const todo = todoHTML(), alerts = liveGoalsHomeHTML() + revHTML() + firstStepsHTML() + annualSoonHTML() + chHomeHTML() + sitAlertHTML() + cushionAlertsHTML() + planAlertsHTML() + waitsH;
+    const qb = `<div class="hqb"><button class="btn mt0 hqb-ask" data-act="ask">Posso comprarlo?</button><button class="btn primary mt0 hqb-add" data-act="add">＋ Registra</button></div>`;
+    return `<div class="homewrap hw-cur">${heroHTML()}${alerts}${todo || `<div class="card tight stag hdone" style="--i:2">✓ ${alerts.trim() ? 'Nessun pagamento da fare' : 'Niente da fare: tutto in ordine'}</div>`}${flexLeftHTML(st)}${recentHTML()}${monthLineHTML(ym, st)}<button class="btn ghost mt0 hmore" data-act="tab" data-tab="bil">📊 Previsione e situazione ›</button>${qb}</div>`;
+  }
   return `<div class="homewrap"><div class="hw-top">${(isCur ? liveGoalsHomeHTML() + revHTML() + firstStepsHTML() + annualSoonHTML() + chHomeHTML() + sitAlertHTML() + cushionAlertsHTML() + planAlertsHTML() : '') + (fut ? '' : waitsH)}</div>${kpisHTML(ym, st)}${isCur ? `<div class="hw-mid">${forecastHTML() + sitCardHTML()}</div>` : ''}<div class="hw-todo">${isCur ? todoHTML() : fut ? agendaHTML(ym) : ''}</div>${btns}</div>`;
+}
+
+
+// Home: quanto resta in ogni voce flessibile
+function flexLeftHTML(st) {
+  const L = st.filter(b => !b.l && !b.auto && !b.rec && !b.bills && b.eff > 0);
+  if (!L.length) return '';
+  return `<div class="card stag hfl" style="--i:3"><div class="h-label">Cosa resta nelle voci</div><div class="hfl-g">${L.map(b => `<div class="hfl-i ${b.left < -0.005 ? 'r' : b.left < 0.5 ? 'z' : ''}" data-act="add-cat" data-cat="${esc(b.k)}"><span class="ell">${esc(b.e)} ${esc(b.n)}</span><b>${b.left < -0.005 ? '−' + eurR(-b.left) : eurR(Math.max(0, b.left))}</b></div>`).join('')}</div></div>`;
+}
+// Home: gli ultimi movimenti, per vedere subito che la registrazione c'è
+function recentHTML() {
+  const L = TX().filter(t => !t.plan && !t.lnk && t.d.slice(0, 7) === curYM()).sort((a, b) => b.d.localeCompare(a.d) || b.ts - a.ts).slice(0, 4);
+  if (!L.length) return '';
+  return `<div class="card tight stag hrec" style="--i:4"><div class="h-label" style="padding:4px 4px 2px">Ultimi movimenti</div>${L.map(t => { const sign = t.kind === 'in' ? '+' : t.kind === 'out' ? '−' : ''; const col = t.kind === 'in' ? 'g' : t.kind === 'move' ? 'v' : 'o';
+    return `<div class="txr" data-act="edit-tx" data-id="${t.id}" style="padding:8px 4px"><div class="bico" style="--c:${esc(catColor(t))};width:34px;height:34px;font-size:16px;border-radius:11px">${esc(catEmoji(t))}</div><div style="min-width:0;flex:1"><div class="t1" style="font-size:14px">${esc(t.note || catName(t))}</div><div class="t2 ell">${esc(['Oggi', 'Ieri'].includes(dayLabel(t.d)) ? dayLabel(t.d) : (+t.d.slice(8)) + ' ' + MS[+t.d.slice(5, 7) - 1])} · ${esc(catName(t))}</div></div><div class="amt num ${col}" style="font-size:14px">${sign}${eur(t.a)}</div></div>`; }).join('')}
+    <button class="chipbtn" data-act="tab" data-tab="tx" style="margin:4px 4px 2px">Tutti i movimenti ›</button></div>`;
+}
+function monthLineHTML(ym, st) {
+  const ib = incomeBreak(ym), voci = r2(st.filter(b => !b.auto).reduce((a, b) => a + b.eff, 0)), diff = r2(ib.tot - voci), dp = phaseAt(ym);
+  const sch = debtSchedule(), L = debtsInOrder().filter(g => debtCur(g) > 0 && sch[g.id]);
+  let right = '';
+  if (L.length) { const yms = L.map(g => sch[g.id].ym), end = yms.some(x => !x) ? null : yms.reduce((m, x) => (x > m ? x : m), '0000-00'); right = `<div class="ml-r"><span>Liberi dai debiti</span><b>${end ? ymShort(end) : 'non ancora'}</b></div>`; }
+  else { const f = cfg().goals.find(x => x.id === 'casa'), gi = f ? goalInfo(f) : null; if (gi) right = `<div class="ml-r"><span>Fondo casa pieno</span><b>${gi.ym ? ymShort(gi.ym) : '—'}</b></div>`; }
+  const net = ym === curYM() ? r2(diff - monthShort().ov) : diff;
+  return `<div class="card mline stag" style="--i:3" data-act="tab" data-tab="goals"><div class="ml-l"><span>${MONTHS[+ym.slice(5) - 1]}</span><b class="${net >= 0 ? 'g' : 'r'}">${net >= 0 ? '+' : '−'}${eurR(Math.abs(net))}</b><small>${net >= 0 ? (dp ? 'vanno ai debiti' : 'vanno al fondo casa') : cushion().bal > 0.5 ? 'li copre il cuscinetto' : 'mancano nel mese'}</small></div>${right}<span class="chev">›</span></div>`;
 }
 function kpisHTML(ym, st) {
   const flex = st.filter(b => !b.l && !b.auto), spend = r2(flex.reduce((a, b) => a + Math.max(0, b.left), 0)), flexEff = r2(flex.reduce((a, b) => a + b.eff, 0));
@@ -1770,7 +1821,8 @@ function todoHTML() {
   }
   for (const t of TX().filter(t => t.kind === 'in' && t.todo)) add(60, '💸', '#2EE59D', esc(t.note || t.cat), `${eur(t.a)} da destinare · ancora sul ${esc(t.acc)}`, `<button class="btn sm primary" data-act="extra-dest" data-id="${t.id}">Destina</button>`);
   const ov = catStats(ym).filter(b => !b.auto && b.left < -0.005);
-  if (ov.length) add(70, '⚠️', '#FF6B5E', 'Budget sforato', `${ov.map(b => esc(b.n)).join(', ')} · −${eur(ov.reduce((a, b) => a - b.left, 0))}`, `<button class="btn sm" data-act="shift">Copri</button>`);
+  const cseen = ((S.real.state || {}).cushSeen) || {}, mtot = monthShort().tot, bannerOn = mtot > 0.5 && !(cseen.ym === ym && cseen.a >= mtot - 0.5);
+  if (ov.length && !bannerOn) add(70, '⚠️', '#FF6B5E', 'Budget sforato', `${ov.map(b => esc(b.n)).join(', ')} · −${eur(ov.reduce((a, b) => a - b.left, 0))}`, `<button class="btn sm" data-act="shift">Copri</button>`);
   if (!S.preview && !(B.kind === 'db' && !S.stateLoaded)) assetsTodo(add);
   if (false && !S.preview && B.kind === 'db' && S.stateLoaded && ((S.real.state || {}).lastBackup || '').slice(0, 7) < ym) add(99, '💾', '#7C8CFF', 'Backup del mese', 'un tocco per salvare una copia dei dati', `<button class="btn sm" data-act="export">Esporta</button><button class="btn sm ghost" data-act="backup-skip" aria-label="Non ora">✕</button>`);
   if (!items.length) return '';
@@ -2029,7 +2081,7 @@ function bilHTML() {
   const sum = a => a.reduce((x, b) => x + b.eff, 0);
   const row = b => `<div class="trow"><span class="nm">${esc(b.e)} ${esc(b.n)}</span><span class="num">${eurR(b.eff)}${b.inS || b.outS ? `<br><small class="m">${b.inS ? '+' + eurR(b.inS) : ''}${b.outS ? ' −' + eurR(b.outS) : ''}</small>` : ''}</span><span class="num">${eurR(b.spent)}${b.pend ? `<br><small class="a">+${eurR(b.pend)}</small>` : ''}</span><span class="num ${b.left < -0.005 ? 'r' : b.auto ? 'g' : b.l ? (b.pend && b.left < 0.01 ? 'a' : 'g') : txtColor(b.pct)}">${b.auto ? (b.eff < -0.005 ? '<span class="r">−' + eurR(-b.eff) + '</span>' : b.savWait ? '—' : b.left <= 0.01 ? '✓' : eurR(b.left)) : b.l && b.pend && Math.abs(b.left) < 0.01 ? eurR(0) : eurR(b.left)}</span></div>`;
   return `<div class="grid2b"><div>
-    ${spendDonutHTML()}${trendHTML()}${coupleHTML()}${S.ym === curYM() ? bilToolsHTML() : ''}${S.ym === curYM() ? sitBilHTML() + `<div class="card tight bil-saldi" style="--i:0">${balancesHTML(true)}</div>` + assetsCardHTML() : ''}
+    ${S.ym === curYM() ? forecastHTML() : ''}${spendDonutHTML()}${trendHTML()}${coupleHTML()}${S.ym === curYM() ? bilToolsHTML() : ''}${S.ym === curYM() ? sitBilHTML() + `<div class="card tight bil-saldi" style="--i:0">${balancesHTML(true)}</div>` + assetsCardHTML() : ''}
     <div class="card bil-budget" style="--i:0"><div class="h-label">${fut ? 'Budget previsto' : 'Budget del mese'} · ${ymLabel(S.ym)}</div>
       <div style="display:flex;align-items:center;gap:16px;margin-top:10px">${donutSVG(st)}
       <div style="flex:1;font-size:13px;line-height:1.9"><div class="m">Intoccabili</div><b class="num" style="font-size:18px">${eur0(sum(locked))}</b>
@@ -2123,6 +2175,7 @@ function rulesHTML() {
     <div class="card tight" style="--i:1">
       <div class="setrow" data-act="main-acc"><span>Conto principale<br><small>${esc(mainAcc())} · stipendio, spese, cuscinetto e pagamenti dei debiti</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="acc-uses"><span>A cosa servono i conti<br><small>${accUsesSummary()}</small></span><span class="chev">›</span></div>
+      <div class="setrow" data-act="lefty"><span>✋ Uso il telefono con la sinistra<br><small>${lsGet('future_lefty') === '1' ? 'Sì: «Registra» è a sinistra' : 'No: «Registra» è a destra, sotto il pollice'}</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-share"><span>${shareB() ? 'Quota di ' + esc(shareN()) : 'Quota personale (facoltativa)'}<br><small>${shareB() ? '' : 'Una paghetta fissa per te o per il partner · '}${pctTxt(shareFp())} delle entrate fisse${shareFp() > 0 ? ' (' + eur(baseOf(shareB())) + ' al mese)' : ''} · ${pctTxt(shareXp())} delle extra</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-dord"><span>Ordine dei debiti<br><small>Prima quelli con una data, poi ${DORD[dOrd()][1]}</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-sitth"><span>Soglie dei livelli<br><small>${sitCustom() ? 'Personalizzate' : 'Standard'} · rate ${pctTxt(sitTh().r2)} / ${pctTxt(sitTh().r4)} · riserva ${mesiTh(sitTh().v2)} / ${mesiTh(sitTh().v4)}</small></span><span class="chev">›</span></div>
@@ -3605,7 +3658,7 @@ function tourSteps() {
     {tab: 'home', sel: '.kpis .kpi:nth-child(3)', t: '🏁 Libero dai debiti', s: end ? `Il mese in cui chiudete l’ultimo debito: oggi ${ymTxt(end)}.` : 'Quando i debiti sono chiusi, qui vedi il fondo casa.', l: 'Sotto c’è il prossimo debito da chiudere e se la data promessa è coperta. Si aggiorna da solo a ogni spesa, entrata o rata. Toccalo per il piano completo in Obiettivi.'},
     {tab: 'home', sel: '.sitc', t: '📊 La tua situazione', s: 'Dove sei davvero: un livello da 1 a 5, con regole fisse e uguali per tutti.', l: li('Tocca per i numeri: rate sulle entrate, avanzo, riserva, debiti, interessi, patrimonio netto.', 'Sotto vedi quando cambia il livello seguendo il piano e dove sarai negli anni.', 'Quando il livello cambia, in Home compare un avviso con il perché.')},
     {tab: 'home', sel: '.hw-todo .card', t: '✅ Da fare', s: 'Solo le cose che deve fare una persona: bonifici, entrate da confermare, bollette.', l: li('<b>Fatto</b>: hai fatto il bonifico. Ti chiede conferma con importo e data.', '<b>Arrivata</b>: un’entrata è arrivata davvero.', '<b>✕</b>: salta questo mese.', '<b>Rosso</b> vuol dire in ritardo.', 'Premuto Fatto per sbaglio? Movimenti → tieni premuto il movimento → <b>Rimetti in Da fare</b>.')},
-    {tab: 'home', sel: '[data-act="ask"]', t: '❓ Posso comprarlo?', s: 'Chiedi all’app prima di spendere.', l: 'Scrivi cosa, quanto e da quale voce. Le risposte:' + li('<b>SÌ</b>: la registri subito.', '<b>NO</b>: con il motivo e da dove potresti coprire.', '<b>ASPETTA 48 ORE</b>: fuori budget sopra 50 €, decide anche il partner (se collegato).', '<b>ASPETTA IL MESE PROSSIMO</b>: se è rinviabile.') + 'Sotto vedi anche quanto pesa sui debiti.'},
+    {tab: 'home', sel: '[data-act="ask"]', t: 'Posso comprarlo?', s: 'Chiedi all’app prima di spendere.', l: 'Scrivi cosa, quanto e da quale voce. Le risposte:' + li('<b>SÌ</b>: la registri subito.', '<b>NO</b>: con il motivo e da dove potresti coprire.', '<b>ASPETTA 48 ORE</b>: fuori budget sopra 50 €, decide anche il partner (se collegato).', '<b>ASPETTA IL MESE PROSSIMO</b>: se è rinviabile.') + 'Sotto vedi anche quanto pesa sui debiti.'},
     {tab: 'home', sel: '[data-act="sim"]', t: '📉 Prevedi', s: 'Quanto pesa una spesa, o quanto ti avvicina un\u2019entrata, senza registrare niente.', l: 'Scegli <b>Uscita</b> o <b>Entrata</b>, poi importo e quando. Per un\u2019entrata vedi di quanto si anticipano i debiti e il fondo casa (le entrate extra al netto della quota di {QN}). Per una spesa scegli anche la voce. Vedi quanto copre la voce, quanto esce dai soldi per i debiti e se slitta <b>Libero dai debiti</b>.' + (ex && ex.endA !== ex.endB ? ` Esempio con i vostri numeri: un aspirapolvere da 1.000 € oggi sposta la fine dei debiti da <b>${ymTxt(ex.endB)}</b> a <b>${ymTxt(ex.endA)}</b>.` : '') + ' Da lì puoi registrarla o metterla come prevista.'},
     {tab: 'home', sel: '.homebtns [data-act="add"]', t: '＋ Registra', s: 'Dopo ogni spesa o entrata: un tocco qui.', l: li('<b>Uscita</b>: una spesa, scegli la voce.', '<b>Entrata</b>: stipendio, extra, oppure <b>🤝 Rientro prestito</b> se qualcuno ti rende dei soldi.', '<b>Trasferimento</b>: soldi da un conto all’altro.', '<b>Bollette</b>: scegli Già pagata o Da pagare con la scadenza.', 'Con una <b>data futura</b> diventa una spesa prevista: non tocca i saldi.', '<b>🧾 Spesa obbligata</b>: necessaria e già pagata, fuori dal budget, la paga il cuscinetto.', '<b>📷 Leggi scontrino o screenshot</b>: importo, negozio e data dalla foto.')},
     {tab: 'tx', t: '📋 Movimenti', s: 'L’elenco di tutto quello che entra ed esce, mese per mese.', l: 'In alto il riepilogo e quello che deve ancora arrivare, sotto la lista con ricerca e filtri. Colori: <b class="g">verde</b> entrate, <b class="o">corallo</b> uscite, <b class="v">azzurro</b> trasferimenti.'},
@@ -4019,6 +4072,8 @@ const ACT = {
   stress: () => openStress(),
   subs: () => openSubs(),
   'quick-help': () => openQuickHelp(),
+  'add-cat': el => openTx({_new: true, kind: 'out', a: '', cat: el.dataset.cat, note: '', d: today(), acc: mainAcc(), to: 'Fondo casa', xb: false, src: ''}),
+  'lefty': () => { const on = lsGet('future_lefty') !== '1'; lsSet('future_lefty', on ? '1' : '0'); document.body.classList.toggle('lefty', on); toast(on ? 'Pulsanti per la mano sinistra ✓' : 'Pulsanti per la mano destra ✓'); render(); },
   'og-start': el => goalStart(el.dataset.id),
   'og-close': el => goalClose(el.dataset.id),
   'og-list': el => goalList(el.dataset.id),
@@ -5786,6 +5841,7 @@ async function scanReceipt(w) {
 
 /* ---------- avvio delle funzioni nuove ---------- */
 function featuresBoot() {
+  document.body.classList.toggle('lefty', lsGet('future_lefty') === '1');
   handleQuickAdd(); handleReportParam(); setTimeout(saveHistPoint, 6000); goalBoot();
   addEventListener('offline', () => { toast('Sei offline: quello che registri parte appena torna la rete'); render(); });
   addEventListener('online', () => { render(); });
@@ -5820,9 +5876,10 @@ function heroHTML() {
   const ym = curYM(); if (S.ym !== ym) return '';
   const st = catStats(ym).filter(b => !b.l && !b.auto && !b.rec && !b.bills && !b.sav && b.eff > 0); if (!st.length) return ''; const left = r2(st.reduce((s, b) => s + Math.max(0, b.left), 0));
   const days = Math.max(1, daysIn(ym) - +today().slice(8) + 1), perDay = r2(left / days), over = st.filter(b => b.left < -0.005);
-  return `<div class="card hero stag" style="--i:0"><div class="h-label">Oggi puoi spendere</div>
-    <div class="hero-n num ${perDay > 0 ? 'g' : 'r'}">${eur(perDay)}<small> al giorno</small></div>
-    <div class="hero-s ell">${eurR(left)} fino a fine mese · ${days} ${days === 1 ? 'giorno' : 'giorni'}</div>${over.length ? `<div class="hero-s ell r" style="margin-top:2px">Sforato: ${over.map(b => esc(b.n)).join(', ')}</div>` : ''}</div>`;
+  const why0 = left <= 0.5 ? `Budget flessibile di ${MONTHS[+ym.slice(5) - 1].toLowerCase()} finito: ogni spesa in più pesa ${cushion().bal > 0.5 ? 'sul cuscinetto' : 'sui soldi dei debiti'}` : '';
+  return `<div class="card hero stag" style="--i:0" data-act="tab" data-tab="bil"><div class="h-label">Oggi puoi spendere</div>
+    <div class="hero-n num ${perDay > 0 ? 'g' : 'r'}">${perDay >= 100 ? eurR(perDay) : eur(perDay).replace(/[.,]00(?=\D*$)/, '')}<small> al giorno</small></div>
+    <div class="hero-s ${why0 ? '' : 'ell'}">${why0 || `${eurR(left)} fino a fine mese · ${days} ${days === 1 ? 'giorno' : 'giorni'}`}</div>${over.length ? `<div class="hero-s ell r" style="margin-top:2px">Sforato: ${over.map(b => esc(b.n)).join(', ')}</div>` : ''}</div>`;
 }
 /* ---------- Obiettivi: dettagli a scomparsa ---------- */
 function collapsePlans(v) {
