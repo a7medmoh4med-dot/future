@@ -2414,6 +2414,7 @@ function openStraord(pre = {}) {
     <label class="fld"><span>Conto</span><select id="so-acc">${accs.map(n => `<option ${n === acc0 ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
     <div id="so-prev"></div>
     <button class="btn primary" data-act="so-ask">${hasPartner() ? 'Chiedi il sì di ' + esc(apprName()) : 'Continua'}</button>
+    <button class="btn" data-act="so-paid">Già pagata: registrala${hasPartner() ? ' (' + esc(apprName()) + ' riceve un avviso)' : ''}</button>
     <button class="btn ghost" data-act="close-sheet">Annulla</button>`);
   const upd = () => { const box = $('#so-prev', w); if (box) box.innerHTML = straordPrevHTML(parseAmt($('#so-a', w).value) || 0, $('#so-acc', w).value); };
   w.addEventListener('input', e => { if (e.target.id === 'so-a') upd(); });
@@ -2475,14 +2476,16 @@ function openTx(existing, opts = {}) {
   if (t.kind === 'in' && !t.cat) t.cat = 'Stipendio';
   const w = openSheet('<div id="tx-body"></div>');
   w._t = t; w._ex = existing || null; w._fixedId = opts.fixedId || null; w._rec = opts.rec || ''; w._apprWait = opts.wait || '';
+  w.addEventListener('change', e => { if (e.target && e.target.id === 'tx-oblig') { readTx(w); drawTx(w); } });
   drawTx(w);
 }
 function drawTx(w) {
   const t = w._t, ex = w._ex;
+  if (t.oblig === undefined) t.oblig = t.kind === 'out' && t.cat === 'straord';
   const tred = treddResidual();
   const splitRows = () => `<div class="fld"><span>Parti dell\u2019entrata · totale ${eur(splitSum(w))}</span>${w._split.map((p, i) => `<div class="edrow3" style="grid-template-columns:minmax(0,1fr) 112px 42px"><select class="plain" data-sp="${i}" data-spf="cat">${cfg().incomeCats.map(c => `<option ${c === p.cat ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select><input class="plain" data-sp="${i}" data-spf="a" inputmode="decimal" value="${esc(p.a || '')}" placeholder="0,00"><button class="tg" data-act="sp-del" data-i="${i}" type="button" aria-label="Togli parte">✕</button></div>`).join('')}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="chipbtn" data-act="sp-add" type="button">+ Aggiungi parte</button><button class="chipbtn" data-act="sp-off" type="button">Una sola voce</button></div></div>`;
-  const catPart = t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}</div>`
+  const catPart = t.kind === 'out' && t.oblig ? '' : t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}</div>`
     : t.kind === 'in' ? (w._split ? splitRows() : `<div class="fld"><span>Tipo di entrata</span>${chipsGrid(cfg().incomeCats.filter(c => c !== 'Rientro prestito').concat('Rientro prestito'), t.cat, 'tx-icat').replace('data-v="Rientro prestito">Rientro prestito<', 'data-v="Rientro prestito">🤝 Rientro prestito<')}${!ex && t.cat !== 'Rientro prestito' ? '<button class="chipbtn" data-act="sp-on" type="button" style="margin-top:4px">＋ Dividi in più voci (es. stipendio + tredicesima)</button>' : ''}</div>${t.cat === 'Rientro prestito' ? rpFieldHTML(t) : ''}`)
     : `<div class="row2"><label class="fld"><span>Da</span><select id="tx-acc">${accOpts(t.acc)}</select></label><label class="fld"><span>A</span><select id="tx-to">${accOpts(t.to || 'Fondo casa')}</select></label></div>`;
   $('#tx-body', w).innerHTML = `<h3 class="sh-title">${ex ? 'Modifica movimento' : 'Nuovo movimento'}</h3><p class="sh-sub">${ex && (ex.who || ex.by) ? 'Registrato da ' + esc(ex.who || nameOf(ex.by) || 'qualcuno') + ' · ' : ''}${ex ? dateShort(ex.d) : 'Entrate, uscite e versamenti, insieme.'}</p>
@@ -2494,7 +2497,8 @@ function drawTx(w) {
     <div class="row2"><label class="fld"><span>Data</span><input id="tx-d" type="date" value="${esc(t.d)}"></label>${t.kind !== 'move' ? `<label class="fld"><span>Conto</span><select id="tx-acc">${accOpts(t.acc)}</select></label>` : '<div></div>'}</div>
     ${!w._fixedId && !(ex && ex.rec) && (t.d > today() || (ex && ex.plan)) ? `<div class="vrule" style="margin-top:0">📌 <b>Prevista</b>: con una data futura conta nel budget di quel mese e nel piano debiti, ma non tocca i saldi. Quando arriva il giorno la trovi in Da fare.</div>` : ''}
     ${t.kind === 'out' && (bud(t.cat) || {}).bills ? `<div class="fld"><span>Bolletta</span>${segHTML('tx-paid', [['paid', 'Già pagata'], ['due', 'Da pagare']], t.unpaid ? 'due' : 'paid')}</div>${t.unpaid ? `<label class="fld"><span>Scade il</span><input id="tx-due" type="date" value="${esc(t.due || '')}"></label>` : ''}` : ''}
-    ${t.kind === 'out' && (tred > 0 || t.src === 'tredicesima') ? `<label class="check"><input type="checkbox" id="tx-tred" ${t.src === 'tredicesima' ? 'checked' : ''}> Pagata con la tredicesima (restano ${eur(tred)}) · escluso dal budget</label>` : ''}
+    ${t.kind === 'out' && !w._rec && !(ex && ex.rec) && !(ex && ex.pid) ? `<label class="check" style="margin:2px 0 10px"><input type="checkbox" id="tx-oblig" ${t.oblig ? 'checked' : ''}> 🧾 <span><b>Spesa obbligata</b> (viaggio necessario, medico, guasto…): fuori dal budget del mese, la paga prima il cuscinetto${hasPartner() ? ` · ${esc(apprName())} riceve un avviso` : ''}</span></label>` : ''}
+    ${t.kind === 'out' && !t.oblig && (tred > 0 || t.src === 'tredicesima') ? `<label class="check"><input type="checkbox" id="tx-tred" ${t.src === 'tredicesima' ? 'checked' : ''}> Pagata con la tredicesima (restano ${eur(tred)}) · escluso dal budget</label>` : ''}
     ${!ex && !w._fixedId && t.kind !== 'move' && !(t.kind === 'in' && t.cat === 'Rientro prestito') ? `<label class="check"><input type="checkbox" id="tx-rep" ${w._rep ? 'checked' : ''}> 🔁 Si ripete ogni mese in questo giorno</label>` : ''}
     <button class="btn primary" data-act="tx-save">${ex ? 'Salva modifiche' : 'Registra'}</button>
     ${ex ? txActions(ex).filter(a => a[0] !== 'bill-paid' && a[0] !== 'bill-unpay').map(a => txBtn(ex, a.slice(0, 2).concat(a[2] === 'primary' ? '' : a[2]))).join('') : ''}`;
@@ -2516,6 +2520,7 @@ function readTx(w) {
   if (g('#tx-acc')) t.acc = g('#tx-acc').value;
   if (g('#tx-to')) t.to = g('#tx-to').value;
   if (t.kind === 'out' && (bud(picked(w, 'tx-cat') || t.cat) || {}).bills) { const p = picked(w, 'tx-paid'); if (p) t.unpaid = p === 'due' ? 1 : 0; if (g('#tx-due')) t.due = g('#tx-due').value || ''; } else t.unpaid = 0;
+  { const ob = g('#tx-oblig'); if (ob) t.oblig = ob.checked; }
   if (t.kind === 'out') { t.cat = picked(w, 'tx-cat') || t.cat; const tr = g('#tx-tred'); if (tr) { t.src = tr.checked ? 'tredicesima' : (t.src === 'tredicesima' ? '' : t.src); t.xb = tr.checked || (t.xb && t.src !== '' && t.src !== 'tredicesima'); } }
   if (t.kind === 'in' && !w._split) t.cat = picked(w, 'tx-icat') || t.cat;
   if (g('#tx-pid')) t.pid = g('#tx-pid').value;
@@ -2561,7 +2566,9 @@ async function saveTx(w, coverFrom, asOver) {
   }
   const a = parseAmt(t.a);
   if (!(a > 0)) { toast('Inserisci un importo valido'); return; }
-  if (t.kind === 'out' && !bud(t.cat)) { toast('Scegli una voce di budget'); return; }
+  const oblig = t.kind === 'out' && !!t.oblig && !w._rec && !(ex && ex.rec);
+  if (oblig) { t.cat = 'straord'; t.xb = true; t.src = 'straord'; t.unpaid = 0; } else if (t.src === 'straord') { t.xb = false; t.src = ''; }
+  if (t.kind === 'out' && !oblig && !bud(t.cat)) { toast(t.cat === 'straord' ? 'Era una spesa obbligata: scegli una voce di budget' : 'Scegli una voce di budget'); return; }
   if (t.kind === 'move' && t.acc === t.to) { toast('Scegli due conti diversi'); return; }
   const fromAcc = t.kind === 'out' || t.kind === 'move' ? t.acc : '';
   const wasAcc = ex && (ex.kind === 'out' || ex.kind === 'move') && ex.acc === fromAcc;
@@ -2583,21 +2590,6 @@ async function saveTx(w, coverFrom, asOver) {
   const doc = {kind: t.kind, a, cat: t.kind === 'move' ? '' : t.cat, note: t.note, d: t.d, acc: t.acc, to: t.kind === 'move' ? t.to : '', xb: t.kind === 'out' ? !!t.xb : false, src: t.kind === 'out' ? t.src : '', goal: t.goal || '', over: !!asOver, rec: (ex && ex.rec) || w._rec || '', plan: planF, unpaid: unp, due: unp ? (t.due || '') : (ex && ex.due) || ''};
   if (ex && ex.pid) Object.assign(doc, {pid: ex.pid, who: ex.who || ''});
   const recPid = recTx ? ((recs().find(r => r.id === recTx) || {}).pid || '') : ''; if (recPid) doc.pid = recPid;
-  if (t.kind === 'out' && !ex && !w._fixedId && !recTx && !planF && !w._apprWait && !w._preOk && hasPartner() && !S.preview && coverFrom === undefined && !asOver) {
-    const gb = catStats(t.d.slice(0, 7)).find(x => x.k === t.cat);
-    const gXb = !!doc.xb, gOver = !gXb && gb && !gb.bills && a > gb.left + 0.001, gFuori = !gXb && !gOver && t.cat === 'fuori' && a > 50;
-    if (gXb || gOver || gFuori) {
-      const desc = t.note || (gb ? gb.n : 'Spesa');
-      const ok48 = await choiceSheet(gXb || gOver ? `Serve il sì di ${apprName()}` : 'Fuori budget sopra 50 €',
-        gXb ? `${esc(desc)} · ${eur(a)} è esclusa dal budget. Non la registro finché ${esc(apprName())} non dice sì: le arriva subito la richiesta.` : gOver ? `${esc(desc)} · ${eur(a)} sfora <b>${esc(gb.n)}</b> di <b>${eur(r2(a - Math.max(0, gb.left)))}</b>. Non la registro finché ${esc(apprName())} non dice sì: le arriva subito la richiesta.` : `Per il Fuori budget sopra 50 € servono il sì di ${esc(apprName())} e 48 ore di attesa. Non la registro finché non sono passate.`,
-        [['ask', `Chiedi il sì di ${apprName()}`], ['done', `Già pagata: ${apprName()} ha già detto sì`]]);
-      if (ok48 === 'done') { w._preOk = 1; return saveTx(w, coverFrom, asOver); }
-      if (ok48 !== 'ask') return;
-      const okw = await addWait(gXb || gOver ? {type: 'over', desc, a, cat: t.cat, acc: t.acc, need: 'need', xb: gXb ? 1 : 0, until: Date.now()} : {type: '48h', desc, a, cat: t.cat, acc: t.acc, need: 'need', until: Date.now() + 48 * 3600e3});
-      if (okw === false) return;
-      closeSheet(w); toast(`${sentMsg(gFuori)} ⏳`); S.anim = true; render(); return;
-    }
-  }
   if (ex && coverFrom === undefined && !asOver) {
     const linked = D().shifts.filter(x => x.tx === ex.id);
     if (linked.length) {
@@ -2620,8 +2612,8 @@ async function saveTx(w, coverFrom, asOver) {
       const sh = openSheet(`<h3 class="sh-title">⚖️ Budget del mese</h3><p class="sh-sub">Questa spesa sfora <b>${esc(b.n)}</b> di <b>${eur(over)}</b>. Il totale del mese non si supera: da dove togli i soldi?</p>
         ${sources.filter(s => s.left + .001 >= over).map(s => `<button class="btn" data-cv="${esc(s.k)}">${esc(s.e)} Togli da ${esc(s.n)} <small class="m">(restano ${eur(s.left - over)})</small></button>`).join('')}
         ${flexTot + .001 >= over ? '<button class="btn" data-cv="*">Copri in automatico da più voci</button>' : `<div class="banner red" style="margin-top:10px"><div class="ic">🚫</div><div><b>Budget flessibile non basta</b>Nelle voci flessibili restano solo ${eur(flexTot)}.</div></div>${flexTot > 0.009 ? `<button class="btn" data-cv="part">Copri ${eur(flexTot)} da tutte le voci, il resto (${eur(r2(over - flexTot))}) come sforamento</button>` : ''}`}
-        <button class="btn danger" data-cv="!">Registra come sforamento</button><button class="btn ghost" data-cv="x">Annulla</button>`);
-      sh.addEventListener('click', e => { const bt = e.target.closest('[data-cv]'); if (!bt) return; const v = bt.dataset.cv; closeSheet(sh); if (v === 'x') return; if (v === '!') saveTx(w, undefined, true); else if (v === 'part') { w._cover.over = flexTot; saveTx(w, '', true); } else saveTx(w, v === '*' ? '' : v); });
+        <button class="btn danger" data-cv="!">Registra come sforamento</button><button class="btn" data-cv="ob">🧾 È una spesa obbligata (fuori budget)</button><button class="btn ghost" data-cv="x">Annulla</button>`);
+      sh.addEventListener('click', e => { const bt = e.target.closest('[data-cv]'); if (!bt) return; const v = bt.dataset.cv; closeSheet(sh); if (v === 'x') return; if (v === 'ob') { w._t.oblig = true; const ob = $('#tx-oblig', w); if (ob) ob.checked = true; saveTx(w); return; } if (v === '!') saveTx(w, undefined, true); else if (v === 'part') { w._cover.over = flexTot; saveTx(w, '', true); } else saveTx(w, v === '*' ? '' : v); });
       return;
     }
   }
@@ -2637,13 +2629,22 @@ async function saveTx(w, coverFrom, asOver) {
   else ok = await addTx(Object.assign(doc, {_id: w._txid || ''}));
   if (ok === false) return;
   if (w._apprWait) await del('waits', w._apprWait);
-  if (w._preOk && window.FutureCloud && !S.preview) window.FutureCloud.notify({title: `${meNow()} ha registrato una spesa`, body: `${t.note || catName(Object.assign({}, doc))} · ${eur(a)} · deciso insieme, già pagata`, tag: 'pre-' + Date.now(), url: './'});
+  const newOblig = oblig && !(ex && ex.cat === 'straord');
+  let cushTxt = '';
+  if (newOblig && !planF && t.acc === mainAcc()) {
+    const cov = r2(Math.min(a, cushion().bal));
+    if (cov > 0) { const c = clone(cfg()); c.cushion.bal = r2(Math.max(0, c.cushion.bal - cov)); c.cushionLog = (c.cushionLog || []).concat({m: curYM(), a: -cov, why: 'Spesa obbligata: ' + (t.note || ''), ts: Date.now()}).slice(-60); await saveConfig(c); cushTxt = ` · ${eur(cov)} dal cuscinetto`; }
+  }
+  if (hasPartner() && !S.preview && window.FutureCloud && t.kind === 'out' && (newOblig || (asOver && !ex))) {
+    const ovr = asOver ? (() => { const b0 = catStats(t.d.slice(0, 7)).find(x => x.k === t.cat); return b0 && b0.left < 0 ? -b0.left : 0; })() : 0;
+    window.FutureCloud.notify({title: `${meNow()} ha registrato una spesa`, body: `${t.note || catName(Object.assign({}, doc))} · ${eur(a)} · ${newOblig ? 'spesa obbligata' : 'sforamento' + (ovr > 0.005 ? ' di ' + eur(ovr) : '')}`, tag: 'reg-' + Date.now(), url: './'});
+  }
   if (!ex && !w._fixedId && w._rep && t.kind !== 'move') {
     const c = clone(cfg()); const day = +t.d.slice(8);
     c.recurring = (c.recurring || []).concat({id: 'r' + newId().slice(-7), n: t.note || catName(Object.assign({}, doc)), kind: t.kind, a, cat: doc.cat, acc: t.acc, to: '', day, var: 0, auto: 0, on: 1, from: addMonths(t.d.slice(0, 7), 1)});
     await saveConfig(c); toast('Registrato ✓ e impostato come ricorrente 🔁');
   }
-  buzz(15); toast(planF && !ex ? `Prevista a ${MONTHS[+t.d.slice(5, 7) - 1].toLowerCase()} ✓ · il piano è aggiornato` : unp && !ex ? 'Bolletta registrata · la trovi in Da fare finché non la paghi' : asOver ? 'Registrata come sforamento' : ex ? 'Modifica salvata ✓' : 'Registrato ✓');
+  buzz(15); toast(planF && !ex ? `Prevista a ${MONTHS[+t.d.slice(5, 7) - 1].toLowerCase()} ✓ · il piano è aggiornato` : unp && !ex ? 'Bolletta registrata · la trovi in Da fare finché non la paghi' : newOblig ? `Spesa obbligata registrata ✓${cushTxt}` : asOver ? 'Registrata come sforamento' : ex ? 'Modifica salvata ✓' : 'Registrato ✓');
   closeSheet(w); S.anim = true; render();
   if (!ex && w._xid) extraSheet(w._xid, {a, acc: t.acc, cat: t.cat, note: t.note});
 }
@@ -3910,6 +3911,7 @@ const ACT = {
     if (g.dataset.group && g.dataset.group.startsWith('ck-')) { w._last = null; $('#ck-res', w).innerHTML = ''; } },
   ask: () => openCheck(),
   'ck-go': el => runCheck(el.closest('.wrap')),
+  'so-paid': el => { const w = el.closest('.wrap'); const desc = $('#so-desc', w).value.trim(), a = parseAmt($('#so-a', w).value), acc = $('#so-acc', w).value; closeSheet(w); setTimeout(() => openTx({_new: true, kind: 'out', a: a > 0 ? nf2.format(a) : '', cat: 'spesa', note: desc, d: today(), acc, to: 'Fondo casa', xb: false, src: '', oblig: true}), 60); },
   'ck-straord': el => { const w = el.closest('.wrap'); const q = readCheck(w); closeSheet(w); setTimeout(() => openStraord({desc: q.desc, a: q.a > 0 ? q.a : '', acc: q.acc}), 60); },
   'so-ask': el => straordAsk(el.closest('.wrap')),
   'so-pay': el => straordPay(el.closest('.wrap')),
