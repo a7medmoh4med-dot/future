@@ -5615,19 +5615,33 @@ function loadTess() {
   if (window.Tesseract) return Promise.resolve(window.Tesseract);
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = () => res(window.Tesseract); s.onerror = () => rej(new Error('rete')); document.head.appendChild(s); });
 }
+// notifiche e SMS della banca: «autorizzato pagamento 338,62 EUR carta … c/o AIR ARAB Sharjah 13/11/26 10:45»
+function bankParse(text) {
+  const T = String(text || '').replace(/\s+/g, ' ');
+  const am = T.match(/(?:pagamento|addebito|spesa|acquisto|transazione|importo|prelievo)[^0-9]{0,40}?(\d{1,3}(?:[.\s]\d{3})*[.,]\d{2})\s*(?:EUR|€)/i) || T.match(/(\d{1,3}(?:[.\s]\d{3})*[.,]\d{2})\s*(?:EUR|€)/i) || T.match(/(?:EUR|€)\s*(\d{1,3}(?:[.\s]\d{3})*[.,]\d{2})/i);
+  if (!am) return null;
+  const a = parseAmt(am[1].replace(/\s/g, ''));
+  let m = '', d = '';
+  const mm = T.match(/(?:c\/o|presso|esercente:?|at)\s+(.+?)(?=\s+\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\s+il\s|\s*[.,;]\s|$)/i);
+  if (mm) m = mm[1].trim().replace(/\s{2,}/g, ' ').slice(0, 40);
+  const dm2 = T.match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+  if (dm2) { const y = dm2[3].length === 2 ? '20' + dm2[3] : dm2[3], mo = String(+dm2[2]).padStart(2, '0'), dd = String(+dm2[1]).padStart(2, '0'); const iso = `${y}-${mo}-${dd}`; if (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(iso) && iso <= today()) d = iso; }
+  return a > 0 ? {a, m, d} : null;
+}
 function receiptAmount(text) {
   const lines = String(text || '').split(/\n+/), amt = s => { const m = s.match(/(\d{1,4}(?:[.\s]\d{3})*[.,]\d{2})(?!\d)/g); return m ? m.map(x => parseAmt(x.replace(/\s/g, ''))).filter(v => v > 0) : []; };
   for (const l of lines) if (/totale|total|importo|pagato|da pagare|contanti|carta/i.test(l)) { const v = amt(l); if (v.length) return Math.max(...v); }
   const all = lines.flatMap(amt); return all.length ? Math.max(...all) : 0;
 }
 async function scanReceipt(w) {
-  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
   inp.onchange = async () => {
     const f = inp.files && inp.files[0]; if (!f) return;
     toast('Leggo lo scontrino… (la prima volta scarica il lettore, qualche secondo)');
     try {
       const T = await loadTess(); const r = await T.recognize(f, 'ita+eng'); const txt = (r && r.data && r.data.text) || '';
-      const a = receiptAmount(txt), first = txt.split('\n').map(x => x.trim()).find(x => /[a-z]{3,}/i.test(x)) || '';
+      const bk = bankParse(txt), a = bk ? bk.a : receiptAmount(txt), first = bk ? bk.m : (txt.split('\n').map(x => x.trim()).find(x => /[a-z]{3,}/i.test(x)) || '');
+      if (bk && bk.d) { const idd = $('#tx-d', w); if (idd) { idd.value = bk.d; idd.dispatchEvent(new Event('input', {bubbles: true})); idd.dispatchEvent(new Event('change', {bubbles: true})); } }
       if (a > 0) { const ia = $('#tx-a', w); if (ia) { ia.value = nf2.format(a); ia.dispatchEvent(new Event('input', {bubbles: true})); } }
       const inote = $('#tx-note', w); if (inote && !inote.value && first) { inote.value = first.slice(0, 40); inote.dispatchEvent(new Event('input', {bubbles: true})); }
       toast(a > 0 ? `Letto: ${eur(a)} · controlla prima di salvare` : 'Non ho trovato il totale: scrivilo tu');
@@ -5662,7 +5676,7 @@ async function openAutoBackups() {
 const _drawTx0 = drawTx;
 drawTx = function (w) {
   _drawTx0(w);
-  try { if (w._t && w._t.kind === 'out' && !S.preview && !$('#tx-scan', w)) { const a = $('#tx-a', w); const lab = a && a.closest('label'); if (lab) { lab.insertAdjacentHTML('afterend', '<button class="chipbtn" id="tx-scan" type="button" style="margin:-4px 0 10px">📷 Leggi lo scontrino</button>'); $('#tx-scan', w).addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); scanReceipt(w); }); } } } catch (e) {}
+  try { if (w._t && w._t.kind === 'out' && !S.preview && !$('#tx-scan', w)) { const a = $('#tx-a', w); const lab = a && a.closest('label'); if (lab) { lab.insertAdjacentHTML('afterend', '<button class="chipbtn" id="tx-scan" type="button" style="margin:-4px 0 10px">📷 Leggi scontrino o screenshot</button>'); $('#tx-scan', w).addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); scanReceipt(w); }); } } } catch (e) {}
 };
 
 /* ================= Future · Home pulita, Apple Pay, andamento, coppia, resoconto ================= */
@@ -5707,16 +5721,23 @@ async function openAutoPay() {
     $('#ap-body', w).innerHTML = tok ? `
       <div class="vrule"><b>La tua chiave personale</b> (non condividerla):<br><span class="num" style="word-break:break-all;font-size:13px">${esc(tok)}</span></div>
       <div class="row2" style="margin-top:8px"><button class="btn mt0" data-ap="copy-tok">Copia la chiave</button><button class="btn mt0" data-ap="copy-url">Copia l’indirizzo</button></div>
-      <div class="vrule" style="margin-top:12px"><b>Su iPhone, una volta sola:</b><br>
-      1. Apri <b>Comandi Rapidi</b> → <b>Automazione</b> → <b>+</b><br>
-      2. Scegli <b>Wallet</b> (o <b>Transazione</b>) → seleziona le tue carte → <b>Esegui subito</b><br>
-      3. Aggiungi l’azione <b>Ottieni contenuto dell’URL</b><br>
-      &nbsp;&nbsp;• URL: l’indirizzo copiato<br>
-      &nbsp;&nbsp;• Metodo: <b>POST</b> · Corpo richiesta: <b>JSON</b><br>
-      &nbsp;&nbsp;• campo <b>t</b> = la tua chiave<br>
-      &nbsp;&nbsp;• campo <b>importo</b> = variabile <i>Importo</i><br>
-      &nbsp;&nbsp;• campo <b>esercente</b> = variabile <i>Esercente</i><br>
-      4. (Facoltativo) aggiungi <b>Mostra notifica</b> con <i>Contenuti dell’URL</i>: vedrai "✓ 12,50 € · Bar → Svago".</div>
+      <div class="vrule" style="margin-top:12px"><b>Su iPhone, una volta sola (5 minuti)</b><br><br>
+      <b>1 · Crea l\u2019automazione</b><br>
+      Apri <b>Comandi Rapidi</b> → scheda <b>Automazione</b> (in basso) → <b>+</b> → scorri e tocca <b>Wallet</b> → spunta le tue carte → <b>Avanti</b> → <b>Nuovo comando rapido vuoto</b>.<br><br>
+      <b>2 · Aggiungi l\u2019azione che manda la spesa</b><br>
+      Cerca <b>Ottieni contenuti dell\u2019URL</b> e toccala. Nel campo URL incolla l\u2019indirizzo (pulsante «Copia l\u2019indirizzo» qui sopra). Tocca la freccetta <b>⌄</b> accanto all\u2019URL e imposta:<br>
+      • <b>Metodo</b>: POST<br>• <b>Corpo della richiesta</b>: JSON<br><br>
+      <b>3 · I tre campi</b> (ognuno con <b>Aggiungi nuovo campo → Testo</b>)<br>
+      • chiave <b>t</b> → valore: incolla la tua chiave<br>
+      • chiave <b>importo</b> → nel valore premi <b>Seleziona variabile</b> → tocca <b>Input comando rapido</b> → tocca la variabile appena messa → <b>Tipo: Transazione</b> → spunta <b>Importo</b><br>
+      • chiave <b>esercente</b> → come sopra, ma spunta <b>Esercente</b><br>
+      <span class="muted">Il riquadro «Ricevi … da Nessuna posizione» che compare in alto è normale: lascialo.</span><br><br>
+      <b>4 · La conferma (facoltativa)</b><br>
+      Aggiungi <b>Mostra notifica</b>: nel testo metti la variabile <b>Contenuti URL</b>, in <b>Nome</b> scrivi Future, <b>Allegato</b> vuoto.<br><br>
+      <b>5 · Che parta da sola</b><br>
+      Tocca la freccetta del riquadro «Quando…» in cima: <b>Automazione</b> acceso, <b>Avvisa</b> spento. Premi <b>Fine</b>.<br><br>
+      <b>Prova:</b> paga qualcosa con Apple Pay. Vedi «✓ 1,20 € · Bar → Svago» e la spesa compare in Home come «da controllare». Premendo ▶ a mano esce «Importo non valido»: è normale, l\u2019importo arriva solo con un pagamento vero.<br>
+      <span class="muted">Funziona solo con Apple Pay (iPhone o Watch), non con la carta fisica o gli acquisti online: quelli li registri a mano o con «📷 Leggi scontrino o screenshot».</span></div>
       <p class="muted" style="font-size:12.5px;margin:10px 2px 0">La voce la sceglie così: quella usata l’ultima volta con lo stesso negozio, altrimenti dal nome (supermercato → Spesa, bar → Svago, benzina → Trasporti…), altrimenti Fuori budget. Ogni spesa automatica compare in Home come “da controllare”.</p>
       <button class="btn ghost" data-ap="new">Rigenera la chiave</button>`
       : `<p>Prima crea la tua chiave personale: serve all’iPhone per scrivere nel tuo spazio.</p><button class="btn primary" data-ap="new">Crea la mia chiave</button>`;
