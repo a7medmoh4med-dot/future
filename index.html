@@ -2555,14 +2555,15 @@ async function saveTx(w, coverFrom, asOver) {
   const doc = {kind: t.kind, a, cat: t.kind === 'move' ? '' : t.cat, note: t.note, d: t.d, acc: t.acc, to: t.kind === 'move' ? t.to : '', xb: t.kind === 'out' ? !!t.xb : false, src: t.kind === 'out' ? t.src : '', goal: t.goal || '', over: !!asOver, rec: (ex && ex.rec) || w._rec || '', plan: planF, unpaid: unp, due: unp ? (t.due || '') : (ex && ex.due) || ''};
   if (ex && ex.pid) Object.assign(doc, {pid: ex.pid, who: ex.who || ''});
   const recPid = recTx ? ((recs().find(r => r.id === recTx) || {}).pid || '') : ''; if (recPid) doc.pid = recPid;
-  if (t.kind === 'out' && !ex && !w._fixedId && !recTx && !planF && !w._apprWait && hasPartner() && !S.preview && coverFrom === undefined && !asOver) {
+  if (t.kind === 'out' && !ex && !w._fixedId && !recTx && !planF && !w._apprWait && !w._preOk && hasPartner() && !S.preview && coverFrom === undefined && !asOver) {
     const gb = catStats(t.d.slice(0, 7)).find(x => x.k === t.cat);
     const gXb = !!doc.xb, gOver = !gXb && gb && !gb.bills && a > gb.left + 0.001, gFuori = !gXb && !gOver && t.cat === 'fuori' && a > 50;
     if (gXb || gOver || gFuori) {
       const desc = t.note || (gb ? gb.n : 'Spesa');
       const ok48 = await choiceSheet(gXb || gOver ? `Serve il sì di ${apprName()}` : 'Fuori budget sopra 50 €',
         gXb ? `${esc(desc)} · ${eur(a)} è esclusa dal budget. Non la registro finché ${esc(apprName())} non dice sì: le arriva subito la richiesta.` : gOver ? `${esc(desc)} · ${eur(a)} sfora <b>${esc(gb.n)}</b> di <b>${eur(r2(a - Math.max(0, gb.left)))}</b>. Non la registro finché ${esc(apprName())} non dice sì: le arriva subito la richiesta.` : `Per il Fuori budget sopra 50 € servono il sì di ${esc(apprName())} e 48 ore di attesa. Non la registro finché non sono passate.`,
-        [['ask', `Chiedi il sì di ${apprName()}`]]);
+        [['ask', `Chiedi il sì di ${apprName()}`], ['done', `Già pagata: ${apprName()} ha già detto sì`]]);
+      if (ok48 === 'done') { w._preOk = 1; return saveTx(w, coverFrom, asOver); }
       if (ok48 !== 'ask') return;
       const okw = await addWait(gXb || gOver ? {type: 'over', desc, a, cat: t.cat, acc: t.acc, need: 'need', xb: gXb ? 1 : 0, until: Date.now()} : {type: '48h', desc, a, cat: t.cat, acc: t.acc, need: 'need', until: Date.now() + 48 * 3600e3});
       if (okw === false) return;
@@ -2608,6 +2609,7 @@ async function saveTx(w, coverFrom, asOver) {
   else ok = await addTx(Object.assign(doc, {_id: w._txid || ''}));
   if (ok === false) return;
   if (w._apprWait) await del('waits', w._apprWait);
+  if (w._preOk && window.FutureCloud && !S.preview) window.FutureCloud.notify({title: `${meNow()} ha registrato una spesa`, body: `${t.note || catName(Object.assign({}, doc))} · ${eur(a)} · deciso insieme, già pagata`, tag: 'pre-' + Date.now(), url: './'});
   if (!ex && !w._fixedId && w._rep && t.kind !== 'move') {
     const c = clone(cfg()); const day = +t.d.slice(8);
     c.recurring = (c.recurring || []).concat({id: 'r' + newId().slice(-7), n: t.note || catName(Object.assign({}, doc)), kind: t.kind, a, cat: doc.cat, acc: t.acc, to: '', day, var: 0, auto: 0, on: 1, from: addMonths(t.d.slice(0, 7), 1)});
@@ -3678,7 +3680,7 @@ function openLoanPerson(pid) {
 function openLoanAdd(pid, type) {
   const w = openSheet('<div id="la-body"></div>'); w._l = {pid: pid || (peopleL()[0] ? peopleL()[0].id : '__new'), n: '', a: '', type: type || 'new', d: today(), acc: mainAcc(), due: ''}; drawLoanAdd(w);
 }
-function readLoanAdd(w) { const l = w._l, v = id => { const e = $(id, w); return e ? e.value : null; }; const ps = v('#la-p'); if (ps !== null) l.pid = ps; for (const [k, id] of [['n', '#la-n'], ['a', '#la-a'], ['d', '#la-d'], ['acc', '#la-acc'], ['due', '#la-due'], ['m', '#la-m']]) { const x = v(id); if (x !== null) l[k] = x; } l.type = picked(w, 'la-type') || l.type; return l; }
+function readLoanAdd(w) { const l = w._l, v = id => { const e = $(id, w); return e ? e.value : null; }; const ps = v('#la-p'); if (ps !== null) l.pid = ps; for (const [k, id] of [['n', '#la-n'], ['a', '#la-a'], ['d', '#la-d'], ['acc', '#la-acc'], ['due', '#la-due'], ['m', '#la-m']]) { const x = v(id); if (x !== null) l[k] = x; } l.type = picked(w, 'la-type') || l.type; const dn = $('#la-done', w); if (dn) l.done = dn.checked; return l; }
 function drawLoanAdd(w) {
   const l = w._l, isNew = l.type === 'new', owe = l.type === 'owe', msg = !owe && l.pid && l.pid !== '__new' ? cronicoMsg(l.pid, isNew) : '';
   $('#la-body', w).innerHTML = `<h3 class="sh-title">🤝 ${owe ? 'Debito verso una persona' : 'Prestito'}</h3><p class="sh-sub">${owe ? 'Soldi che devi restituire tu. Entra nel piano debiti, in ordine con gli altri: l\u2019app tiene i soldi da parte e ti dice quando puoi restituirli. Niente rata, niente interessi.' : isNew ? 'Esce dal Fuori budget (se non basta, da una voce flessibile) e serve il sì del partner (se collegato).' : 'Soldi prestati prima di usare Future: vanno solo nel registro, i saldi di oggi non cambiano.'}</p>
@@ -3687,11 +3689,13 @@ function drawLoanAdd(w) {
     ${l.pid === '__new' ? `<label class="fld"><span>Nome</span><input id="la-n" value="${esc(l.n)}" placeholder="Nome" autocomplete="off"></label>` : ''}
     <label class="fld"><span>Importo</span><div class="amtin"><input id="la-a" inputmode="decimal" placeholder="0,00" value="${esc(l.a)}"><b>€</b></div></label>
     ${owe ? '' : `<label class="fld"><span>Per cosa (facoltativo)</span><input id="la-m" value="${esc(l.m || '')}" placeholder="es. bollo auto, affitto di novembre" autocomplete="off"></label>`}
-    <div class="row2">${owe ? '' : isNew ? `<label class="fld"><span>Da quale conto</span><select id="la-acc">${cfg().accounts.filter(a => !accLocked(a.n)).map(a => `<option ${a.n === l.acc ? 'selected' : ''}>${esc(a.n)}</option>`).join('')}</select></label>` : `<label class="fld"><span>Quando</span><input id="la-d" type="date" value="${esc(l.d)}"></label>`}
+    ${isNew && l.done ? `<label class="fld"><span>Quando sono usciti</span><input id="la-d" type="date" value="${esc(l.d)}" max="${today()}"></label>` : ''}<div class="row2">${owe ? '' : isNew ? `<label class="fld"><span>Da quale conto</span><select id="la-acc">${cfg().accounts.filter(a => !accLocked(a.n)).map(a => `<option ${a.n === l.acc ? 'selected' : ''}>${esc(a.n)}</option>`).join('')}</select></label>` : `<label class="fld"><span>Quando</span><input id="la-d" type="date" value="${esc(l.d)}"></label>`}
       <label class="fld"><span>${owe ? 'Restituisco entro (facoltativo)' : 'Rende entro (facoltativo)'}</span><input id="la-due" type="date" value="${esc(l.due)}"></label></div>
     ${msg ? `<div class="banner red" style="margin:4px 0 0"><div class="ic">⚠️</div><div>${esc(msg.replace('⚠️ ', ''))}</div></div>` : ''}
+    ${isNew ? `<label class="check" style="margin-top:6px"><input type="checkbox" id="la-done" ${l.done ? 'checked' : ''}> Soldi già usciti${hasPartner() ? `: ne abbiamo già parlato e ${esc(apprName())} ha detto sì` : ': registrali e basta'}</label>` : ''}
     <div id="la-res"></div>
-    <button class="btn primary" data-act="loan-save">${owe ? 'Aggiungi al piano debiti' : isNew ? (hasPartner() ? `Chiedi il sì di ${esc(apprName())}` : 'Registra il prestito') : 'Salva nel registro'}</button>`;
+    <button class="btn primary" data-act="loan-save">${owe ? 'Aggiungi al piano debiti' : isNew ? (l.done ? 'Registra il prestito' : hasPartner() ? `Chiedi il sì di ${esc(apprName())}` : 'Registra il prestito') : 'Salva nel registro'}</button>`;
+  const dn = $('#la-done', w); if (dn) dn.onchange = () => { readLoanAdd(w); drawLoanAdd(w); };
 }
 async function saveLoan(w) {
   const l = readLoanAdd(w), a = parseAmt(l.a);
@@ -3704,6 +3708,16 @@ async function saveLoan(w) {
     c.goals.push({id: 'g' + newId().slice(-7), type: 'debt', kind: 'person', pid, n: 'Debito con ' + name, sub: 'Verso una persona · niente rate', start: a, cur: a, rata: 0, taeg: 0, plan: l.due || '', target: 0, cat: ''});
     if (await saveConfig(c) === false) return;
     closeAll(); toast(`Debito con ${name} nel piano debiti ✓`); S.anim = true; render(); return;
+  }
+  if (l.type === 'new' && l.done) {
+    let pid0 = l.pid;
+    if (pid0 === '__new') { const c = clone(cfg()); pid0 = 'p' + newId().slice(-7); c.people = (c.people || []).concat({id: pid0, n: l.n.trim()}); if (await saveConfig(c) === false) return; }
+    const nm = (personOf(pid0) || {n: l.n.trim()}).n, d0 = l.d && l.d <= today() ? l.d : today();
+    const f0 = catStats(d0.slice(0, 7)).find(b => b.k === 'fuori'), over0 = !f0 || a > Math.max(0, f0.left) + 0.001;
+    const p0 = apprName(), m0 = String(l.m || '').trim();
+    if (await addTx({kind: 'out', a, cat: 'fuori', pid: pid0, d: d0, acc: l.acc, due: l.due || '', over: over0 ? 1 : 0, note: 'Prestito a ' + nm + (m0 ? ' · ' + m0 : '') + (p0 ? ' · sì di ' + p0 + ' a voce' : '')}) === false) return;
+    if (p0 && window.FutureCloud && !S.preview) window.FutureCloud.notify({title: `${meNow()} ha registrato un prestito`, body: `${eur(a)} a ${nm}${m0 ? ' · ' + m0 : ''} · deciso insieme, già uscito`, tag: 'loan-' + Date.now(), url: './'});
+    closeSheet(w); $$('#sheets .wrap[data-loans]').forEach(x => closeSheet(x)); toast(`${nm}: ${eur(a)} registrati ✓${over0 ? ' · come sforamento del mese' : ''}`); S.anim = true; render(); return;
   }
   if (l.type === 'new') {
     const st = catStats(curYM()), f = st.find(b => b.k === 'fuori');
@@ -3730,7 +3744,7 @@ function openLoanRepay(pid) {
 
 /* ---------------- account e partner ---------------- */
 function acctSync() {}
-function pendingAsks() { const me = meNow(), d = D(); return me && d ? d.waits.filter(w => ['48h', 'loan', 'extra'].includes(w.type) && w.st === 'ask' && w.appr === me) : []; }
+function pendingAsks() { const me = meNow(), d = D(); return me && d ? d.waits.filter(w => ['48h', 'loan', 'extra', 'over'].includes(w.type) && w.st === 'ask' && w.appr === me) : []; }
 async function authFor(p) { return p === meNow(); }
 function maybeAsk() {
   if (S.preview || S.mode === 'loading' || !S.me) return;
