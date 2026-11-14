@@ -6340,14 +6340,75 @@ function openReport(ym) {
     ${r.under.length ? `<div class="h-label" style="margin-top:14px">${ym === curYM() ? 'Ancora liberi nelle voci' : 'Dove hai risparmiato'}</div><div class="card tight rp">${r.under.slice(0, 6).map(o => rr(`${esc(o.e)} ${esc(o.n)}`, '', eur(o.left), 'g')).join('')}</div>` : ''}
     ${r.top.length ? `<div class="h-label" style="margin-top:14px">Le spese più grandi</div><div class="card tight rp">${r.top.map(t => rr(esc(t.note || catName(t)), `${dm(t.d)} · ${esc(catName(t))}`, eur(t.a))).join('')}</div>` : ''}
     ${r.byWho.length ? `<div class="h-label" style="margin-top:14px">Chi ha speso</div><div class="card tight rp">${r.byWho.map(x => rr(esc(x.p), '', eur(x.out))).join('')}</div>` : ''}</div>
-    <div class="row2" style="margin-top:14px"><button class="btn mt0" data-rp="share">Condividi</button><button class="btn mt0" data-rp="print">Stampa / PDF</button></div>
+    <div class="row2" style="margin-top:14px"><button class="btn mt0" data-rp="share">Condividi</button><button class="btn mt0" data-rp="print">📄 Salva PDF</button></div>
     <div class="row2" style="margin-top:8px"><button class="btn ghost mt0" data-rp="prev">‹ Mese prima</button><button class="btn ghost mt0" data-rp="next" ${ym >= curYM() ? 'disabled' : ''}>Mese dopo ›</button></div>`);
   w.addEventListener('click', async e => {
     const b = e.target.closest('[data-rp]'); if (!b) return;
     if (b.dataset.rp === 'share') { const t = reportText(r); if (navigator.share) { try { await navigator.share({title: 'Future · ' + ymLabel(ym), text: t}); } catch (err) {} } else { try { await navigator.clipboard.writeText(t); toast('Resoconto copiato ✓'); } catch (err) {} } return; }
-    if (b.dataset.rp === 'print') { document.body.classList.add('printing-report'); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('printing-report'), 500); }, 50); return; }
+    if (b.dataset.rp === 'print') { b.disabled = true; try { await reportPDF(r); } catch (err) { console.warn(err); toast('PDF non riuscito'); } b.disabled = false; return; }
     closeSheet(w); openReport(addMonths(ym, b.dataset.rp === 'prev' ? -1 : 1));
   });
+}
+/* resoconto in PDF: disegnato su pagine A4 (canvas) e impacchettato come PDF, poi condiviso o scaricato */
+function reportPages(r) {
+  const W = 1240, H = 1754, M = 80, pages = [];
+  let cv, x, y;
+  const page = () => { cv = document.createElement('canvas'); cv.width = W; cv.height = H; x = cv.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.textBaseline = 'alphabetic'; pages.push(cv); y = M; };
+  const font = (sz, w) => { x.font = `${w || 400} ${sz}px -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic", Arial, sans-serif`; };
+  const need = h => { if (y + h > H - M) page(); };
+  const fit = (t, maxW) => { if (x.measureText(t).width <= maxW) return t; while (t.length > 1 && x.measureText(t + '…').width > maxW) t = t.slice(0, -1); return t + '…'; };
+  const wrap = (t, maxW) => { const out = []; let line = ''; for (const wd of String(t).split(' ')) { const tt = line ? line + ' ' + wd : wd; if (x.measureText(tt).width > maxW && line) { out.push(line); line = wd; } else line = tt; } if (line) out.push(line); return out; };
+  const col = c => ({g: '#0E8F5B', r: '#C8372D', o: '#B45A1E', m: '#6B6B78', t: '#16161C'}[c] || '#16161C');
+  const head = t => { need(130); y += 18; font(23, 700); x.fillStyle = col('m'); x.fillText(t.toUpperCase(), M, y + 23); y += 40; };
+  const row = (lab, sub, amt, c, bold) => {
+    const h = sub ? 64 : 48; need(h); font(bold ? 32 : 28, bold ? 750 : 500); const aw = (font(bold ? 34 : 29, 700), x.measureText(amt).width);
+    font(bold ? 32 : 28, bold ? 750 : 500); x.fillStyle = col('t'); x.fillText(fit(lab, W - 2 * M - aw - 40), M, y + 32);
+    if (sub) { font(21, 400); x.fillStyle = col('m'); x.fillText(fit(sub, W - 2 * M - aw - 40), M, y + 57); }
+    font(bold ? 34 : 29, 700); x.fillStyle = col(c); x.textAlign = 'right'; x.fillText(amt, W - M, y + (sub ? 42 : 32)); x.textAlign = 'left';
+    y += h; x.fillStyle = '#E6E6EC'; x.fillRect(M, y - 6, W - 2 * M, 2);
+  };
+  const para = (t, c, sz, w) => { font(sz || 27, w || 500); const L = wrap(t, W - 2 * M - 40); need(L.length * (sz || 27) * 1.4 + 40); x.fillStyle = '#F3F3F6'; x.fillRect(M, y, W - 2 * M, L.length * (sz || 27) * 1.4 + 34); x.fillStyle = col(c); L.forEach((l, i) => x.fillText(l, M + 20, y + 44 + i * (sz || 27) * 1.4)); y += L.length * (sz || 27) * 1.4 + 52; };
+  const sg = v => (v >= 0 ? '+' : '−') + eur(Math.abs(v));
+  page();
+  font(50, 800); x.fillStyle = col('t'); x.fillText(`Future · ${ymLabel(r.ym)}`, M, y + 50); y += 82;
+  font(25, 400); x.fillStyle = col('m'); x.fillText(`${r.ym === curYM() ? 'Mese in corso' : 'Mese concluso'} · ${r.n} movimenti · creato il ${dateShort(today())}`, M, y); y += 40;
+  para(reportHead(r), r.net >= 0 ? 'g' : 'r', 29, 700);
+  head('Il conto del mese');
+  for (const [k, v, c, sub] of reportRows(r)) row(k.replace(/^\S+ /, ''), sub, sg(v), c || (v < 0 ? 'o' : 'g'));
+  row('Differenza', '', sg(r.net), r.net >= 0 ? 'g' : 'r', true);
+  if (r.toFund) { y += 14; para(`Spostati sul Fondo casa: ${eur(r.toFund)}. Restano vostri, non sono spese: per questo non sono nel conto sopra.`, 't', 24, 400); }
+  if (r.over.length) { head('Dove hai sforato'); for (const o of r.over) row(o.n, o.cause ? (o.cause.pid && !o.cause.rec ? `per il prestito a ${(personOf(o.cause.pid) || {}).n || ''}` : `per «${o.cause.note || catName(o.cause)}»`) : '', '+' + eur(o.by), 'r'); }
+  if (r.under.length) { head(r.ym === curYM() ? 'Ancora liberi nelle voci' : 'Dove hai risparmiato'); for (const o of r.under.slice(0, 8)) row(o.n, '', eur(o.left), 'g'); }
+  if (r.top.length) { head('Le spese più grandi'); for (const t of r.top) row(t.note || catName(t), `${dm(t.d)} · ${catName(t)}`, eur(t.a)); }
+  if (r.byWho.length) { head('Chi ha speso'); for (const w of r.byWho) row(w.p, '', eur(w.out)); }
+  pages.forEach((c, i) => { const g = c.getContext('2d'); g.font = '400 20px -apple-system, Arial, sans-serif'; g.fillStyle = '#9A9AA6'; g.textAlign = 'right'; g.fillText(`Future · pagina ${i + 1} di ${pages.length}`, W - M, H - 40); });
+  return pages;
+}
+function pdfFromJpegs(imgs) {
+  const enc = new TextEncoder(), parts = [], offs = [];
+  let len = 0; const push = b => { const u = typeof b === 'string' ? enc.encode(b) : b; parts.push(u); len += u.length; };
+  const obj = (n, body) => { offs[n] = len; push(`${n} 0 obj\n`); for (const b of body) push(b); push('\nendobj\n'); };
+  push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  const n = imgs.length, kids = [];
+  for (let i = 0; i < n; i++) kids.push(`${3 + i * 3} 0 R`);
+  obj(1, ['<< /Type /Catalog /Pages 2 0 R >>']);
+  obj(2, [`<< /Type /Pages /Count ${n} /Kids [${kids.join(' ')}] >>`]);
+  imgs.forEach((im, i) => {
+    const pg = 3 + i * 3, ct = pg + 1, xo = pg + 2, cs = `q 595.28 0 0 841.89 0 0 cm /Im${i} Do Q`;
+    obj(pg, [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im${i} ${xo} 0 R >> >> /Contents ${ct} 0 R >>`]);
+    obj(ct, [`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`]);
+    obj(xo, [`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>\nstream\n`, im.bytes, '\nendstream']);
+  });
+  const total = 3 + n * 3, xref = len;
+  let t = `xref\n0 ${total}\n0000000000 65535 f \n`; for (let i = 1; i < total; i++) t += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+  push(t + `trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(parts, {type: 'application/pdf'});
+}
+async function reportPDF(r) {
+  const imgs = reportPages(r).map(c => { const b64 = c.toDataURL('image/jpeg', 0.9).split(',')[1], bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return {w: c.width, h: c.height, bytes: u}; });
+  const blob = pdfFromJpegs(imgs), name = `Future-resoconto-${r.ym}.pdf`;
+  try { const f = new File([blob], name, {type: 'application/pdf'}); if (navigator.canShare && navigator.canShare({files: [f]})) { await navigator.share({files: [f], title: name}); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('PDF scaricato ✓');
 }
 function handleReportParam() { try { const u = new URL(location.href), m = u.searchParams.get('report'); if (!m) return; u.searchParams.delete('report'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); if (/^\d{4}-\d{2}$/.test(m)) setTimeout(() => openReport(m), 700); } catch (e) {} }
 
