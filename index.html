@@ -4199,7 +4199,7 @@ async function openAccount() {
   const partnerBox = $('#ac-partner', w);
   const drawPartner = () => {
     const p = apprName();
-    if (p) partnerBox.innerHTML = `<div class="vrule"><span class="pav" style="display:inline-flex;width:26px;height:26px;font-size:13px;vertical-align:middle;margin-right:8px;background:${pcolOf(p)}">${esc(p[0])}</span><b>${esc(p)}</b> è ${owner ? 'collegato/a al tuo spazio' : 'il proprietario dello spazio'} ✓<br><small class="m">${owner ? 'Le spese che richiedono il partner le decide ' + esc(p) + '.' : 'Vedete gli stessi conti; le richieste di ' + esc(p) + ' le decidi tu.'}</small></div><button class="btn ghost" data-ac="unlink">${owner ? 'Scollega ' + esc(p) : 'Scollegati da questo spazio'}</button>`;
+    if (p) partnerBox.innerHTML = `<div class="vrule"><span class="pav" style="display:inline-flex;width:26px;height:26px;font-size:13px;vertical-align:middle;margin-right:8px;background:${pcolOf(p)}">${esc(p[0])}</span><b>${esc(p)}</b> è ${owner ? 'collegato/a al tuo spazio' : 'il proprietario dello spazio'} ✓<br><small class="m">${owner ? 'Le spese che richiedono il partner le decide ' + esc(p) + '.' : 'Vedete gli stessi conti; le richieste di ' + esc(p) + ' le decidi tu.'}</small></div><button class="btn ghost" data-ac="unlink">${owner ? 'Scollega ' + esc(p) : 'Scollegati da questo spazio'}</button><button class="btn" data-ac="push-test" style="margin-top:8px">🔔 Manda una notifica di prova a ${esc(p)}</button>`;
     else partnerBox.innerHTML = `<div class="vrule">Nessun partner collegato. Le regole “decide anche il partner” sono spente.</div><button class="btn primary" data-ac="invite">💌 Invita il partner</button><button class="btn ghost" data-ac="code">Ho ricevuto un invito</button>`;
   };
   drawPartner();
@@ -4212,6 +4212,7 @@ async function openAccount() {
     const b = e.target.closest('[data-ac]'); if (!b) return;
     const act = b.dataset.ac;
     if (act === 'logout') { if (await confirmSheet('Uscire dall\u2019account?', 'Su questo telefono dovrai rientrare con email e password. I dati restano salvati.', 'Esci', true)) FC.logout(); return; }
+    if (act === 'push-test') { b.disabled = true; const r = await FC.notify({title: `🔔 Prova da ${meNow()}`, body: 'Se leggi questo messaggio, le notifiche di Future funzionano.', tag: 'test-' + Date.now(), url: './'}); b.disabled = false; toast(r && r.sent > 0 ? `Inviata a ${apprName()} ✓ (${r.sent} ${r.sent > 1 ? 'dispositivi' : 'dispositivo'})` : `Non inviata: ${(r && (r.reason || r.error)) || 'controlla la connessione'}`); return; }
     if (act === 'push-on') { b.disabled = true; const ok = await FC.enablePush(); toast(ok ? 'Notifiche attive 🔔' : 'Notifiche non attivate'); drawPush(); if (S.updPush) S.updPush(); return; }
     if (act === 'invite') {
       b.disabled = true; let r; try { r = await FC.createInvite(); } catch (err) { toast(err.message || 'Invito non riuscito'); b.disabled = false; return; }
