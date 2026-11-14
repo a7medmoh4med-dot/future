@@ -1654,7 +1654,7 @@ const addWait = async w => {
 function waitWhat(x) { return x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'ha una spesa straordinaria' : x.type === 'goal' ? 'vuole iniziare:' : x.type === 'over' ? (x.xb ? 'vuole una spesa fuori dal budget:' : 'vuole sforare il budget:') : 'vuole spendere'; }
 function pushAsk(id, x, again) {
   if (S.preview || !window.FutureCloud) return;
-  window.FutureCloud.notify({title: `${again ? '🔔 Promemoria: ' : ''}${meNow()} chiede la tua autorizzazione`, body: x.type === 'goal' ? `vuole ${String(x.desc || '').replace(/^Iniziare/, 'iniziare')}` : `${waitWhat(x)} ${eur(x.a)} · ${x.desc || 'Spesa'}`, tag: 'wait-' + id, url: './?wait=' + encodeURIComponent(id)})
+  window.FutureCloud.notify({title: `${again ? '🔔 Promemoria: ' : ''}${meNow()} chiede la tua autorizzazione`, body: x.type === 'goal' ? `vuole ${String(x.desc || '').replace(/^Iniziare/, 'iniziare')}` : `${waitWhat(x)} ${eur(x.a)} · ${x.desc || 'Spesa'}${x.type === 'extra' ? (() => { const cb = cushion().bal, cov = x.acc === mainAcc() ? Math.min(x.a, cb) : 0, ca = r2(Math.max(0, cb - cov)); return ` · cuscinetto ${eur0(cb)} → ${eur0(ca)}${x.a > cb + 0.005 ? ' (finisce)' : ''}`; })() : ''}`, tag: 'wait-' + id, url: './?wait=' + encodeURIComponent(id)})
     .then(r => { if (again) toast(r && r.sent ? `Promemoria inviato a ${apprName()} 🔔` : `${apprName()} non ha ancora attivato le notifiche: avvisala tu`); });
 }
 function pushDecided(id, x, ok, note) {
@@ -2735,10 +2735,12 @@ function straordPrevHTML(a, acc) {
   const lines = `<div class="pr"><span>🛟 Dal cuscinetto</span><b class="num">${eur(r.cov)}</b></div><div class="pr"><span>Dai soldi dei debiti (${esc(acc)})</span><b class="num">${eur(r.rest)}</b></div><div class="pr"><span>🔐 Dal fondo casa</span><b class="num">0 €</b></div>`;
   const eff = r.ch.length ? r.ch.map(c => c.kind === 'hard'
       ? `<div class="pv r">✕ ${esc(c.g.n)}: la data promessa (${dateShort(c.g.plan)}) resta scoperta di ${eur0(c.miss)}</div>`
-      : `<div class="pv" style="color:var(--amber)">⚠️ ${esc(c.g.n)}: da ${c.from ? ymShort(c.from) : '—'} a ${c.to ? ymShort(c.to) : 'non raggiungibile'}</div>`).join('')
+      : `<div class="pv ell" style="color:var(--amber)">⚠️ ${esc(c.g.n)}: ${c.from ? ymShort(c.from) : '—'} → ${c.to ? ymShort(c.to) : 'mai'}</div>`).join('')
     : '<div class="pv g">✓ Le date dei debiti non cambiano</div>';
   const warn = r.accLeft < -0.005 ? `<div class="pv r">✕ Su ${esc(acc)} non bastano: mancano ${eur(-r.accLeft)}</div>` : '';
-  return `<div class="plan" style="margin:10px 0 4px"><div class="ph"><span>Da dove escono</span><span class="a num">${eur(a)}</span></div>${lines}
+  const c0 = cushion(), cb = r2(c0.bal), ca = r2(Math.max(0, cb - r.cov)), low = ca <= 0.005 ? 'r' : c0.target > 0 && ca < c0.target * 0.3 ? 'a' : 'g';
+  const cush = `<div class="ms-tiles" style="margin:10px 0 6px;grid-template-columns:repeat(2,minmax(0,1fr))"><div class="ms-t"><span>🛟 Cuscinetto oggi</span><b>${eur(cb)}</b><small>su ${eur0(c0.target)}</small></div><div class="ms-t ${low}"><span>Dopo questa spesa</span><b>${eur(ca)}</b><small>${ca <= 0.005 ? 'finito' : c0.target > 0 ? Math.round(ca / c0.target * 100) + '% del tetto' : ''}</small></div></div>${low === 'r' ? `<div class="pv r">✕ Il cuscinetto finisce${r.rest > 0.005 ? `: ${eur(r.rest)} escono dai soldi dei debiti` : ''}</div>` : low === 'a' ? '<div class="pv" style="color:var(--amber)">⚠️ Nel cuscinetto resta poco: la prossima spesa obbligata peserà sui debiti</div>' : ''}`;
+  return `${cush}<div class="plan" style="margin:10px 0 4px"><div class="ph"><span>Da dove escono</span><span class="a num">${eur(a)}</span></div>${lines}
     <div class="ph" style="margin-top:10px"><span>Effetto sui debiti</span></div>${eff}${warn}
     <p class="muted" style="font-size:12px;margin:6px 0 0">Non tocca il budget del mese. Il cuscinetto si ricarica con gli avanzi dei mesi dopo, prima che vadano ai debiti: per questo le date contano l\u2019intera spesa.</p></div>`;
 }
