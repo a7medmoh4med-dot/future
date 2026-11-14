@@ -822,7 +822,7 @@ function normTx(id, x) {
   x = x || {};
   return {id, kind: ['in', 'out', 'move', 'lend0'].includes(x.kind) ? x.kind : 'out', a: Math.abs(r2(x.a)), cat: String(x.cat || ''), note: String(x.note || ''),
     d: /^\d{4}-\d{2}-\d{2}$/.test(x.d) ? x.d : today(), acc: String(x.acc || mainAcc()), to: String(x.to || ''),
-    xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, og: String(x.og || ''), lnk: String(x.lnk || ''), par: String(x.par || ''), fin: x.fin ? 1 : 0, by: String(x.by || ''), ts: +x.ts || 0};
+    xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, og: String(x.og || ''), lnk: String(x.lnk || ''), par: String(x.par || ''), fin: x.fin ? 1 : 0, qd: /^\d{4}-\d{2}$/.test(x.qd || '') ? x.qd : '', by: String(x.by || ''), ts: +x.ts || 0};
 }
 function normShift(id, x) { x = x || {}; return {id, m: String(x.m || ''), from: String(x.from || ''), to: String(x.to || ''), a: Math.abs(r2(x.a)), why: String(x.why || ''), tx: String(x.tx || ''), cv: x.cv ? 1 : 0, who: String(x.who || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
 function normWait(id, x) { x = x || {}; return {id, type: ['next', 'loan', 'extra', 'over', 'goal'].includes(x.type) ? x.type : '48h', desc: String(x.desc || ''), a: Math.abs(r2(x.a)), cat: String(x.cat || 'fuori'), acc: String(x.acc || mainAcc()), need: x.need === 'rinv' ? 'rinv' : 'need', until: +x.until || 0, pid: String(x.pid || ''), due: String(x.due || ''), xb: x.xb ? 1 : 0, gid: String(x.gid || ''),
@@ -882,7 +882,7 @@ function recPlanOff(r, ym) {
   const s = debtSchedule()[g.id]; return !!(s && s.ym && ym > s.ym);
 }
 const recOnAt = (r, ym) => recActive(r, ym) && !recPlanOff(r, ym) && !recDebtDone(r);
-function recAmountAt(r, ym) { if (!isFut(ym)) return recAmount(r); if (r.pct) return r2(incomeTotal() * r.pct / 100); if (r.auto) { const f = budgets().find(b => b.auto); return f ? Math.max(0, baseOf(f, ym)) : 0; } return +r.a || 0; }
+function recAmountAt(r, ym) { if (!isFut(ym)) return recAmount(r); if (r.pct) return r2(Math.max(0, incomeTotal() * r.pct / 100 - (isShareK(r.cat) ? shareDed(ym) : 0))); if (r.auto) { const f = budgets().find(b => b.auto); return f ? Math.max(0, baseOf(f, ym)) : 0; } return +r.a || 0; }
 const recTag = r => r.kind === 'in' ? 'da confermare quando arriva' : r.self ? 'bonifico tuo' : r.var || r.pct ? 'da confermare' : 'addebito automatico';
 function phaseAt(ym) {
   if (!isFut(ym) || unaware) return debtPhase();
@@ -932,7 +932,7 @@ function catStats(ym, excludeTxId, excludeRec) {
     const eff = r2(base + inS - outS);
     const spent = b.og ? (() => { const ga = (goalById(b.og) || {}).acc; return ga ? tx.filter(t => t.kind === 'move' && t.to === ga && t.acc !== ga).reduce((a, t) => a + t.a, 0) : 0; })() : b.auto
       ? tx.filter(t => t.kind === 'move' && (t.to === 'Fondo casa' || potAccs().includes(t.to)) && t.acc !== 'Fondo casa').reduce((a, t) => a + t.a, 0)
-      : tx.filter(t => t.kind === 'out' && t.cat === b.k && !t.xb).reduce((a, t) => a + t.a, 0);
+      : tx.filter(t => t.kind === 'out' && t.cat === b.k && !t.xb && (!t.qd || t.qd === ym)).reduce((a, t) => a + t.a, 0) + (isShareK(b.k) ? TX().filter(t => t.kind === 'out' && t.cat === b.k && !t.xb && !t.plan && t.qd === ym && t.d.slice(0, 7) !== ym).reduce((a, t) => a + t.a, 0) : 0);
     let pd = r2(b.auto ? (pend.__fondo || 0) : (pend[b.k] || 0) + planned.filter(t => t.cat === b.k).reduce((a, t) => a + t.a, 0));
     if (!b.auto && wres[b.k]) { const fx = wres[b.k].fix || 0, ln = wres[b.k].loan || 0; pd = r2(pd + fx + Math.min(ln, Math.max(0, eff - spent - pd - fx))); }
     if (b.auto && dp) return Object.assign({}, b, {n: 'Salvadanaio debiti', e: '🏛️', sav: true, savWait: salWait && eff > 0, base, inS: r2(inS), outS: r2(outS), eff, spent: eff, pend: 0, left: 0, pct: 1});
@@ -1045,6 +1045,11 @@ const shareN = () => String((cfg().share || {}).n || (shareB() || {}).n || 'Quot
 const shareXp = () => { const x = (cfg().share || {}).x; return x !== undefined && x !== '' && isFinite(+x) ? Math.max(0, Math.min(100, +x)) : 10; };
 const shareX = () => shareXp() / 100;
 const shareFp = () => +((shareB() || {}).pct) || 0;
+// spese fatte per chi ha la quota: si scalano dalla prossima quota non ancora versata
+const isShareK = k => !!shareB() && k === shareB().k;
+const shareRec = () => shareB() ? recs().find(r => r.pct && r.cat === shareB().k) : null;
+function qdFor(d) { const M = (d || today()).slice(0, 7), r = shareRec(); return r && M <= curYM() && recState(r, M) === 'done' ? addMonths(M, 1) : M; }
+const shareDed = ym => r2(TX().filter(t => t.kind === 'out' && t.qd === ym && isShareK(t.cat)).reduce((v, t) => v + t.a, 0));
 // Ordine dei debiti: prima sempre quelli con una data, poi secondo la scelta
 const DORD = {
   rata: ['Rata più alta', 'la rata più alta', '<b>vince la rata più alta</b>, perché chiudendolo liberi più soldi al mese per i debiti dopo (a parità di rata, il residuo più piccolo).', 'Chiudendo prima il debito con la rata più alta liberi più soldi al mese per i successivi.'],
@@ -1338,7 +1343,7 @@ const recDocId = (r, ym) => `r-${r.id}-${ym}`;
 const daysIn = ym => { const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); };
 const recDay = (r, ym) => Math.min(Math.max(1, +r.day || 1), daysIn(ym));
 const recDate = (r, ym) => `${ym}-${pad(recDay(r, ym))}`;
-function recAmount(r) { if (r.pct) return r2(fixedIncomeMonth(curYM()) * r.pct / 100); if (r.auto) { const f = budgets().find(b => b.auto); return f ? baseOf(f) : 0; } return +r.a || 0; }
+function recAmount(r) { if (r.pct) return r2(Math.max(0, fixedIncomeMonth(curYM()) * r.pct / 100 - (isShareK(r.cat) ? shareDed(curYM()) : 0))); if (r.auto) { const f = budgets().find(b => b.auto); return f ? baseOf(f) : 0; } return +r.a || 0; }
 function recDebtDone(r) { const g = cfg().goals.find(x => x.type === 'debt' && x.recId === r.id); return !!g && debtCur(g) <= 0; }
 function recState(r, ym) {
   const t = D().tx.find(x => x.id === recDocId(r, ym));
@@ -2099,7 +2104,7 @@ function txListHTML() {
     const sign = t.kind === 'in' ? '+' : t.kind === 'out' ? '−' : '';
     const col = t.kind === 'in' ? 'g' : t.kind === 'move' ? 'v' : 'o';
     const sub = t.kind === 'move' ? `${esc(t.acc)} → ${esc(t.to)}` : `${esc(catName(t))} · ${esc(t.acc)}`;
-    const tags = (t.plan ? ' · <span class="a">prevista</span>' : '') + (t.unpaid ? ' · <span class="a">da pagare</span>' : '') + (t.pid ? (t.kind === 'in' ? ' · rientro prestito' : t.rec ? ' · a carico di ' + esc((personOf(t.pid) || {}).n || '') : ' · prestito') : t.xb ? ' · escluso dal budget' : '') + (t.over ? ' · <span class="r">sforamento</span>' : '') + (t.rev ? ' · <span class="a">⚡ da controllare</span>' : '');
+    const tags = (t.plan ? ' · <span class="a">prevista</span>' : '') + (t.unpaid ? ' · <span class="a">da pagare</span>' : '') + (t.pid ? (t.kind === 'in' ? ' · rientro prestito' : t.rec ? ' · a carico di ' + esc((personOf(t.pid) || {}).n || '') : ' · prestito') : t.xb ? ' · escluso dal budget' : '') + (t.over ? ' · <span class="r">sforamento</span>' : '') + (t.qd && isShareK(t.cat) ? ` · <span class="a">dalla quota di ${MS[+t.qd.slice(5) - 1]}</span>` : '') + (t.rev ? ' · <span class="a">⚡ da controllare</span>' : '');
     h += `<div class="txr" data-act="edit-tx" data-id="${t.id}"><div class="bico" style="--c:${esc(catColor(t))}">${esc(catEmoji(t))}</div>
       <div style="min-width:0"><div class="t1">${esc(t.note || catName(t))}</div><div class="t2">${whoChip(t.by, t.who)}${sub}${tags}</div></div>
       <div class="amt num ${t.skip ? 'm' : col}">${t.skip ? 'saltato' : (t.a > 0.004 ? sign : '') + eur(t.a)}</div></div>`;
@@ -2451,6 +2456,7 @@ function guessCat(desc, ok) {
 }
 function catHintHTML(k, auto, desc) {
   const b = bud(k); if (!b) return '';
+  if (isShareK(k) && desc === '\u0000tx') { const m = qdFor(today()); return `<div class="cathint a" style="white-space:normal">${esc(b.e)} Spesa per ${esc(shareN())}: si scala dalla sua quota di ${MONTHS[+m.slice(5) - 1].toLowerCase()} (riceve quei soldi in meno).</div>`; }
   const h = catHint(b), t = norm(desc || ''), rr = t ? cfg().rules.find(r => !(r.until && r.until < today()) && matchKw(t, r.kw)) : null;
   return `<div class="cathint">${esc(b.e)} <b>${esc(b.n)}</b>${h ? ': ' + esc(h) : ''}</div>${rr ? `<div class="cathint r">⚠️ Tocca la regola ${rr.n}: ${esc(ruleText(rr))}</div>` : ''}`;
 }
@@ -2468,7 +2474,7 @@ function ckGuess(w) {
 function txGuess(w) {
   if (!w._t || w._t.kind !== 'out' || w._ex || w._catManual) return;
   const k = guessCat(w._t.note || '', b => !b.bills); if (!k || k === w._t.cat) return;
-  if (selCat(w, 'tx-cat', k)) { w._t.cat = k; const h = $('#tx-hint', w); if (h) h.innerHTML = catHintHTML(k, true, ''); }
+  if (selCat(w, 'tx-cat', k)) { w._t.cat = k; const h = $('#tx-hint', w); if (h) h.innerHTML = catHintHTML(k, true, '\u0000tx'); }
 }
 function catGrid(sel, group, opts = {}) {
   const st = opts.stats || catStats(curYM());
@@ -2799,7 +2805,7 @@ function drawTx(w) {
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="chipbtn" data-act="sp-add" type="button">+ Aggiungi parte</button><button class="chipbtn" data-act="sp-off" type="button">Una sola voce</button></div></div>`;
   const ogL = t.kind === 'out' && !w._rec && !(ex && ex.rec) ? cfg().goals.filter(g => isSpendGoal(g) && (gPhase(g) === 'live' || g.id === t.og)) : [];
   const ogPart = ogL.length ? `<div class="fld"><span>Dove va</span><div class="toolbar" style="flex-wrap:wrap;margin:0">${[['', '📊 Budget del mese']].concat(ogL.map(g => [g.id, `🎯 ${esc(g.n)} · restano ${eur0(r2((+g.target || 0) - goalSpent(g.id)))}`])).map(([v, l]) => `<button class="chip ${(t.og || '') === v ? 'on' : ''}" data-act="tx-og" data-v="${esc(v)}" type="button">${l}</button>`).join('')}</div>${t.og ? `<p class="muted" style="font-size:12.5px;margin:6px 2px 0">Fuori dal budget del mese. I soldi escono dal salvadanaio dell\u2019obiettivo (oggi ${eur(Math.max(0, goalPot(goalById(t.og))))}); se non bastano, il resto dal conto scelto.</p>` : ''}</div>` : '';
-  const catPart = ogPart + (t.kind === 'out' && (t.oblig || t.og || t.loan) ? '' : t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}<div id="tx-hint">${catHintHTML(t.cat, false, '')}</div></div>`
+  const catPart = ogPart + (t.kind === 'out' && (t.oblig || t.og || t.loan) ? '' : t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}<div id="tx-hint">${catHintHTML(t.cat, false, '\u0000tx')}</div></div>`
     : t.kind === 'in' ? (w._split ? splitRows() : `<div class="fld"><span>Tipo di entrata</span>${chipsGrid(cfg().incomeCats.filter(c => c !== 'Rientro prestito').concat('Rientro prestito'), t.cat, 'tx-icat').replace('data-v="Rientro prestito">Rientro prestito<', 'data-v="Rientro prestito">🤝 Rientro prestito<')}${!ex && t.cat !== 'Rientro prestito' ? '<button class="chipbtn" data-act="sp-on" type="button" style="margin-top:4px">＋ Dividi in più voci (es. stipendio + tredicesima)</button>' : ''}</div>${t.cat === 'Rientro prestito' ? rpFieldHTML(t) : ''}`)
     : `<div class="row2"><label class="fld"><span>Da</span><select id="tx-acc">${accOpts(t.acc)}</select></label><label class="fld"><span>A</span><select id="tx-to">${accOpts(t.to || 'Fondo casa')}</select></label></div>`);
   $('#tx-body', w).innerHTML = `<h3 class="sh-title">${ex ? 'Modifica movimento' : 'Nuovo movimento'}</h3><p class="sh-sub">${ex && (ex.who || ex.by) ? 'Registrato da ' + esc(ex.who || nameOf(ex.by) || 'qualcuno') + ' · ' : ''}${ex ? dateShort(ex.d) : 'Entrate, uscite e versamenti, insieme.'}</p>
@@ -2910,6 +2916,7 @@ async function saveTx(w, coverFrom, asOver) {
   if (ogG) w._txid = ex ? ex.id : w._fixedId || w._txid || newId();
   if (ex && ex.pid) Object.assign(doc, {pid: ex.pid, who: ex.who || ''});
   if (w._loanPid && !ex) Object.assign(doc, {pid: w._loanPid, due: w._loanDue || ''});
+  doc.qd = t.kind === 'out' && isShareK(doc.cat) && !doc.xb && !planF && !recTx && !(ex && ex.rec) ? ((ex && ex.qd && ex.cat === doc.cat && ex.d === t.d) ? ex.qd : qdFor(t.d)) : '';
   let resetX = false;
   if (ex) {
     Object.assign(doc, {todo: ex.todo || 0, dest: ex.dest || '', keepAmt: ex.keepAmt || 0, grp: ex.grp || '', lnk: ex.lnk || '', par: ex.par || '', fin: ex.fin || 0, pid: doc.pid || ex.pid || ''});
@@ -2921,7 +2928,7 @@ async function saveTx(w, coverFrom, asOver) {
   // le coperture collegate si riallineano da sole dopo il salvataggio (reconcileCovers)
   if (t.kind === 'out' && !doc.xb && coverFrom === undefined && !asOver) {
     const ym = t.d.slice(0, 7), st = catStats(ym, ex && ex.id, recTx), b = st.find(x => x.k === t.cat);
-    if (b && !b.bills && !(recTx && (b.rec || b.pct)) && a > b.left + 0.001) {
+    if (b && !b.bills && !(recTx && (b.rec || b.pct)) && !(isShareK(t.cat) && !recTx && !(ex && ex.rec)) && a > b.left + 0.001) {
       const over = r2(a - Math.max(0, b.left));
       const sources = st.filter(x => !x.l && !x.auto && x.k !== t.cat && x.left > 0.009).sort((p, q) => q.left - p.left);
       const flexTot = r2(sources.reduce((s, x) => s + x.left, 0));
@@ -2980,7 +2987,8 @@ async function saveTx(w, coverFrom, asOver) {
     c.recurring = (c.recurring || []).concat({id: 'r' + newId().slice(-7), n: t.note || catName(Object.assign({}, doc)), kind: t.kind, a, cat: doc.cat, acc: t.acc, to: '', day, var: 0, auto: 0, on: 1, from: addMonths(t.d.slice(0, 7), 1)});
     await saveConfig(c); toast('Registrato ✓ e impostato come ricorrente 🔁');
   }
-  buzz(15); toast(planF && !ex ? `Prevista a ${MONTHS[+t.d.slice(5, 7) - 1].toLowerCase()} ✓ · il piano è aggiornato` : unp && !ex ? 'Bolletta registrata · la trovi in Da fare finché non la paghi' : ogG ? (ogShort > 0.005 ? `Registrata su «${ogG.n}» · ${eur(ogShort)} dal conto, il salvadanaio non bastava` : `Registrata su «${ogG.n}» ✓`) : newOblig ? `Spesa obbligata registrata ✓${cushTxt}` : asOver ? 'Registrata come sforamento' : ex ? 'Modifica salvata ✓' : 'Registrato ✓');
+  if (doc.qd && !ex && hasPartner() && !S.preview && window.FutureCloud) window.FutureCloud.notify({title: `${meNow()} ha speso ${eur(a)} per te`, body: `${t.note || 'Spesa'} · si scala dalla tua quota di ${MONTHS[+doc.qd.slice(5) - 1].toLowerCase()}`, tag: 'qd-' + Date.now(), url: './'});
+  buzz(15); toast(doc.qd && !ex ? `${eur(a)} per ${shareN()}: si scala dalla quota di ${MONTHS[+doc.qd.slice(5) - 1].toLowerCase()} ✓` : planF && !ex ? `Prevista a ${MONTHS[+t.d.slice(5, 7) - 1].toLowerCase()} ✓ · il piano è aggiornato` : unp && !ex ? 'Bolletta registrata · la trovi in Da fare finché non la paghi' : ogG ? (ogShort > 0.005 ? `Registrata su «${ogG.n}» · ${eur(ogShort)} dal conto, il salvadanaio non bastava` : `Registrata su «${ogG.n}» ✓`) : newOblig ? `Spesa obbligata registrata ✓${cushTxt}` : asOver ? 'Registrata come sforamento' : ex ? 'Modifica salvata ✓' : 'Registrato ✓');
   closeSheet(w); S.anim = true; render();
   if (!ex && w._xid) extraSheet(w._xid, {a, acc: t.acc, cat: t.cat, note: t.note});
 }
@@ -3767,6 +3775,7 @@ const FAQ = [
     ['Cos\u2019è “Pagata con la tredicesima”?', 'Se avete registrato una tredicesima, nelle uscite compare questa spunta: la spesa viene pagata da lì e resta <b>escluso dal budget del mese</b>, fino a esaurimento della tredicesima.'],
     ['Come verso nel fondo casa?', 'Finché ci sono debiti i versamenti sono fermi: la quota del mese resta sul conto come <b>salvadanaio debiti</b>. Chiuso l\u2019ultimo debito torna <b>Versa nel fondo</b> in Home e in Obiettivi, con la quota più tutte le rate liberate.'],
     ['Perché una voce o il cuscinetto sono scesi?', 'Tocca la voce in Home (Cosa resta nelle voci) o in Bilancio: vedi il budget del mese, gli spostamenti con il motivo e la data, le spese e quanto resta. Per il cuscinetto: Obiettivi → Cuscinetto, sotto il saldo trovi «Perché è a questa cifra».'],
+    ['Ho comprato una cosa per chi ha la quota personale: dove la metto?', 'Registrala e scegli la voce della quota (es. 💜 Miro). Se la quota del mese è già stata versata, la spesa <b>si scala dalla quota del mese dopo</b>: quel mese riceve quei soldi in meno. Se non è ancora stata versata, si scala da quella di questo mese. Il partner riceve un avviso.'],
     ['Come registro un prestito già fatto?', '<b>＋ Registra → Uscita → 🤝 È un prestito</b>: scegli la persona, importo e data. Esce dal Fuori budget; se non basta l\u2019app ti chiede da quale voce togliere il resto. Il partner riceve solo un avviso, perché ne avete già parlato. Se il prestito non è ancora deciso, usa «Posso comprarlo?» o Saldi → Soldi prestati.'],
     ['Come funziona il cuscinetto?', 'È una somma che scegli tu, dentro il conto corrente, per i mesi scarsi, non soldi da spendere: “Puoi ancora spendere” guarda solo il budget flessibile e il piano debiti conta solo i soldi oltre il cuscinetto. Si usa solo alla chiusura di un mese in rosso (sforamenti o entrate sotto il budget), per una spesa straordinaria obbligata o a mano, e poi si ricarica con gli avanzi prima di mandare soldi ai debiti. In Home compare un avviso <b>giallo</b> quando il mese è sotto (con <b>Copri da una voce flessibile</b>) e uno <b>rosso</b> se, dopo i pagamenti del mese, sul conto restano meno dei 700 €.'],
     ['E per un\u2019entrata futura?', 'In <b>📉 Prevedi</b> scegli <b>Entrata</b> e il tipo: <b>Entrata extra</b> (toglie il {QX} di {QN}), <b>Rientro prestito</b> (scegli da chi, senza quota) o <b>Altro</b>. Vedi quanto arriva ai debiti, debito per debito quanto si anticipa, la nuova data di <b>Libero dai debiti</b>, quanto avanza per il fondo casa e quando arriva al traguardo. Se è in un mese futuro la puoi mettere come <b>entrata prevista</b>: conta nel piano e quel mese la trovi in Da fare con <b>Arrivata</b>.'],
@@ -4248,7 +4257,7 @@ const ACT = {
     const w = el.closest('.wrap'); if (!w) return;
     if (g.dataset.group === 'la-type') { readLoanAdd(w); w._l.type = el.dataset.v; drawLoanAdd(w); }
     if (g.dataset.group === 'ck-cat') { w._catManual = true; const h = $('#ck-hint', w); if (h) h.innerHTML = catHintHTML(el.dataset.v, false, ($('#ck-desc', w) || {}).value); }
-    if (g.dataset.group === 'tx-cat') { w._catManual = true; const h = $('#tx-hint', w); if (h) h.innerHTML = catHintHTML(el.dataset.v, false, ''); }
+    if (g.dataset.group === 'tx-cat') { w._catManual = true; const h = $('#tx-hint', w); if (h) h.innerHTML = catHintHTML(el.dataset.v, false, '\u0000tx'); w._t.cat = el.dataset.v; }
     if (g.dataset.group === 'tx-cat' && !!(bud(el.dataset.v) || {}).bills !== !!(bud(w._t.cat) || {}).bills) { readTx(w); drawTx(w); }
     if (g.dataset.group === 'tx-paid') { readTx(w); drawTx(w); }
     if (g.dataset.group === 'ng-when' && w._g) ngNeed(w);
