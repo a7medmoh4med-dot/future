@@ -565,7 +565,8 @@ input,select,textarea{font-family:inherit}
 .sityd{margin-top:6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04)}
 @keyframes fcdraw{to{stroke-dashoffset:0}}
 .homewrap.hw-cur>*{order:0!important}
-.ci .ci-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05)}.ci .ci-r>div{min-width:0}.ci .ci-r small{display:block;font-size:12px;margin-top:1px}.ci .ci-r b{white-space:nowrap;font-size:15px}.ci .ci-tot{border:0;font-weight:750;font-size:16px;padding-top:12px}.ci .ci-tot b{font-size:19px}
+.ci .ci-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05)}.ci .ci-r>div{min-width:0}.ci .ci-r small{display:block;font-size:12px;margin-top:1px}.ci .ci-r b{white-space:nowrap;font-size:15px}.ci .ci-tap{cursor:pointer}.ci .ci-tap:active{background:rgba(255,255,255,.05)}
+.ci .ci-tot{border:0;font-weight:750;font-size:16px;padding-top:12px}.ci .ci-tot b{font-size:19px}
 .cathint{font-size:13px;color:var(--muted);margin:8px 4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cathint b{color:var(--text);font-weight:700}.cathint.r{color:var(--amber);white-space:normal}
 .hqb .hqb-ask{color:var(--amber);border:1.5px solid rgba(255,181,71,.55);background:linear-gradient(180deg,rgba(255,181,71,.16),rgba(255,181,71,.07))}
 .hqb{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin:14px 0}.hqb .btn{min-height:54px;font-size:15.5px;white-space:nowrap}
@@ -1780,24 +1781,28 @@ function flexLeftHTML(st) {
   return `<div class="card stag hfl" style="--i:3"><div class="h-label">Cosa resta nelle voci</div><div class="hfl-g">${L.map(b => `<div class="hfl-i ${b.left < -0.005 ? 'r' : b.left < 0.5 ? 'z' : ''}" data-act="cat-info" data-k="${esc(b.k)}"><span class="ell">${esc(b.e)} ${esc(b.n)}</span><b>${b.left < -0.005 ? '−' + eurR(-b.left) : eurR(Math.max(0, b.left))}</b></div>`).join('')}</div></div>`;
 }
 /* perché una voce ha quel valore: budget, spostamenti, spese, in arrivo → quanto resta */
-function openCatInfo(k) {
-  const ym = S.ym, b = catStats(ym).find(x => x.k === k); if (!b) return;
+function catInfoHTML(k, ym) {
+  const b = catStats(ym).find(x => x.k === k), b0 = bud(k); if (!b || !b0) return '';
   const mn = MONTHS[+ym.slice(5) - 1].toLowerCase(), sh = D().shifts.filter(x => x.m === ym && (x.to === k || x.from === k)).sort((p, q) => p.ts - q.ts);
   const T = monthTx(ym).filter(t => !t.plan && t.kind === 'out' && t.cat === k && !t.xb).sort((p, q) => q.d.localeCompare(p.d) || q.ts - p.ts);
   const pend = ym === curYM() ? recs().filter(r => r.kind === 'out' && r.cat === k && ['due', 'later'].includes(recState(r, ym))) : [];
   const waits = ym === curYM() ? D().waits.filter(w => w.cat === k && w.st !== 'no' && ['48h', 'over', 'loan'].includes(w.type)) : [];
-  const line = (lab, sub, v, cls) => `<div class="ci-r"><div style="min-width:0"><div class="ell">${lab}</div>${sub ? `<small class="m ell">${sub}</small>` : ''}</div><b class="num ${cls || ''}">${v}</b></div>`;
+  const line = (lab, sub, v, cls, act) => `<div class="ci-r${act ? ' ci-tap' : ''}" ${act || ''}><div style="min-width:0"><div class="ell">${lab}</div>${sub ? `<small class="m ell">${sub}</small>` : ''}</div><b class="num ${cls || ''}">${v}${act ? ' <span class="m">›</span>' : ''}</b></div>`;
   const amt = v => (v >= 0 ? '+' : '−') + eur(Math.abs(v));
-  let h = line(`Budget di ${mn}`, b.rec ? 'somma dei pagamenti ricorrenti' : b.pct ? 'quota delle entrate' : '', eur(b.base));
+  let h = line(`Budget di ${mn}`, b0.rec ? 'somma dei pagamenti ricorrenti' : b0.pct ? 'quota delle entrate' : b0.bills ? 'bollette del mese' : '', eur(b.base));
   for (const x of sh) { const inn = x.to === k, o = bud(inn ? x.from : x.to); h += line(`${inn ? '↗ Da' : '↘ A'} ${esc(o ? o.n : (inn ? x.from : x.to))}`, `${esc(x.why || 'Spostamento')}${x.ts ? ' · ' + dm(new Date(x.ts).toISOString().slice(0, 10)) : ''}`, amt(inn ? x.a : -x.a), inn ? 'g' : 'o'); }
-  for (const t of T.slice(0, 8)) h += line(esc(t.note || catName(t)), dm(t.d) + (t.pid ? ' · prestito' : ''), '−' + eur(t.a), 'o');
-  if (T.length > 8) h += line(`Altre ${T.length - 8} spese`, '', '−' + eur(r2(T.slice(8).reduce((v, t) => v + t.a, 0))), 'o');
-  for (const r of pend) h += line(`${esc(r.n)} <span class="a">in arrivo</span>`, `il ${r.day}`, '−' + eur(recAmount(r)), 'a');
+  for (const t of T) h += line(esc(t.note || catName(t)), dm(t.d) + (t.pid ? ' · prestito' : '') + (t.rev ? ' · da controllare' : ''), '−' + eur(t.a), 'o', `data-act="edit-tx" data-id="${esc(t.id)}"`);
+  for (const r of pend) h += line(`${esc(r.n)} <span class="a">in arrivo</span>`, `il ${r.day}`, '−' + eur(recAmount(r)), 'a', `data-act="rec-tap" data-id="${esc(r.id)}"`);
   for (const w of waits) h += line(`${esc(w.desc || 'Richiesta')} <span class="a">in attesa</span>`, 'soldi tenuti da parte', '−' + eur(w.a), 'a');
-  const flex = !b.l && !b.auto;
-  openSheet(`<h3 class="sh-title">${esc(b.e)} ${esc(b.n)}</h3><p class="sh-sub">${mn[0].toUpperCase() + mn.slice(1)} · ${b.l ? 'intoccabile' : 'flessibile'}${catHint(b) ? ' · ' + esc(catHint(b)) : ''}</p>
+  const flex = !b0.l && !b0.auto;
+  return `<h3 class="sh-title">${esc(b0.e)} ${esc(b0.n)}</h3><p class="sh-sub">${mn[0].toUpperCase() + mn.slice(1)} · ${b0.l ? 'intoccabile' : 'flessibile'}${catHint(b0) ? ' · ' + esc(catHint(b0)) : ''}</p>
     <div class="card tight ci">${h}<div class="ci-r ci-tot"><div>${b.left < -0.005 ? 'Sforata di' : 'Restano'}</div><b class="num ${b.left < -0.005 ? 'r' : 'g'}">${eur(Math.abs(b.left))}</b></div></div>
-    ${ym === curYM() || isFut(ym) ? `<button class="btn primary" data-act="add-cat" data-cat="${esc(k)}">＋ Registra qui</button>${flex || b.left < -0.005 ? `<button class="btn" data-act="${b.left < -0.005 ? 'shift-cover' : 'shift'}" data-to="${esc(k)}">${b.left < -0.005 ? 'Copri lo sforamento' : 'Sposta budget'}</button>` : ''}` : ''}`);
+    ${T.length ? '<p class="ss" style="margin:-4px 4px 10px">Tocca una spesa per modificarla o spostarla in un’altra voce.</p>' : ''}
+    ${ym === curYM() || isFut(ym) ? `<button class="btn primary" data-act="add-cat" data-cat="${esc(k)}">＋ Registra qui</button>${flex || b.left < -0.005 ? `<button class="btn" data-act="${b.left < -0.005 ? 'shift-cover' : 'shift'}" data-to="${esc(k)}">${b.left < -0.005 ? 'Copri lo sforamento' : 'Sposta budget'}</button>` : ''}` : ''}`;
+}
+function openCatInfo(k) {
+  const ym = S.ym, h = catInfoHTML(k, ym); if (!h) return;
+  const w = openSheet(`<div class="ci-body">${h}</div>`); w._catInfo = k; w._ciYm = ym;
 }
 // Home: gli ultimi movimenti, per vedere subito che la registrazione c'è
 function recentHTML() {
@@ -2357,7 +2362,7 @@ function doRender() {
   maybeAsk();
   maybeCatchUp();
   maybeClose();
-  $$('#sheets .wrap').forEach(w => { if (w._close && !S.preview && (cfg().closed || '') >= w._m) closeSheet(w); });
+  $$('#sheets .wrap').forEach(w => { if (w._close && !S.preview && (cfg().closed || '') >= w._m) closeSheet(w); if (w._catInfo) { const bd = $('.ci-body', w), h = catInfoHTML(w._catInfo, w._ciYm); if (bd && h && bd.innerHTML !== h) bd.innerHTML = h; } });
   if (S.anim && S.mode !== 'loading') {
     S.anim = false; v.classList.add('anim'); countUps(v);
     clearTimeout(animT); animT = setTimeout(() => v.classList.remove('anim'), 1600);
