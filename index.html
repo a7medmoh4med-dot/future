@@ -140,7 +140,7 @@ input,select,textarea{font-family:inherit}
 .btn.amber{background:linear-gradient(135deg,#FFC870,#FF9F2E);color:#2A1700;border:0}
 .btn.danger{background:rgba(255,107,94,.12);color:var(--red);border-color:rgba(255,107,94,.35)}
 .btn.ghost{background:transparent}
-.btn.sm{width:auto;padding:9px 14px;font-size:13px;border-radius:14px;margin-top:0}
+.btn.sm{width:auto;padding:9px 14px;font-size:13px;border-radius:14px;margin-top:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .btn:disabled{opacity:.4}
 .chipbtn{border:1px solid var(--stroke2);background:rgba(255,255,255,.06);border-radius:999px;padding:8px 13px;font-size:13px;font-weight:600}
 
@@ -557,7 +557,8 @@ input,select,textarea{font-family:inherit}
 .sitev{display:flex;gap:10px;font-size:13px;padding:7px 0;line-height:1.4}
 .sitev+.sitev{border-top:1px solid var(--stroke)}
 .sitev>span{flex:none;width:66px;color:var(--muted);font-weight:700}
-.sitev small{display:block;color:var(--muted);margin-top:3px}
+.mh>div{min-width:0;flex:1}.mht{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mht small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sitev small{display:block;color:var(--muted);margin-top:3px}.sitev>div{min-width:0;flex:1}
 @media (max-width:959px){.sitc{order:1}}
 .sitch .sitcol{fill:transparent;cursor:pointer}.sitch .sitcol.on{fill:rgba(255,255,255,.07)}
 .sitsw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
@@ -565,8 +566,28 @@ input,select,textarea{font-family:inherit}
 .sityd{margin-top:6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04)}
 @keyframes fcdraw{to{stroke-dashoffset:0}}
 .homewrap.hw-cur>*{order:0!important}
-.ci .ci-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05)}.ci .ci-r>div{min-width:0}.ci .ci-r small{display:block;font-size:12px;margin-top:1px}.ci .ci-r b{white-space:nowrap;font-size:15px}.ci .ci-tap{cursor:pointer}.ci .ci-tap:active{background:rgba(255,255,255,.05)}
+.ci .ci-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05)}.ci .ci-r>div{min-width:0}.ci .ci-r small{display:block;font-size:12px;margin-top:1px}.ci .ci-r b{white-space:nowrap;font-size:15px}.rp .rp-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-size:14.5px}.rp .rp-r:last-child{border-bottom:0}.rp .rp-r>div{min-width:0}.rp .rp-r small{display:block;font-size:12px;margin-top:1px}.rp .rp-r b{white-space:nowrap}.rp .rp-tot{font-weight:750;font-size:16px;border-top:1px solid var(--stroke2)}.rp .rp-tot b{font-size:18px}.rp-head{font-size:16px;font-weight:700;line-height:1.4;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--stroke)}.rp-head.r{border-color:rgba(255,107,94,.35)}.rp-head.g{border-color:rgba(46,229,157,.35)}
+.num,.amt{white-space:nowrap}
+.row2>*{min-width:0}.fld input,.fld select{min-width:0;max-width:100%}
+/* una riga sola: il nome si accorcia, l'importo resta intero */
+.fld>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc .an,.acc .as{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* conti: nome e importo sulla prima riga, i dettagli sotto a tutta larghezza */
+.acc{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto auto;column-gap:12px;row-gap:0;align-items:center}
+.acc>.bico{grid-row:1/span 5;align-self:center}
+.acc>div:nth-child(2){display:contents}
+.acc .an{grid-column:2;grid-row:1;min-width:0}
+.acc .as{grid-column:2/-1;min-width:0}
+.acc>.av{grid-column:3;grid-row:1;margin-left:0}
+.acc>:nth-child(n+4){grid-column:4;grid-row:1}
+.prow .pl small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.prow .pl{min-width:0}
+.pr>span:first-child small{display:block;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;font-weight:500}.pr>span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pr>b:last-child,.pr>.num:last-child{white-space:nowrap;flex:none}
+.seg button{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.chipbtn{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ci .ci-tap{cursor:pointer}.ci .ci-tap:active{background:rgba(255,255,255,.05)}
 .ci .ci-tot{border:0;font-weight:750;font-size:16px;padding-top:12px}.ci .ci-tot b{font-size:19px}
+@media (max-width:400px){.cat{font-size:11.5px;padding:10px 4px}.cat>span:not(.e),.cat{overflow:hidden}.sh-title{font-size:21px}}
+.cats .cat{min-width:0}.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lrow .t1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cats .cat .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .cathint{font-size:13px;color:var(--muted);margin:8px 4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cathint b{color:var(--text);font-weight:700}.cathint.r{color:var(--amber);white-space:normal}
 .hqb .hqb-ask{color:var(--amber);border:1.5px solid rgba(255,181,71,.55);background:linear-gradient(180deg,rgba(255,181,71,.16),rgba(255,181,71,.07))}
 .hqb{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin:14px 0}.hqb .btn{min-height:54px;font-size:15.5px;white-space:nowrap}
@@ -655,7 +676,7 @@ const fmtN = (n, dec) => { n = +n || 0; const neg = n < 0; const [i, d] = Math.a
 const nf2 = {format: n => fmtN(n, 2)};
 const nf0 = {format: n => fmtN(Math.round(+n || 0), 0)};
 const r2 = n => Math.round((+n || 0) * 100) / 100;
-const eur = n => nf2.format(r2(n)) + ' ' + curSym();
+const eur = n => nf2.format(r2(n)) + '\u00a0' + curSym();
 // tutti gli importi sempre con i centesimi: 2.223,00 €
 const eur0 = n => eur(n);
 const pad = n => String(n).padStart(2, '0');
@@ -965,7 +986,7 @@ function balancesHTML(compact) {
   const tot = r2(accs.filter(a => !isHidden(a.n)).reduce((s, a) => s + balance(a.n), 0));
   const hid = accs.filter(a => isHidden(a.n)).length;
   const rows = accs.map(a => { const h = isHidden(a.n), b = balance(a.n);
-    return `<div class="acc ${h ? 'hid' : ''}" data-act="acc-detail" data-n="${esc(a.n)}"><div class="bico" style="--c:${accColor(a.n)}">${accIcon(a.n)}</div><div style="min-width:0"><div class="an">${esc(a.n)}</div><div class="as">${h ? 'Nascosto · escluso dal totale' : a.n === mainAcc() && (cushion().bal > 0 || reservedForDebt() > 0) ? `di cui ${[cushion().bal > 0 ? 'cuscinetto ' + eur0(cushion().bal) : '', reservedForDebt() > 0 ? 'per l\u2019estinzione ' + eur0(reservedForDebt()) : ''].filter(Boolean).join(' · ')} · ${debtPhase() ? 'per i debiti oggi' : 'liberi'} ${spendableConto() < -0.005 ? `<span class="r">−${eur0(-spendableConto())} · stai usando il cuscinetto</span>` : eur0(spendableConto())}` : 'Incluso nel totale'}</div></div>
+    return `<div class="acc ${h ? 'hid' : ''}" data-act="acc-detail" data-n="${esc(a.n)}"><div class="bico" style="--c:${accColor(a.n)}">${accIcon(a.n)}</div><div style="min-width:0"><div class="an">${esc(a.n)}</div>${h ? '<div class="as">Nascosto · escluso dal totale</div>' : a.n === mainAcc() && (cushion().bal > 0 || reservedForDebt() > 0) ? `${cushion().bal > 0 ? `<div class="as">di cui cuscinetto ${eur0(cushion().bal)}</div>` : ''}${reservedForDebt() > 0 ? `<div class="as">per l\u2019estinzione ${eur0(reservedForDebt())}</div>` : ''}<div class="as">${spendableConto() < -0.005 ? `<span class="r">usi il cuscinetto: −${eur0(-spendableConto())}</span>` : `${debtPhase() ? 'per i debiti' : 'liberi'} ${eur0(spendableConto())}`}</div>` : '<div class="as">Incluso nel totale</div>'}</div>
       <div class="av num">${h ? '•••••' : `<span class="${b < 0 ? 'r' : ''}">${eur(b)}</span>`}</div><button class="eye" data-act="acc-hide" data-n="${esc(a.n)}" aria-label="${h ? 'Mostra' : 'Nascondi'} ${esc(a.n)}">${EYE(!h)}</button></div>`; }).join('');
   return `<div class="tot"><div><div class="h-label">Saldi${hid ? ` · ${hid} nascost${hid > 1 ? 'i' : 'o'}` : ''}</div><div class="big2 num" style="margin-top:6px">${eur(tot)}</div></div>${compact ? '<button class="btn sm" data-act="saldi">Dettaglio</button>' : ''}</div>${rows}${loansRowHTML()}${mAccRowHTML()}`;
 }
@@ -1054,7 +1075,7 @@ const shareDed = ym => r2(TX().filter(t => t.kind === 'out' && t.qd === ym && is
 const DORD = {
   rata: ['Rata più alta', 'la rata più alta', '<b>vince la rata più alta</b>, perché chiudendolo liberi più soldi al mese per i debiti dopo (a parità di rata, il residuo più piccolo).', 'Chiudendo prima il debito con la rata più alta liberi più soldi al mese per i successivi.'],
   tasso: ['Tasso più alto', 'il tasso più alto', '<b>vince il tasso più alto</b>, perché è il debito che costa di più in interessi (a parità di tasso, la rata più alta).', 'Chiudendo prima il debito più caro paghi meno interessi in totale.'],
-  small: ['Residuo più piccolo', 'il residuo più piccolo', '<b>vince il residuo più piccolo</b>: chiudi prima i debiti più vicini allo zero e ne hai meno da seguire (a parità, la rata più alta).', 'Chiudendo prima il debito più piccolo ne togli uno presto e ne hai meno da seguire.']
+  small: ['Residuo minore', 'il residuo più piccolo', '<b>vince il residuo più piccolo</b>: chiudi prima i debiti più vicini allo zero e ne hai meno da seguire (a parità, la rata più alta).', 'Chiudendo prima il debito più piccolo ne togli uno presto e ne hai meno da seguire.']
 };
 const dOrd = () => (DORD[cfg().debtOrder] ? cfg().debtOrder : 'rata');
 const dCmp = o => (o === 'tasso' ? (a, b) => (b.rate - a.rate) || (b.rata - a.rata) || (a.r - b.r) : o === 'small' ? (a, b) => (a.r - b.r) || (b.rata - a.rata) : (a, b) => (b.rata - a.rata) || (a.r - b.r));
@@ -1079,10 +1100,10 @@ function poolNow() {
   const cur = curYM(), c = cushion(), st = catStats(cur);
   const outLeft = r2(st.reduce((t, b) => t + Math.max(0, b.eff - b.spent), 0));
   const inLeft = r2(recs().filter(r => r.kind === 'in' && ['due', 'later'].includes(recState(r, cur))).reduce((t, r) => t + recAmount(r), 0));
-  const lines = poolAccs().map(n => n === mainAcc() ? {n: 'Conto a fine mese, tolto il cuscinetto', a: r2(balance(n) - c.bal + inLeft - outLeft - unpaidTot()), acc: n} : {n, a: balance(n), acc: n});
+  const lines = poolAccs().map(n => n === mainAcc() ? {n: 'Conto a fine mese', a: r2(balance(n) - c.bal + inLeft - outLeft - unpaidTot()), acc: n} : {n, a: balance(n), acc: n});
   for (const x of debtAssets()) lines.push({n: `${x.n} (da vendere)`, a: r2(+x.v), asset: x.id});
   const gap = r2(Math.max(0, c.target - c.bal));
-  if (gap > 0.005) lines.push({n: '🛟 Ricarica del cuscinetto (prima dei debiti)', a: -gap});
+  if (gap > 0.005) lines.push({n: '🛟 Ricarica cuscinetto', a: -gap});
   return {lines, tot: r2(lines.reduce((t, l) => t + l.a, 0))};
 }
 // riserva di oggi: i conti che contano come riserva (quelli per i debiti finché ci sono) + il cuscinetto + i beni segnati come riserva
@@ -1199,7 +1220,7 @@ function debtPlanHTML(g) {
   if (!s.ym) return `<div class="plan"><div class="ph"><span>${s.hard ? 'Data promessa' : 'Piano di saldo'}</span><span class="r">non raggiungibile</span></div><div class="pv r">Con le entrate previste non ci arrivi: servono avanzi a fine mese o un\u2019entrata extra.</div>${btn(false)}</div>`;
   const avz = avgAvz();
   const lines = poolNow().lines.map(l => `<div class="pr"><span>${esc(l.n)}</span><b class="num">${l.a < 0 ? '−' + eur0(-l.a) : eur0(l.a)}</b></div>`).join('')
-    + (s.sav ? `<div class="pr"><span>Salvadanaio debiti (quota mensile + rate liberate)</span><b class="num">+${eur0(s.sav)}</b></div>` : '')
+    + (s.sav ? `<div class="pr"><span>Salvadanaio debiti al mese</span><b class="num">+${eur0(s.sav)}</b></div>` : '')
     + (s.ex ? `<div class="pr"><span>Entrate previste fino ad allora</span><b class="num">+${eur0(s.ex)}</b></div>` : '')
     + (s.avzSum ? `<div class="pr"><span>Avanzi di fine mese (${eur0(avz)} al mese)</span><b class="num">+${eur0(s.avzSum)}</b></div>` : '')
     + s.before.map(b => `<div class="pr"><span>Prima: ${esc(b.n)} (${ymShort(b.ym)})</span><b class="num">−${eur0(b.a)}</b></div>`).join('');
@@ -1207,7 +1228,7 @@ function debtPlanHTML(g) {
   if (s.hard) {
     head = ['Come ci arrivi', ''];
     good = s.margin >= 0;
-    verdict = good ? '<div class="pv g">✓ Coperto: per la data promessa i soldi ci sono</div>' : `<div class="pv r">✕ Mancano ${eur0(-s.margin)}: metti da parte ${eur0(Math.ceil(-s.margin / Math.max(1, s.k)))} al mese</div>`;
+    verdict = good ? '<div class="pv g">✓ Coperto: i soldi ci sono</div>' : `<div class="pv r">✕ Mancano ${eur0(-s.margin)}: metti da parte ${eur0(Math.ceil(-s.margin / Math.max(1, s.k)))} al mese</div>`;
   } else {
     head = ['Come ci arrivi', ''];
     if (nowOK) verdict = '<div class="pv g">✓ Saldabile ora: i soldi ci sono già</div>';
@@ -1218,17 +1239,17 @@ function debtPlanHTML(g) {
     else verdict = `<div class="pv g">${pers ? 'Dopo i finanziamenti: lo restituisci' : 'Lo saldi'} a fine ${ymLabel(s.ym)}</div>`;
     if (s.k > 0) {
       const alt = debtSchedule(100)[g.id], lt = loansTotal(), alt2 = lt > 0 ? debtSchedule(0, lt)[g.id] : null;
-      if (alt && alt.ym && alt.ym < s.ym) verdict += `<div class="pr" style="margin-top:4px"><span>Con ${eur(100)} avanzati in più al mese</span><b>${ymLabel(alt.ym)}</b></div>`;
+      if (alt && alt.ym && alt.ym < s.ym) verdict += `<div class="pr" style="margin-top:4px"><span>Con +100 € al mese</span><b>${ymLabel(alt.ym)}</b></div>`;
       const lf = loanFlows(), alt3 = lf.tot > 0 ? debtSchedule(0, 0, lf.f)[g.id] : null;
-      if (alt3 && alt3.ym && alt3.ym < s.ym) verdict += `<div class="pr"><span>Con i rientri alle date previste (${eur0(lf.tot)})</span><b>${ymLabel(alt3.ym)}</b></div>`;
-      if (alt2 && alt2.ym && alt2.ym < s.ym) verdict += `<div class="pr"><span>Se rientrano tutti i prestiti subito (${eur0(lt)})</span><b>${alt2.k === 0 ? 'subito' : ymLabel(alt2.ym)}</b></div>`;
+      if (alt3 && alt3.ym && alt3.ym < s.ym) verdict += `<div class="pr"><span>Con i rientri previsti</span><b>${ymLabel(alt3.ym)}</b></div>`;
+      if (alt2 && alt2.ym && alt2.ym < s.ym) verdict += `<div class="pr"><span>Se rientrano i prestiti</span><b>${alt2.k === 0 ? 'subito' : ymLabel(alt2.ym)}</b></div>`;
     }
   }
   const pct = Math.max(0, Math.min(1, s.avail / (s.need || 1)));
   return `<div class="plan"><div class="ph"><span>${head[0]}</span><span class="${good ? 'a' : 'r'} num">${head[1]}</span></div>
     <div class="gbar" style="margin:9px 0 8px"><i style="width:${r2(pct * 100)}%;background:${good ? 'linear-gradient(90deg,#FFB547,#2EE59D)' : 'linear-gradient(90deg,#FF6B5E,#FFB547)'}"></i></div>
     ${lines}<div class="pr tot"><span>${s.hard ? `Il ${want} avrai` : `A fine ${ymShort(s.ym)} avrai`}</span><span class="num">${eur0(s.avail)}</span></div>
-    <div class="pr"><span>Per saldare servono${s.hard || (s.dym === s.ym && +g.target > 0) ? '' : ' (residuo previsto)'}</span><b class="num">${eur0(s.need)}</b></div>
+    <div class="pr"><span>Per saldare servono</span><b class="num">${eur0(s.need)}</b></div>
     ${verdict}${!avz ? '<p class="muted" style="font-size:12px;margin:6px 0 0">Nessun mese chiuso ancora: gli avanzi non sono contati. La data si aggiorna a ogni chiusura del mese.</p>' : ''}
     ${btn(nowOK || (s.hard && today() >= g.plan))}</div>`;
 }
@@ -1292,7 +1313,7 @@ function openExt(id) {
   const b = budgets().find(x => x.k === (g.cat || 'finanz') && !x.auto);
   const w = openSheet(`<h3 class="sh-title">${g.kind === 'person' ? '🤝 Restituisci tutto' : '🏛️ Salda ' + esc(g.n)}</h3><p class="sh-sub">${g.kind === 'person' ? `${esc(g.n)}: i soldi escono da <b>${esc(mainAcc())}</b>. Se lì non bastano (tolto il cuscinetto), prima li sposti dagli altri conti: gli importi qui sotto li puoi cambiare.` : 'Registra il pagamento che fai alla banca da ' + esc(mainAcc()) + '.'} Non pesa sul budget del mese.</p>
     <label class="fld"><span>${g.kind === 'person' ? 'Importo da restituire' : 'Importo per saldare (chiedi il conteggio alla banca)'}</span><div class="amtin"><input id="ext-a" inputmode="decimal" value="${String(amt).replace('.', ',')}"><b>€</b></div></label>
-    ${others.map(o => `<label class="fld"><span>Prima sposti da «${esc(o.n)}» al conto (ci sono ${eur0(o.bal)})</span><div class="amtin"><input data-extsrc="${esc(o.n)}" inputmode="decimal" value="${String(o.a).replace('.', ',')}"><b>€</b></div></label>`).join('')}
+    ${others.map(o => `<label class="fld"><span>Da «${esc(o.n)}» (ci sono ${eur0(o.bal)})</span><div class="amtin"><input data-extsrc="${esc(o.n)}" inputmode="decimal" value="${String(o.a).replace('.', ',')}"><b>€</b></div></label>`).join('')}
     <div class="vrule">Cosa succede:<br>• il debito va a zero${g.rata ? `<br>• la rata da ${eur0(g.rata)} si ferma` : ''}${b && g.rata ? `<br>• il budget ${esc(b.n)} scende da ${eur0(baseOf(b))} a ${eur0(Math.max(0, baseOf(b) - g.rata))}: i ${eur0(g.rata)} al mese vanno ${cfg().goals.some(x => x.type === 'debt' && x.cur > 0 && x.id !== g.id) ? 'al salvadanaio debiti, per il prossimo debito' : 'al fondo casa'}` : ''}</div>
     <div id="ext-warn"></div>
     <button class="btn primary" data-act="ext-go" data-id="${esc(g.id)}">Confermo: saldato</button><button class="btn ghost" data-act="close-sheet">Annulla</button>`);
@@ -1913,7 +1934,7 @@ function cushionAlertsHTML() {
     h.push(`<div class="banner amber stag" style="--i:0"><div class="ic">🛟</div><div style="min-width:0;flex:1"><b>${MONTHS[+ym.slice(5) - 1]} è sotto di ${eur(m.tot)}</b>
       <div class="ovw">${overs.map((b, i) => W[i].h).join('')}${m.short ? shortWhyHTML(m.short, ym) : ''}</div>
       <div class="ovn">Se non fai niente${m.flexLeft > 0.5 ? ' e spendete tutto il budget flessibile' : ''}: a fine mese lo copre il cuscinetto, ${eur(c.bal)} → ${eur(worst)}.${m.flexLeft > 0.5 ? ` Ogni euro che resta nelle voci flessibili (oggi ${eur(m.flexLeft)}) lo salva.` : ''}</div>
-      <div class="acts">${(() => { const srcs = st.filter(b => !b.l && !b.auto && b.left > 0.009), free = r2(srcs.reduce((v, b) => v + b.left, 0)), need = r2(overs.reduce((v, b) => v - b.left, 0)); if (!srcs.length || !overs.length) return ''; if (srcs.length === 1 || src.left + 0.001 >= need) return `<button class="btn sm" data-act="shift-cover" data-from="${esc(src.k)}" data-to="${esc(to0)}">Copri da ${esc(src.n)} (${eur(src.left)} liberi)</button>`; return `<button class="btn sm" data-act="shift-cover-all">Copri da tutte le voci (${eur(Math.min(free, need))}${free + 0.001 < need ? ' su ' + eur(need) : ''})</button><button class="btn sm ghost" data-act="shift-cover" data-from="${esc(src.k)}" data-to="${esc(to0)}">Solo da ${esc(src.n)}</button>`; })()}${tx0 ? `<button class="btn sm ghost" data-act="edit-tx" data-id="${esc(tx0.id)}">Apri il movimento</button>` : ''}<button class="btn sm ghost" data-act="cush-seen" data-a="${m.tot}" aria-label="Nascondi">✕</button></div></div></div>`);
+      <div class="acts">${(() => { const srcs = st.filter(b => !b.l && !b.auto && b.left > 0.009), free = r2(srcs.reduce((v, b) => v + b.left, 0)), need = r2(overs.reduce((v, b) => v - b.left, 0)); if (!srcs.length || !overs.length) return ''; if (srcs.length === 1 || src.left + 0.001 >= need) return `<button class="btn sm" data-act="shift-cover" data-from="${esc(src.k)}" data-to="${esc(to0)}">Solo da ${esc(src.n)}</button>`; return `<button class="btn sm" data-act="shift-cover-all">Copri da tutte (${eur0(Math.min(free, need))})</button><button class="btn sm ghost" data-act="shift-cover" data-from="${esc(src.k)}" data-to="${esc(to0)}">Solo da ${esc(src.n)}</button>`; })()}${tx0 ? `<button class="btn sm ghost" data-act="edit-tx" data-id="${esc(tx0.id)}">Apri il movimento</button>` : ''}<button class="btn sm ghost" data-act="cush-seen" data-a="${m.tot}" aria-label="Nascondi">✕</button></div></div></div>`);
   }
   return h.join('');
 }
@@ -2178,7 +2199,7 @@ function txTopHTML(ym) {
   let h = `<div class="card txsum" data-act="saldi" style="--i:0">${cell('Entrate', '+' + eur0(inn), 'g')}${cell('Uscite', '−' + eur0(out), 'o')}${cell('Conto', eur0(balance(mainAcc())))}<span class="chev">›</span></div>`;
   if (ym === curYM()) {
     const later = recs().filter(r => recState(r, ym) === 'later');
-    if (later.length) { const tot = r2(later.reduce((v, r) => v + (r.kind === 'in' ? 1 : r.kind === 'out' ? -1 : 0) * recAmount(r), 0)); h += `<div class="card txline" data-act="in-arrivo" style="--i:1"><span>🔜 In arrivo questo mese</span><small>${later.length} · netto ${tot >= 0 ? '+' : '−'}${eur0(Math.abs(tot))} ›</small></div>`; }
+    if (later.length) { const tot = r2(later.reduce((v, r) => v + (r.kind === 'in' ? 1 : r.kind === 'out' ? -1 : 0) * recAmount(r), 0)); h += `<div class="card txline" data-act="in-arrivo" style="--i:1"><span>🔜 In arrivo</span><small>${later.length} · netto ${tot >= 0 ? '+' : '−'}${eur0(Math.abs(tot))} ›</small></div>`; }
   }
   return h;
 }
@@ -2456,7 +2477,7 @@ function guessCat(desc, ok) {
 }
 function catHintHTML(k, auto, desc) {
   const b = bud(k); if (!b) return '';
-  if (isShareK(k) && desc === '\u0000tx') { const m = qdFor(today()); return `<div class="cathint a" style="white-space:normal">${esc(b.e)} Spesa per ${esc(shareN())}: si scala dalla sua quota di ${MONTHS[+m.slice(5) - 1].toLowerCase()} (riceve quei soldi in meno).</div>`; }
+  if (isShareK(k) && desc === '\u0000tx') { const m = qdFor(today()); return `<div class="cathint a">${esc(b.e)} Si scala dalla quota di ${esc(shareN())} di ${MONTHS[+m.slice(5) - 1].toLowerCase()}</div>`; }
   const h = catHint(b), t = norm(desc || ''), rr = t ? cfg().rules.find(r => !(r.until && r.until < today()) && matchKw(t, r.kw)) : null;
   return `<div class="cathint">${esc(b.e)} <b>${esc(b.n)}</b>${h ? ': ' + esc(h) : ''}</div>${rr ? `<div class="cathint r">⚠️ Tocca la regola ${rr.n}: ${esc(ruleText(rr))}</div>` : ''}`;
 }
@@ -2478,7 +2499,7 @@ function txGuess(w) {
 }
 function catGrid(sel, group, opts = {}) {
   const st = opts.stats || catStats(curYM());
-  return `<div class="cats" data-group="${group}">` + budgets().filter(b => !b.auto && (!opts.noBills || !b.bills) && (!opts.buy || buyable(b)) && (!opts.flexOnly || !b.l || freeLocked(b))).map(b => { const s = st.find(x => x.k === b.k); return `<button class="cat ${b.k === sel ? 'on' : ''}" style="--c:${esc(b.c)}" data-act="pick" data-v="${esc(b.k)}"><span class="e">${esc(b.e)}</span>${esc(b.n)}${s ? `<small class="${s.left < 0 ? 'r' : ''}">${s.left < 0 ? '−' + eur0(-s.left) : eur0(s.left)}</small>` : ''}</button>`; }).join('') + '</div>';
+  return `<div class="cats" data-group="${group}">` + budgets().filter(b => !b.auto && (!opts.noBills || !b.bills) && (!opts.buy || buyable(b)) && (!opts.flexOnly || !b.l || freeLocked(b))).map(b => { const s = st.find(x => x.k === b.k); return `<button class="cat ${b.k === sel ? 'on' : ''}" style="--c:${esc(b.c)}" data-act="pick" data-v="${esc(b.k)}"><span class="e">${esc(b.e)}</span><span class="cn">${esc(b.n)}</span>${s ? `<small class="${s.left < 0 ? 'r' : ''}">${s.left < 0 ? '−' + eur0(-s.left) : eur0(s.left)}</small>` : ''}</button>`; }).join('') + '</div>';
 }
 function chipsGrid(list, sel, group) { return `<div class="toolbar" data-group="${group}" style="flex-wrap:wrap">` + list.map(x => `<button class="chip ${x === sel ? 'on' : ''}" data-act="pick" data-v="${esc(x)}">${esc(x)}</button>`).join('') + '</div>'; }
 function segHTML(group, opts, sel) { return `<div class="seg" data-group="${group}">` + opts.map(([v, l]) => `<button class="${v === sel ? 'on' : ''}" data-act="pick" data-v="${v}">${l}</button>`).join('') + '</div>'; }
@@ -2527,7 +2548,7 @@ function openCheck0(pre) {
     <div class="fld"><span>Voce di budget · quanto resta</span><div id="ck-cats">${catGrid(q.cat, 'ck-cat', {flexOnly: !(bud(q.cat) && bud(q.cat).l), noBills: true, buy: true})}</div><div id="ck-hint">${catHintHTML(q.cat, false, q.desc)}</div>${(bud(q.cat) && bud(q.cat).l) || !budgets().some(b => b.l && buyable(b)) ? '' : '<button class="chipbtn" data-act="ck-all" style="margin-top:8px" type="button">Mostra anche le voci intoccabili</button>'}</div>
     <div class="row2"><label class="fld"><span>Conto</span><select id="ck-acc">${accOpts(q.acc)}</select></label>
     <div class="fld"><span>È…</span>${segHTML('ck-need', [['need', 'Necessaria'], ['rinv', 'Rinviabile']], q.need)}</div></div>
-    <button class="btn primary" data-act="ck-go">Verifica</button>${pre.pid || pre.waitId ? '' : '<button class="chipbtn" data-act="ck-straord" type="button" style="margin-top:10px">🧾 È una spesa straordinaria obbligata (rientro, medico, guasto)</button>'}<div id="ck-res"></div>`);
+    <button class="btn primary" data-act="ck-go">Verifica</button>${pre.pid || pre.waitId ? '' : '<button class="chipbtn" data-act="ck-straord" type="button" style="margin-top:10px">🧾 È una spesa obbligata</button>'}<div id="ck-res"></div>`);
   w._pre = pre;
   if (!q.desc) $('#ck-sugg', w).innerHTML = suggHTML(w, 'ck');
   setTimeout(() => { const i = $('#ck-desc', w); if (i && !q.desc) i.focus(); }, 450);
@@ -3043,8 +3064,8 @@ function openShift(preTo, preFrom) {
   const to0 = preTo && (preTo !== 'fondo' || svNeg) ? preTo : overs[0] ? overs[0].k : svNeg ? svNeg.k : st.find(b => !b.auto && b.k !== srcs[0].k).k;
   const toList = st.filter(b => !b.auto).concat(svNeg ? [Object.assign({}, svNeg, {left: svNeg.eff})] : []), tb = toList.find(b => b.k === to0), need = tb && tb.left < 0 ? -tb.left : 0, s0 = srcs.find(b => b.k === preFrom) || srcs[0];
   const w = openSheet(`<h3 class="sh-title">Sposta budget${ym !== curYM() ? ' · ' + MONTHS[+ym.slice(5) - 1].toLowerCase() : ''}</h3><p class="sh-sub">Si toglie solo dalle voci flessibili. Il totale del mese resta uguale.</p>
-    <div class="fld"><span>Togli da</span><div class="cats" data-group="sh-from">${srcs.map(b => `<button class="cat ${b === s0 ? 'on' : ''}" style="--c:${esc(b.c)}" data-act="pick" data-v="${esc(b.k)}"><span class="e">${esc(b.e)}</span>${esc(b.n)}<small>${eur0(b.left)} liberi</small></button>`).join('')}</div></div>
-    <div class="fld"><span>Dai a</span><div class="cats" data-group="sh-to">${toList.map(b => `<button class="cat ${b.k === to0 ? 'on' : ''}" style="--c:${esc(b.c)}" data-act="pick" data-v="${esc(b.k)}"><span class="e">${esc(b.e)}</span>${esc(b.n)}<small class="${b.left < 0 ? 'r' : ''}">${b.left < 0 ? '−' + eur0(-b.left) : eur0(b.left)}</small></button>`).join('')}</div></div>
+    <div class="fld"><span>Togli da</span><div class="cats" data-group="sh-from">${srcs.map(b => `<button class="cat ${b === s0 ? 'on' : ''}" style="--c:${esc(b.c)}" data-act="pick" data-v="${esc(b.k)}"><span class="e">${esc(b.e)}</span><span class="cn">${esc(b.n)}</span><small>${eur0(b.left)} liberi</small></button>`).join('')}</div></div>
+    <div class="fld"><span>Dai a</span><div class="cats" data-group="sh-to">${toList.map(b => `<button class="cat ${b.k === to0 ? 'on' : ''}" style="--c:${esc(b.c)}" data-act="pick" data-v="${esc(b.k)}"><span class="e">${esc(b.e)}</span><span class="cn">${esc(b.n)}</span><small class="${b.left < 0 ? 'r' : ''}">${b.left < 0 ? '−' + eur0(-b.left) : eur0(b.left)}</small></button>`).join('')}</div></div>
     <label class="fld"><span>Importo</span><div class="amtin"><input id="sh-a" inputmode="decimal" placeholder="0,00" value="${need > 0 ? String(r2(Math.min(need, s0.left))).replace('.', ',') : ''}"><b>€</b></div></label>
     <label class="fld"><span>Motivo</span><input id="sh-why" placeholder="es. Lavaggio auto" value="${need > 0 && tb ? esc('Copre lo sforamento di ' + tb.n) : ''}" autocomplete="off"></label>
     <button class="btn primary" data-act="sh-save">Sposta</button>`);
@@ -3086,17 +3107,17 @@ function drawClose(w) {
   const destOpts = [];
   if (r.debt) destOpts.push(['keep', 'Resta sul conto per i debiti']);
   else destOpts.push(['fondo', 'Fondo casa']);
-  const destNote = {keep: r.debt ? `Restano sul conto per i debiti (il prossimo è ${esc(r.debt.n)}): l\u2019app li conta nel piano.` : '', debt: r.debt ? `Pagamento extra: il residuo scende subito.` : '', fondo: 'Trasferimento nel fondo casa.'}[w._dest] || '';
+  const destNote = {keep: r.debt ? `Per i debiti · prossimo: ${esc(r.debt.kind === 'person' ? r.debt.n.replace(/^Debito con /, '') : r.debt.n)}` : '', debt: r.debt ? 'Pagamento extra sul debito' : '', fondo: 'Nel fondo casa'}[w._dest] || '';
   $('#cl-body', w).innerHTML = `<h3 class="sh-title">${mn} si è chiuso</h3><p class="sh-sub">Nessun avanzo resta nelle voci: va al cuscinetto e poi all\u2019obiettivo del piano.</p>
     <div class="card tight" style="margin-bottom:12px"><div class="h-label">${r.net >= 0 ? 'Avanzati' : 'Sforato di'}</div><div class="gv num ${r.net >= 0 ? 'g' : 'r'}" style="font-size:34px;font-weight:850;letter-spacing:-.04em;margin:6px 0 4px">${eur(Math.abs(r.net))}</div>
       ${r.left.length ? `<div class="pills">${r.left.map(x => `<span>${esc(x.e)} ${esc(x.n)} ${eur0(x.a)}</span>`).join('')}</div>` : ''}
       ${r.overs.length ? `<div class="pills">${r.overs.map(x => `<span class="r">${esc(x.e)} ${esc(x.n)} −${eur0(x.a)}</span>`).join('')}</div>` : ''}
       ${r.miss ? `<div class="pills"><span class="r">❔ Spese non registrate −${eur0(r.miss)}</span></div>` : ''}</div>
-    <div class="card tight" style="margin-bottom:12px"><label class="fld" style="margin:0"><span>Saldo di «${esc(mainAcc())}» in banca, oggi</span><div class="amtin"><input id="cl-bank" inputmode="decimal" placeholder="${esc(nf2.format(r.app))}" value="${esc(w._bank || '')}"><b>€</b></div></label>
+    <div class="card tight" style="margin-bottom:12px"><label class="fld" style="margin:0"><span>Saldo in banca oggi</span><div class="amtin"><input id="cl-bank" inputmode="decimal" placeholder="${esc(nf2.format(r.app))}" value="${esc(w._bank || '')}"><b>€</b></div></label>
       <div class="muted" style="font-size:12.5px;margin-top:6px">${r.miss ? `In banca ci sono <b>${eur(r.miss)}</b> in meno che nell\u2019app: sono spese non registrate. Le registro e le tolgo dagli avanzi.` : r.gain ? `In banca ci sono <b>${eur(r.gain)}</b> in più che nell\u2019app: lo registro come entrata non registrata, senza contarlo negli avanzi.` : `Per l\u2019app sono ${eur(r.app)}. Scrivi quanto vedi nell\u2019app della banca: se c\u2019è meno, la differenza sono spese non registrate e la tolgo dagli avanzi.`}</div></div>
     ${r.left.some(x => x.l) ? `<div class="banner amber"><div class="ic">🧾</div><div><b>Controlla prima di confermare</b>${r.left.filter(x => x.l).map(x => esc(x.n)).join(', ')}: risultano non pagati, o pagati meno del previsto. Se li hai pagati ma non registrati, registrali e poi chiudi il mese, altrimenti finiscono negli avanzi.</div></div>` : ''}
     <div class="card tight">
-      ${r.net >= 0 ? `<div class="prow"><div class="bico" style="--c:#FFB547">🛟</div><div class="pl">Al cuscinetto<small>${c.bal >= c.target ? 'È già pieno' : `Arriva a ${eur0(c.bal + r.toC)} su ${eur0(c.target)} · resta sul conto corrente`}</small></div><div class="pv num">${eur(r.toC)}</div></div>
+      ${r.net >= 0 ? `<div class="prow"><div class="bico" style="--c:#FFB547">🛟</div><div class="pl">Al cuscinetto<small>${c.bal >= c.target ? 'È già pieno' : `Arriva a ${eur0(c.bal + r.toC)}`}</small></div><div class="pv num">${eur(r.toC)}</div></div>
         ${r.rest > 0 ? `<div class="prow" style="flex-wrap:wrap"><div class="bico" style="--c:#2EE59D">🎯</div><div class="pl">Il resto<small>${destNote}</small></div><div class="pv num">${eur(r.rest)}</div><div style="flex-basis:100%">${segHTML('cl-dest', destOpts, w._dest)}</div></div>` : ''}`
       : `<div class="prow"><div class="bico" style="--c:#FFB547">🛟</div><div class="pl">Il cuscinetto copre lo sforamento<small>Scende a ${eur0(c.bal - r.fromC)}</small></div><div class="pv num r">−${eur(r.fromC)}</div></div>
         ${-r.net > r.fromC + 0.009 ? `<div class="banner red" style="margin:8px 0 4px"><div class="ic">⚠️</div><div><b>Il cuscinetto non basta: mancano ${eur(-r.net - r.fromC)}</b>Questo mese stringi le voci flessibili.</div></div>` : ''}`}
@@ -3291,7 +3312,7 @@ function saldiBody() {
     const out = r2(mt.filter(t => (t.kind === 'out' && t.acc === a.n) || (t.kind === 'move' && t.acc === a.n)).reduce((s, t) => s + t.a, 0));
     const last = TX().filter(t => t.acc === a.n || t.to === a.n).sort((x, y) => y.d.localeCompare(x.d) || y.ts - x.ts).slice(0, 4);
     return `<div class="accard ${h ? 'hid' : ''}"><div class="acc" style="padding:0;cursor:default"><div class="bico" style="--c:${accColor(a.n)}">${accIcon(a.n)}</div><div><div class="an">${esc(a.n)}</div><div class="as">${h ? 'Nascosto: escluso dal totale' : 'Incluso nel totale'}</div></div>
-      <div class="av num" style="font-size:20px">${h ? '•••••' : eur(b)}</div><button class="eye" data-act="acc-hide" data-n="${esc(a.n)}" aria-label="${h ? 'Mostra' : 'Nascondi'}">${EYE(!h)}</button></div>
+      <div class="av num" style="font-size:18px">${h ? '•••••' : eur(b)}</div><button class="eye" data-act="acc-hide" data-n="${esc(a.n)}" aria-label="${h ? 'Mostra' : 'Nascondi'}">${EYE(!h)}</button></div>
       ${h ? '' : `<div class="mini"><div class="stat"><span>Entrato a ${MS[+ym.slice(5) - 1]}</span><b class="num g">${inn > 0.004 ? '+' : ''}${eur0(inn)}</b></div><div class="stat"><span>Uscito a ${MS[+ym.slice(5) - 1]}</span><b class="num">${out > 0.004 ? '−' : ''}${eur0(out)}</b></div></div>
       ${last.length ? last.map(t => { const inc = (t.kind === 'in' && t.acc === a.n) || (t.kind === 'move' && t.to === a.n); return `<div class="txr" data-act="edit-tx" data-id="${t.id}" style="padding:8px 2px"><div style="min-width:0"><div class="t1" style="font-size:14px">${esc(t.note || catName(t))}</div><div class="t2">${dateShort(t.d)}</div></div><div class="amt num ${inc ? 'g' : t.kind === 'move' ? 'v' : 'o'}" style="font-size:14px">${inc ? '+' : '−'}${eur(t.a)}</div></div>`; }).join('') : '<div class="muted" style="font-size:13px;padding:6px 2px">Nessun movimento ancora.</div>'}`}</div>`;
   }).join('');
@@ -3389,8 +3410,8 @@ function openShare() {
     <div id="sh-prev"></div>
     <button class="btn primary" data-act="share-save">Salva</button><button class="btn ghost" data-act="close-sheet">Annulla</button>`;
   const prev = () => { const nn = $('#sh-n', w).value.trim() || 'Quota personale', ff = parseAmt($('#sh-f', w).value) || 0, xx = parseAmt($('#sh-x', w).value) || 0, ex = (cfg().yearly || []).reduce((t, y) => t + (+y.a || 0), 0);
-    $('#sh-prev', w).innerHTML = `<div class="plan" style="margin:0 0 10px"><div class="pr"><span>Ogni mese, sulle entrate fisse (<span style="white-space:nowrap">${eur(incomeTotal())}</span>)</span><b class="num">${eur(r2(incomeTotal() * ff / 100))}</b></div><div class="ss">Diventa il budget intoccabile «${esc(nn)}» e il bonifico «Quota ${esc(nn)}».</div>
-      <div class="pr" style="margin-top:8px"><span>Su tredicesima e quattordicesima (<span style="white-space:nowrap">${eur(ex)}</span> l’anno)</span><b class="num">${eur(r2(ex * xx / 100))}</b></div><div class="ss">E sulle altre entrate extra: su <span style="white-space:nowrap">1.000,00 €</span> vanno <span style="white-space:nowrap">${eur(r2(10 * xx))}</span>.</div></div>`; };
+    $('#sh-prev', w).innerHTML = `<div class="plan" style="margin:0 0 10px"><div class="pr"><span>Al mese, su ${eur0(incomeTotal())}</span><b class="num">${eur(r2(incomeTotal() * ff / 100))}</b></div><div class="ss">Diventa il budget intoccabile «${esc(nn)}» e il bonifico «Quota ${esc(nn)}».</div>
+      <div class="pr" style="margin-top:8px"><span>Su 13ª e 14ª (${eur0(ex)} l’anno)</span><b class="num">${eur(r2(ex * xx / 100))}</b></div><div class="ss">E sulle altre entrate extra: su <span style="white-space:nowrap">1.000,00 €</span> vanno <span style="white-space:nowrap">${eur(r2(10 * xx))}</span>.</div></div>`; };
   w.addEventListener('input', prev); prev();
 }
 async function saveShare(w) {
@@ -3485,23 +3506,23 @@ async function saveVersa(w) {
 function openGoalEdit(id) {
   const g = cfg().goals.find(x => x.id === id); if (!g) return;
   const fund = g.type === 'fund', custom = fund && g.id !== 'casa';
-  const w = openSheet(`<h3 class="sh-title">${esc(g.n)}</h3><p class="sh-sub">${custom ? 'Il valore arriva dal conto collegato.' : fund ? 'Il saldo arriva in automatico dal conto Fondo casa.' : 'Aggiorna il residuo quando lo vedi nell\u2019app della banca.'}</p>
+  const w = openSheet(`<h3 class="sh-title ell">${esc(g.kind === 'person' ? g.n.replace(/^Debito con /, '🤝 ') : g.n)}</h3><p class="sh-sub">${custom ? 'Il valore arriva dal conto collegato.' : fund ? 'Il saldo arriva in automatico dal conto Fondo casa.' : 'Aggiorna il residuo quando lo vedi nell\u2019app della banca.'}</p>
     <label class="fld"><span>Nome</span><input id="ge-n" value="${esc(g.n)}"></label>${g.id === 'casa' ? '<p class="muted" style="font-size:12px;margin:-4px 0 10px">È il tuo obiettivo principale di risparmio: il nome che scegli compare in tutta l\u2019app.</p>' : ''}
     ${custom ? `<label class="fld"><span>Obiettivo (€)</span><input id="ge-target" inputmode="decimal" value="${g.target}"></label><label class="fld"><span>Conto collegato</span><select id="ge-acc">${accOpts(g.acc)}</select></label><label class="fld"><span>Quanto metti da parte al mese</span><input id="ge-monthly" inputmode="decimal" value="${g.monthly || 0}"></label>${debtPhase() && gPhase(g) === 'save' ? `<div class="fld"><span>Quando metti da parte</span>${segHTML('ge-when', [['after', 'Dopo i debiti'], ['parallel', 'Subito, in parallelo']], g.when || 'after')}</div>` : ''}<div class="row2"><label class="fld"><span>Dal (facoltativo)</span><input id="ge-from" type="date" value="${esc(g.from || '')}"></label><label class="fld"><span>Al (facoltativo)</span><input id="ge-to" type="date" value="${esc(g.to || '')}"></label></div>`
     : fund ? `<label class="fld"><span>Obiettivo (€)</span><input id="ge-target" inputmode="decimal" value="${g.target}"></label><label class="fld"><span>Interesse conto deposito (%)</span><input id="ge-rate" inputmode="decimal" value="${String(g.rate || 0).replace('.', ',')}"></label>`
-      : g.kind === 'person' ? `<div class="row2"><label class="fld"><span>Devi ancora (€)</span><input id="ge-cur" inputmode="decimal" value="${String(debtCur(g)).replace('.', ',')}"></label><label class="fld"><span>Restituisci entro (facoltativo)</span><input id="ge-plan" type="date" value="${esc(g.plan || '')}"></label></div><p class="muted" style="font-size:12.5px">Senza data l\u2019app calcola quando puoi restituirli.</p>`
-      : `<div class="row2"><label class="fld"><span>Debito residuo (€)</span><input id="ge-cur" inputmode="decimal" value="${String(debtCur(g)).replace('.', ',')}"></label><label class="fld"><span>Bonifico mensile (quello che versi)</span><input id="ge-rata" inputmode="decimal" value="${String(g.rata || 0).replace('.', ',')}"></label></div>
+      : g.kind === 'person' ? `<div class="row2"><label class="fld"><span>Devi ancora (€)</span><input id="ge-cur" inputmode="decimal" value="${String(debtCur(g)).replace('.', ',')}"></label><label class="fld"><span>Restituisci entro</span><input id="ge-plan" type="date" value="${esc(g.plan || '')}"></label></div><p class="muted" style="font-size:12.5px">Senza data l\u2019app calcola quando puoi restituirli.</p>`
+      : `<div class="row2"><label class="fld"><span>Debito residuo (€)</span><input id="ge-cur" inputmode="decimal" value="${String(debtCur(g)).replace('.', ',')}"></label><label class="fld"><span>Bonifico al mese</span><input id="ge-rata" inputmode="decimal" value="${String(g.rata || 0).replace('.', ',')}"></label></div>
          <div class="row2"><label class="fld"><span>Rata della banca</span><input id="ge-rataB" inputmode="decimal" value="${+g.rataB > 0 ? String(g.rataB).replace('.', ',') : ''}" placeholder="uguale al bonifico"></label><div class="fld"><span>&nbsp;</span><p class="muted" style="font-size:12.5px;margin:4px 0 0">Il budget usa il bonifico, il residuo scende della rata della banca.</p></div></div>
-         <div class="row2"><label class="fld"><span>TAEG (%)</span><input id="ge-taeg" inputmode="decimal" value="${String(rateOf(g)).replace('.', ',')}"></label><label class="fld"><span>Rata ricorrente collegata</span><select id="ge-rec"><option value="">Nessuna</option>${recs().filter(r => r.kind === 'out').map(r => `<option value="${esc(r.id)}" ${(linkedRec(cfg(), g) || {}).id === r.id ? 'selected' : ''}>${esc(r.n)} · ${eur(recAmount(r))}</option>`).join('')}</select></label></div>
+         <div class="row2"><label class="fld"><span>TAEG (%)</span><input id="ge-taeg" inputmode="decimal" value="${String(rateOf(g)).replace('.', ',')}"></label><label class="fld"><span>Rata collegata</span><select id="ge-rec"><option value="">Nessuna</option>${recs().filter(r => r.kind === 'out').map(r => `<option value="${esc(r.id)}" ${(linkedRec(cfg(), g) || {}).id === r.id ? 'selected' : ''}>${esc(r.n)} · ${eur(recAmount(r))}</option>`).join('')}</select></label></div>
          <div class="vrule">Niente extra mensili: paghi la rata, metti da parte e saldi tutto in un colpo. La data è quella che <b>desideri</b>: se non è fattibile l\u2019app ti propone quella possibile. Lasciala vuota e la calcola lei.</div>
-         <div class="row2"><label class="fld"><span>Data per saldare (facoltativa)</span><input id="ge-plan" type="date" value="${esc(g.plan || '')}"></label><label class="fld"><span>Importo per saldare (facoltativo)</span><input id="ge-target" inputmode="decimal" value="${g.target ? String(g.target).replace('.', ',') : ''}" placeholder="dalla banca"></label></div>`}
+         <div class="row2"><label class="fld"><span>Saldare entro</span><input id="ge-plan" type="date" value="${esc(g.plan || '')}"></label><label class="fld"><span>Importo per saldare</span><input id="ge-target" inputmode="decimal" value="${g.target ? String(g.target).replace('.', ',') : ''}" placeholder="dalla banca"></label></div>`}
     ${g.type === 'debt' ? `<label class="check" style="margin:4px 0 10px"><input type="checkbox" id="ge-fix"> <span><b>È una correzione</b>: l\u2019importo che avevo scritto era sbagliato (non ho pagato niente). Il nuovo importo diventa quello di partenza.</span></label>` : ''}
     <button class="btn primary" data-act="ge-save" data-id="${g.id}">Salva</button>${g.id !== 'casa' ? `<button class="btn danger" data-act="ge-del" data-id="${esc(g.id)}">Elimina obiettivo</button>` : ''}`);
 }
 function openGoalNew(pre) { const w = openSheet('<div id="ng-body"></div>'); w._g = Object.assign({type: 'fund', n: '', target: '', monthly: '', acc: '__new', cur: '', rata: '', extra: '', cat: 'finanz', obj: '', by: ''}, pre || {}); if (pre) drawGoalNew(w); else drawGoalKind(w); }
 function drawGoalKind(w) {
   $('#ng-body', w).innerHTML = `<h3 class="sh-title">Nuovo obiettivo</h3><p class="sh-sub">Che cosa è? Poi l’app ti chiede qual è l’obiettivo e ti fa vedere i numeri.</p>
-    <div class="mtiles">${[['mort', '🏠', 'Mutuo', 'con il piano della banca: rata, tasso, durata'], ['debt', '🏛️', 'Finanziamento o prestito', 'con la banca o una finanziaria'], ['carta', '💳', 'Carta di credito', 'un debito da chiudere a rate'], ['person', '🤝', 'Debito con una persona', 'soldi che devi restituire'], ['fund', '🎯', 'Risparmio', 'una cifra da mettere da parte']].map(([v, e, t, sb]) => `<button class="mtile" data-act="ng-kind" data-v="${v}"><span class="e">${e}</span><b>${t}</b><small>${sb}</small></button>`).join('')}</div>
+    <div class="mtiles">${[['mort', '🏠', 'Mutuo', 'rata, tasso, durata'], ['debt', '🏛️', 'Finanziamento o prestito', 'con la banca o una finanziaria'], ['carta', '💳', 'Carta di credito', 'un debito da chiudere a rate'], ['person', '🤝', 'Debito con una persona', 'soldi che devi restituire'], ['fund', '🎯', 'Risparmio', 'una cifra da mettere da parte']].map(([v, e, t, sb]) => `<button class="mtile" data-act="ng-kind" data-v="${v}"><span class="e">${e}</span><b>${t}</b><small>${sb}</small></button>`).join('')}</div>
     <button class="btn ghost" data-act="close-sheet">Annulla</button>`;
 }
 function drawGoalNew(w) {
@@ -4039,12 +4060,12 @@ function flagsHTML(pid) { const f = personFlags(pid, false); return (f.often ? '
 function loansRowHTML() {
   if (S.preview) return '';
   const tot = loansTotal(), n = peopleL().filter(x => personBal(x.id) > 0.009).length, ow = oweTotal();
-  return `<div class="acc" data-act="loans"><div class="bico" style="--c:#FF9F43">🤝</div><div style="min-width:0"><div class="an">Soldi prestati</div><div class="as">${n ? `${n} ${n > 1 ? 'persone' : 'persona'} · fuori dal totale` : ow ? 'Nessuno ti deve soldi' : 'Nessuno · tocca per aggiungere'}${ow ? ` · <span class="a">tu devi ${eur0(ow)}</span>` : ''}</div></div><div class="av num">${eur(tot)}</div><span class="chev" style="width:38px;text-align:center">›</span></div>`;
+  return `<div class="acc" data-act="loans"><div class="bico" style="--c:#FF9F43">🤝</div><div style="min-width:0"><div class="an">Soldi prestati</div><div class="as">${n ? `${n} ${n > 1 ? 'persone' : 'persona'} · fuori dal totale` : ow ? 'Nessuno ti deve soldi' : 'Nessuno · tocca per aggiungere'}</div>${ow ? `<div class="as"><span class="a">tu devi ${eur0(ow)}</span></div>` : ''}</div><div class="av num">${eur(tot)}</div><span class="chev" style="width:38px;text-align:center">›</span></div>`;
 }
 function openLoans() {
   const L = peopleL().map(x => ({x, b: personBal(x.id), o: personOwe(x.id)})).sort((a, b) => (b.b + b.o) - (a.b + a.o));
   const w = openSheet(`<h3 class="sh-title">🤝 Soldi prestati</h3><p class="sh-sub">Da rientrare: <b>${eur(loansTotal())}</b>${oweTotal() ? ` · tu devi <b class="a">${eur(oweTotal())}</b>` : ''}. Quando qualcuno rende, i soldi vanno ai debiti e le date si avvicinano.</p>
-    <div class="card tight">${L.length ? L.map(({x, b, o}) => `<div class="lrow" data-act="loan-person" data-id="${esc(x.id)}"><div class="bico" style="--c:#FF9F43">${esc((x.n.trim()[0] || '?').toUpperCase())}</div><div style="min-width:0;flex:1"><div class="t1" style="font-weight:650">${esc(x.n)}</div><div>${flagsHTML(x.id)}${x.exp && b > 0.009 ? `<span class="t2" style="font-size:11.5px">rientro previsto ${dateShort(x.exp)}</span>` : ''}</div></div><div style="text-align:right">${b > 0.009 || !o ? `<div class="t2" style="font-size:11.5px">${b > 0.009 ? 'ti deve' : 'in pari'}</div><div class="num ${b > 0.009 ? 'g' : ''}" style="font-weight:750">${eur(Math.max(0, b))}</div>` : ''}${o ? `<div class="t2" style="font-size:11.5px">gli devi</div><div class="num a" style="font-weight:750">${eur(o)}</div>` : ''}</div></div>`).join('') : '<div class="empty" style="padding:18px">Nessun prestito registrato.</div>'}</div>
+    <div class="card tight">${L.length ? L.map(({x, b, o}) => `<div class="lrow" data-act="loan-person" data-id="${esc(x.id)}"><div class="bico" style="--c:#FF9F43">${esc((x.n.trim()[0] || '?').toUpperCase())}</div><div style="min-width:0;flex:1"><div class="t1 ell" style="font-weight:650">${esc(x.n)}</div><div>${flagsHTML(x.id)}${x.exp && b > 0.009 ? `<span class="t2" style="font-size:11.5px">rientro previsto ${dateShort(x.exp)}</span>` : ''}</div></div><div style="text-align:right">${b > 0.009 || !o ? `<div class="t2" style="font-size:11.5px">${b > 0.009 ? 'ti deve' : 'in pari'}</div><div class="num ${b > 0.009 ? 'g' : ''}" style="font-weight:750">${eur(Math.max(0, b))}</div>` : ''}${o ? `<div class="t2" style="font-size:11.5px">gli devi</div><div class="num a" style="font-weight:750">${eur(o)}</div>` : ''}</div></div>`).join('') : '<div class="empty" style="padding:18px">Nessun prestito registrato.</div>'}</div>
     <button class="btn primary" data-act="loan-add">＋ Aggiungi prestito</button>`);
   w.dataset.loans = '1';
 }
@@ -4754,7 +4775,7 @@ function mNextInst(g) {
 function mAccRowHTML() {
   if (S.preview) return '';
   return morts().filter(g => mRec(g) && mState(g, curYM()).res > 0.005).map(g => { const v = mAcc(g, today()), nx = mNextInst(g);
-    return `<div class="acc" data-act="mg-upd" data-id="${esc(g.id)}"><div class="bico" style="--c:#7C8CFF">🏠</div><div style="min-width:0"><div class="an">Conto del ${esc(g.n.toLowerCase())}</div><div class="as">per le rate · fuori dal totale${nx ? ` · la banca preleva ${eur(nx.a)} il ${dm(nx.d)}` : ''}</div></div><div class="av num"><span class="${v < -0.005 ? 'r' : ''}">${eur(v)}</span></div><span class="chev" style="width:38px;text-align:center">›</span></div>`; }).join('');
+    return `<div class="acc" data-act="mg-upd" data-id="${esc(g.id)}"><div class="bico" style="--c:#7C8CFF">🏠</div><div style="min-width:0"><div class="an">Conto del ${esc(g.n.toLowerCase())}</div><div class="as">per le rate · fuori dal totale</div>${nx ? `<div class="as">preleva ${eur(nx.a)} il ${dm(nx.d)}</div>` : ''}</div><div class="av num"><span class="${v < -0.005 ? 'r' : ''}">${eur(v)}</span></div><span class="chev" style="width:38px;text-align:center">›</span></div>`; }).join('');
 }
 // interessi tolta la detrazione prima casa: 19% degli interessi pagati nell'anno, fino a 4.000 € di interessi
 function mRegime(g, b, m) { const L = (Array.isArray(g.pts) ? g.pts : []).filter(p => p.ym > m).sort((a, c) => a.ym.localeCompare(c.ym)), at = L.length ? L[L.length - 1].ym : addMonths(m, 1); return {now: (b.m[addMonths(m, 1)] || {}).rata || 0, reg: (b.m[at] || {}).rata || 0, at: L.length ? at : ''}; }
@@ -4999,11 +5020,11 @@ function mortCardHTML(g, i) {
     <div class="gv num">${eur(st.res)} <small class="m" style="font-size:14px;font-weight:600">residuo</small></div>
     ${cap0 > 0 ? `<div class="gbar"><i style="width:${r2(pct * 100)}%;background:linear-gradient(90deg,#7C8CFF,#2EE59D)"></i></div><div class="gd"><span>Restituiti ${eur(paid)} di ${eur(cap0)}</span><span>${String(Math.round(pct * 1000) / 10).replace('.', ',')}%</span></div>` : ''}
     <div class="plan"><div class="ph" style="display:flex;justify-content:space-between;gap:10px"><span>Rata di oggi</span><span class="num">${eur(nb ? nb.pay : st.rata)}</span></div>
-      ${pt ? `<div class="pr"><span>Da ${ymLabel(pt.ym).toLowerCase()} (dal piano della banca)</span><b class="num">${eur(pt.a)}</b></div>` : ''}
+      ${pt ? `<div class="pr"><span>Da ${ymLabel(pt.ym).toLowerCase()} (piano banca)</span><b class="num">${eur(pt.a)}</b></div>` : ''}
       ${g.var && g.recMM ? `<div class="pr"><span>Tasso variabile: la banca ricalcola a</span><b>${MONTHS[+g.recMM - 1].toLowerCase()}</b></div>` : ''}
       ${rec ? `<div class="pr"><span>Bonifico che fai (${esc(rec.n)})</span><b class="num">${eur(rec.a)}</b></div><div class="pr"><span>Sul conto del mutuo ora${mNextInst(g) ? ` · rata il ${dm(mNextInst(g).d)}` : ''}</span><b class="num">${eur(mAcc(g, today()))}</b></div>` : ''}
       ${i1 > 0 ? `<div class="pr"><span>Interessi nel ${y1}</span><b class="num">${eur(i1)}</b></div>` : ''}
-      ${g.prima && i1 > 0 ? `<div class="pr"><span>Detrazione prima casa nel ${y1} (19%)</span><b class="num g">+${eur(mDed(g, i1))}</b></div>` : ''}
+      ${g.prima && i1 > 0 ? `<div class="pr"><span>Detrazione 19% (${y1})</span><b class="num g">+${eur(mDed(g, i1))}</b></div>` : ''}
       <div class="pr"><span>Interessi da qui alla fine</span><b class="num">${eur(b.int)}</b></div></div>
     ${strat}
     <div class="row2" style="margin-top:6px">${f ? `<button class="btn primary" data-act="mg-cmp" data-id="${esc(g.id)}">Altre scelte</button>` : '<span></span>'}<button class="btn" data-act="mg-upd" data-id="${esc(g.id)}">Aggiorna dati</button></div></div>`;
@@ -5075,7 +5096,7 @@ function mHistHTML(g) {
   if (!L.length) return '';
   const line = h => {
     const ic = h.k === 'choice' ? '🧭' : h.k === 'pay' ? '💶' : h.k === 'rate' ? '🔄' : h.k === 'load' ? '📄' : '✏️';
-    const t = h.k === 'choice' ? `Scelta «${esc(h.t)}»<small>allora prevedeva: fondo casa ${mYm(h.out.hit)} · fine mutuo ${mYm(h.out.end)}${h.out.n ? ` · rata ${eur(h.out.rataF)}` : ''}</small>`
+    const t = h.k === 'choice' ? `Scelta «${esc(h.t)}»<small>fondo casa ${mYm(h.out.hit)} · fine ${mYm(h.out.end)}</small>`
       : h.k === 'pay' ? `Versamento extra ${eur(h.a)}<small>${h.dur ? 'la banca accorcia la durata' : 'la banca abbassa la rata'}</small>`
       : h.k === 'rate' ? `Tasso ${pctTxt(h.t0)} → ${pctTxt(h.t1)} · rata ${eur(h.r0)} → ${eur(h.r1)}<small>dal ${ymShort(h.ym)}</small>`
       : esc(h.txt || 'Dati corretti');
@@ -5102,7 +5123,7 @@ function mChangedHTML(g) {
   if (Math.abs(o.rataF - r.rataF) > 0.5 && (o.n || r.pre.length)) R('Rata finale', eurR(o.rataF), eurR(r.rataF), r.rataF < o.rataF);
   if (Math.abs(o.int - r.intNet) > 1) R('Interessi', eurR(o.int), eurR(r.intNet), r.intNet < o.int);
   if (Math.abs(o.worth - r.worth) > 1) R(`In tasca ${ymShort(o.hz)}`, eurR(o.worth), eurR(r.worth), r.worth > o.worth);
-  const head = `<div class="ms-head" style="margin-bottom:4px">🔍 Cosa è cambiato da quando hai scelto <b>«${esc(h.t)}»</b> (${ilD(h.d)})</div>`;
+  const head = `<div class="ms-head" style="margin-bottom:4px">🔍 Cosa è cambiato dal ${dm(h.d)}</div>`;
   const th = `<div class="ms-r ms-r3 ms-hd"><span></span><span>Allora</span><span>Oggi</span></div>`;
   if (!why.length && !res.length) return `<div class="plan" style="margin:0 0 12px">${head}<div class="ms-how g">Niente: tutto come previsto.</div></div>`;
   return `<div class="plan" style="margin:0 0 12px">${head}<div class="mchg">${why.length ? `<div><div class="ms-cap" style="margin-top:8px">Nei tuoi dati</div>${th}${why.join('')}</div>` : ''}${res.length ? `<div><div class="ms-cap" style="margin-top:8px">Nel risultato</div>${th}${res.join('')}</div>` : '<div class="ms-how g">Il risultato non cambia.</div>'}</div></div>`;
@@ -5240,9 +5261,9 @@ function openMortUpd(id) {
   const g = cfg().goals.find(x => x.id === id); if (!g) return;
   const st = mState(g, mPaidYM(g)), open = st.res > 0.005;
   openSheet(`<h3 class="sh-title">🏠 ${esc(g.n)}</h3><p class="sh-sub">Residuo ${eur(st.res)} · tasso ${pctTxt(g.tasso)}. Cosa è cambiato?</p>
-    ${open ? `<button class="mtile" data-act="mg-rate" data-id="${esc(g.id)}" data-from="menu"><span class="e">🔄</span><b>La banca ha cambiato tasso o rata</b><small>per esempio al ricalcolo di ${g.recMM ? MONTHS[+g.recMM - 1].toLowerCase() : 'ogni anno'}</small></button>
-    <button class="mtile" data-act="mg-pay" data-id="${esc(g.id)}" data-from="menu" style="margin-top:8px"><span class="e">💶</span><b>Ho versato un extra sul mutuo</b><small>rimborso parziale: abbassa la rata o accorcia la durata</small></button>` : ''}
-    <button class="mtile" data-act="mg-edit" data-id="${esc(g.id)}" data-from="menu" style="margin-top:8px"><span class="e">✏️</span><b>Correggi i dati</b><small>residuo, rata, tasso, ultima rata, prima casa</small></button>
+    ${open ? `<button class="mtile" data-act="mg-rate" data-id="${esc(g.id)}" data-from="menu"><span class="e">🔄</span><b>Cambiano tasso o rata</b><small>per esempio al ricalcolo di ${g.recMM ? MONTHS[+g.recMM - 1].toLowerCase() : 'ogni anno'}</small></button>
+    <button class="mtile" data-act="mg-pay" data-id="${esc(g.id)}" data-from="menu" style="margin-top:8px"><span class="e">💶</span><b>Ho versato un extra sul mutuo</b><small>abbassa la rata o accorcia la durata</small></button>` : ''}
+    <button class="mtile" data-act="mg-edit" data-id="${esc(g.id)}" data-from="menu" style="margin-top:8px"><span class="e">✏️</span><b>Correggi i dati</b><small>residuo, rata, tasso</small></button>
     ${g.sid ? `<button class="mtile" data-act="mg-obj" data-id="${esc(g.id)}" data-from="menu" style="margin-top:8px"><span class="e">🎯</span><b>Cambia obiettivo</b><small>adesso: ${mObjName(g.obj || mObjOf(g.sid))}</small></button>` : ''}
     ${mHistHTML(g)}
     <button class="btn danger" data-act="mg-del" data-id="${esc(g.id)}">Elimina il mutuo dall’app</button><button class="btn ghost" data-act="close-sheet">Chiudi</button>`);
@@ -5544,14 +5565,14 @@ function sitChartHTML(P, x) {
   const sw = (c, k) => `<span><i class="sitsw" style="background:${c}"></i>${k}</span>`;
   const p0 = P[0], pe = P[n - 1], d = r2(NW(pe) - NW(p0));
   const why = [['Mutuo restituito', `${eur(p0.mutuo)} → ${eur(pe.mutuo)}`, r2(p0.mutuo - pe.mutuo)], ['Fondo casa', `${eur(p0.fondo)} → ${eur(pe.fondo)}`, r2(pe.fondo - p0.fondo)], ['Debiti chiusi', `${eur(p0.debt)} → ${eur(pe.debt)}`, r2(p0.debt - pe.debt)],
-    ['Conti', `${eur(p0.conti)} → ${eur(pe.conti)}${pe.conti < p0.conti && p0.debt > pe.debt ? ': i soldi da parte servono a chiudere i debiti' : ''}`, r2(pe.conti - p0.conti)], ['Conto del mutuo', `${eur(p0.mconto)} → ${eur(pe.mconto)}`, r2(pe.mconto - p0.mconto)], ['Soldi prestati', `${eur(p0.cred)} → ${eur(pe.cred)}`, r2(pe.cred - p0.cred)]]
+    ['Conti', `${eur(p0.conti)} → ${eur(pe.conti)}`, r2(pe.conti - p0.conti)], ['Conto del mutuo', `${eur(p0.mconto)} → ${eur(pe.mconto)}`, r2(pe.mconto - p0.mconto)], ['Soldi prestati', `${eur(p0.cred)} → ${eur(pe.cred)}`, r2(pe.cred - p0.cred)]]
     .filter(w => Math.abs(w[2]) >= 0.5).sort((a, c) => Math.abs(c[2]) - Math.abs(a[2]));
   const lr = longRun();
   return `<div class="plan" style="margin-top:14px"><div class="ph"><span>Cosa hai, cosa devi</span></div><div class="ss" style="margin:2px 0 8px">Seguendo il piano${lr.gm ? ` e la strada «${esc(mTitle(lr.fam, lr.sp))}»` : ''}${assetsTot() > 0 ? ' · beni a valore costante' : ''}. Sopra lo zero quello che hai, sotto quello che devi, il punto blu è la differenza. Un punto all’anno, a ${MONTHS[+curYM().slice(5) - 1].toLowerCase()}.</div>
     ${h}<div class="sitleg">${wh ? sw(SITC.casa, 'Immobili') : ''}${otherTot() > 0 ? sw(SITC.beni, 'Altri beni') : ''}${sw(SITC.soldi, 'Soldi')}${morts().length ? sw(SITC.mutuo, 'Mutuo') : ''}${sw('url(#)', 'Altri debiti').replace('url(#)', `${SITC.debt};background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 2px,transparent 2px 4px)`)}${sw(SITC.nw, 'Patrimonio netto')}</div>
     <div class="ss" style="margin:6px 0 4px">Tocca un anno per vedere i numeri.</div>
     <div id="sit-yd" class="sityd">${sitYearHTML(p0, 0, n)}</div></div>
-    ${why.length ? `<div class="plan"><div class="ph"><span>Perché ${d >= 0 ? 'sale' : 'scende'} di ${eur(Math.abs(d))} in 10 anni</span></div>${why.map(w => `<div class="pr"><span>${w[0]} (${w[1]})</span><b class="num">${w[2] >= 0 ? '+' : '−'}${eur(Math.abs(w[2]))}</b></div>`).join('')}</div>` : ''}`;
+    ${why.length ? `<div class="plan"><div class="ph"><span>Perché ${d >= 0 ? 'sale' : 'scende'} di ${eur(Math.abs(d))} in 10 anni</span></div>${why.map(w => `<div class="pr"><span>${w[0]}<small>${w[1]}</small></span><b class="num">${w[2] >= 0 ? '+' : '−'}${eur(Math.abs(w[2]))}</b></div>`).join('')}</div>` : ''}`;
 }
 function openSit() {
   const x = sitNow(), L = SIT_LV[x.lv - 1], fg = cfg().goals.find(g => g.id === 'casa'), T = sitTh();
@@ -5566,11 +5587,11 @@ function openSit() {
   ].join('');
   const ev = x.fut.ev.slice(0, 4);
   const nxObb = e => { const i = x.fut.months.findIndex(m => m.ym === e.ym), n = x.fut.months[i + 1]; return n ? n.obb : e.obb; };
-  const evH = ev.map(e => `<div class="sitev"><span>${ymShort(e.ym)}</span><div>${e.closed.length ? `chiusi: ${e.closed.map(esc).join(', ')} · ` : ''}${esc(e.short)} → <b style="color:${SIT_LV[e.lv - 1][1]}">livello ${e.lv}</b>${e.lv < e.from && e.reserveM < T.v2 ? `<small>Per restare al livello ${e.from} servono altri ${eur(r2(Math.max(0, T.v2 * nxObb(e) - e.reserve)))} di riserva: ${mesiTh(T.v2)} di spese obbligate ${T.v2 === 1 ? 'è' : 'sono'} ${eur(r2(T.v2 * nxObb(e)))}.</small>` : ''}</div></div>`).join('');
+  const evH = ev.map(e => `<div class="sitev"><span>${ymShort(e.ym)}</span><div style="min-width:0"><div class="ell">→ <b style="color:${SIT_LV[e.lv - 1][1]}">livello ${e.lv} · ${SIT_LV[e.lv - 1][0]}</b></div>${e.closed.length ? `<small class="m ell" style="display:block">chiusi: ${e.closed.map(n => esc(n.replace(/^Debito con /, ''))).join(', ')}</small>` : ''}<small class="m ell" style="display:block">${esc(e.short)}</small>${e.lv < e.from && e.reserveM < T.v2 ? `<small class="a ell" style="display:block">per il livello ${e.from} mancano ${eur0(r2(Math.max(0, T.v2 * nxObb(e) - e.reserve)))}</small>` : ''}</div></div>`).join('');
   const after = x.dEnd && x.dEnd < '9999' ? x.fut.months.find(m => m.ym > x.dEnd && m.cdebt <= 0.5) : null, miss = after && after.lv < 4 ? sitMiss4(after) : null, SP = sitSeries();
   openSheet(`<h3 class="sh-title">📊 La tua situazione</h3><p class="sh-sub">Dati ${alD(today())} · ${sitCustom() ? 'soglie personalizzate (Impostazioni → Soglie dei livelli)' : 'regole fisse, uguali per tutti'}. Niente giudizi: numeri e soglie.</p>
     <div class="h-label">Livello ${x.lv} di 5</div><div class="sitn" style="font-size:28px;margin:2px 0 10px">${L[0]}</div>${sitBarHTML(x.lv, 8)}
-    <div class="sitlab">${SIT_LV.map((l, i) => `<span ${i + 1 === x.lv ? 'class="on"' : ''}>${l[0]}</span>`).join('')}</div>
+    <div class="sitlab">${SIT_LV.map((l, i) => `<span ${i + 1 === x.lv ? 'class="on"' : ''}>${i + 1}</span>`).join('')}</div>
     <div class="vrule" style="margin:12px 0 6px">${esc(x.why)}</div>
     <div class="sitrows">${rows}</div>
     <div class="plan"><div class="ph"><span>Cosa cambia il livello, seguendo il piano</span></div>${evH || `<div class="pv g" style="font-size:13px">Nei prossimi 5 anni resti al livello ${x.lv}.</div>`}
@@ -5614,7 +5635,7 @@ function assetSub(a) {
   if (k === 'oro') {
     const g = goldG(a), paid = goldPaid(a), q = goldQuote(a), gs = `${nf2.format(g).replace(/,00$/, '')} g`;
     if (!paid) return `${gs} · <span class="a">quanto l\u2019hai pagato? ›</span>`;
-    if (!q) return `${gs} · pagato in media ${eurR(paid / (g || 1))}/g`;
+    if (!q) return `${gs} · media ${eurR(paid / (g || 1))}/g`;
     const d = r2(goldQVal(a) - paid);
     return `${gs} · <span class="${d >= 0 ? 'g' : 'r'}">${d >= 0 ? '+' : '−'}${eurR(Math.abs(d))} se vendi</span>${q.d ? ' · offerta ' + dm(q.d) : ''}`;
   }
@@ -5970,7 +5991,7 @@ function openStress() {
   const need3 = r2(Math.max(0, essT * 3 - liquid));
   openSheet(`<h3 class="sh-title">🧯 Se perdo il lavoro</h3><p class="sh-sub">Quanto reggi se da domani non entra più niente, pagando solo l’indispensabile.</p>
     <div style="text-align:center;margin:10px 0 14px"><div class="num" style="font-size:44px;font-weight:900;color:${lv[0]}">${essT > 0 ? `${mm} ${mm === 1 ? 'mese' : 'mesi'}` : '—'}</div><div class="muted">${essT > 0 && dd ? `e ${dd} giorni · ` : ''}${lv[1]}</div></div>
-    <div class="card tight" style="margin:0"><div class="pr" style="display:flex;justify-content:space-between;padding:7px 2px"><span>Soldi disponibili (${esc(freeAccs.map(a => a.n).join(', '))})</span><b class="num">${eur(liquid)}</b></div>${goalMoney > 0.5 ? `<div class="pr muted" style="display:flex;justify-content:space-between;padding:3px 2px 3px 14px;font-size:13px"><span>In più ${esc(goalAccs.map(a => a.n).join(', '))}, solo in caso estremo</span><span class="num">${eur(goalMoney)} → ${essT > 0 ? Math.floor((liquid + goalMoney) / essT) + ' mesi' : '—'}</span></div>` : ''}
+    <div class="card tight" style="margin:0"><div class="pr" style="display:flex;justify-content:space-between;padding:7px 2px"><span>Soldi disponibili</span><b class="num">${eur(liquid)}</b></div>${goalMoney > 0.5 ? `<div class="pr muted" style="display:flex;justify-content:space-between;padding:3px 2px 3px 14px;font-size:13px"><span>In più ${esc(goalAccs.map(a => a.n).join(', '))}, solo in caso estremo</span><span class="num">${eur(goalMoney)} → ${essT > 0 ? Math.floor((liquid + goalMoney) / essT) + ' mesi' : '—'}</span></div>` : ''}
     <div class="pr" style="display:flex;justify-content:space-between;padding:7px 2px"><span>Spese indispensabili al mese</span><b class="num">${eur(essT)}</b></div>
     ${ess.map(b => `<div class="pr muted" style="display:flex;justify-content:space-between;padding:3px 2px 3px 14px;font-size:13px"><span>${esc(b.e)} ${esc(b.n)}</span><span class="num">${eur(baseOf(b))}</span></div>`).join('')}${annualQuota() ? `<div class="pr muted" style="display:flex;justify-content:space-between;padding:3px 2px 3px 14px;font-size:13px"><span>📆 Quota spese annuali</span><span class="num">${eur(annualQuota())}</span></div>` : ''}</div>
     <div class="muted" style="font-size:12.5px;margin:8px 2px 0">Nella scheda “La tua situazione” la <b>riserva</b> conta solo il cuscinetto: per questo lì il numero è più basso.</div>
@@ -6021,7 +6042,7 @@ function challengesCardHTML() {
   const st = chState(), wins = ((S.real.state || {}).chWins) || 0;
   return `<div class="card goal"><div class="top"><div><div class="gt">🏆 Sfide</div><div class="gs">Piccole sfide per spendere meno. ${wins ? `Vinte finora: <b>${wins}</b>` : 'Prova la prima!'}</div></div></div>
     ${CHALLENGES.map(ch => { const x = chStatus(ch, st[ch.id]);
-      if (!x) return `<div class="setrow" style="cursor:default"><span>${ch.e} ${esc(ch.t)}<br><small>${esc(ch.d)}</small></span><button class="btn sm" data-act="ch-start" data-id="${ch.id}">Inizia</button></div>`;
+      if (!x) return `<div class="setrow" style="cursor:default"><span style="min-width:0"><span class="ell" style="display:block">${ch.e} ${esc(ch.t)}</span><small>${esc(ch.d)}</small></span><button class="btn sm" data-act="ch-start" data-id="${ch.id}">Inizia</button></div>`;
       const pct = Math.min(1, x.days / ch.days), col = x.s === 'lost' ? '#FF6B8A' : x.s === 'won' ? '#2EE59D' : '#F6C744';
       return `<div style="padding:8px 2px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${ch.e} <b>${esc(ch.t)}</b><br><small class="m">${x.s === 'won' ? 'Vinta! 🎉' : x.s === 'lost' ? `Persa al giorno ${x.days + 1}: ${esc(x.by.note || 'una spesa')} ${eur(x.by.a)}` : `Giorno ${x.days} di ${ch.days}`}</small></span>${x.s === 'run' ? `<button class="btn sm ghost" data-act="ch-stop" data-id="${ch.id}">Lascia</button>` : `<button class="btn sm ${x.s === 'won' ? 'primary' : ''}" data-act="ch-start" data-id="${ch.id}" data-won="${x.s === 'won' ? 1 : 0}">${x.s === 'won' ? 'Rifalla' : 'Riprova'}</button>`}</div>
         <div style="height:6px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden"><div style="height:100%;width:${(pct * 100).toFixed(0)}%;background:${col};border-radius:6px;transition:width .6s"></div></div></div>`; }).join('')}</div>`;
@@ -6045,7 +6066,7 @@ function spendDonutHTML() {
 }
 function bilToolsHTML() {
   return `<div class="card tight" style="--i:0"><div class="setrow" data-act="stress"><span>🧯 Se perdo il lavoro<br><small>Quanti mesi reggi con i soldi che hai</small></span><span class="chev">›</span></div>
-    <div class="setrow" data-act="subs"><span>🔎 Caccia agli abbonamenti<br><small>Quanto ti costano in un anno i pagamenti automatici</small></span><span class="chev">›</span></div>
+    <div class="setrow" data-act="subs"><span>🔎 Caccia agli abbonamenti<br><small>Quanto costano in un anno</small></span><span class="chev">›</span></div>
     <div class="setrow" data-act="report"><span>📄 Resoconto del mese<br><small>Com’è andata, da condividere o stampare</small></span><span class="chev">›</span></div></div>`;
 }
 
@@ -6273,27 +6294,52 @@ function reportData(ym) {
   const byWho = hasPartner() ? people().map(p => ({p, out: r2(L.filter(t => t.kind === 'out' && whoOf(t) === p).reduce((s, t) => s + t.a, 0))})) : [];
   const toFund = r2(L.filter(t => t.kind === 'move' && (t.to === 'Fondo casa' || accUse(t.to).goal)).reduce((s, t) => s + t.a, 0));
   const debtPaid = r2(L.filter(t => t.kind === 'out' && (t.goal || ['finanz', 'carta', 'mutuo'].includes(t.cat))).reduce((s, t) => s + t.a, 0));
-  return {ym, inc, out, pOut, net: r2(inc - out), over, under, top, byWho, toFund, debtPaid, n: L.length};
+  const debtCats = new Set(['finanz', 'carta', 'mutuo'].concat(cfg().goals.filter(g => (g.type === 'debt' || g.type === 'mortgage') && g.cat).map(g => g.cat)));
+  const O = L.filter(t => t.kind === 'out'), grp = {debt: 0, fixed: 0, voci: 0, oblig: 0, loan: 0, goal: 0};
+  for (const t of O) {
+    const k = t.goal || debtCats.has(t.cat) ? 'debt' : t.pid && !t.rec ? 'loan' : t.cat === 'straord' || t.src === 'straord' ? 'oblig' : t.cat === 'obj' || t.og ? 'goal' : t.rec || (bud(t.cat) || {}).bills || (bud(t.cat) || {}).pct ? 'fixed' : 'voci';
+    grp[k] = r2(grp[k] + t.a);
+  }
+  const loans = O.filter(t => t.pid && !t.rec && !t.goal);
+  const big = O.filter(t => !t.rec && !t.goal && !debtCats.has(t.cat)).sort((p, q) => q.a - p.a)[0] || null;
+  for (const o of over) { const T = L.filter(t => t.kind === 'out' && !t.xb && bud(t.cat) && bud(t.cat).n === o.n).sort((p, q) => q.a - p.a); o.cause = T[0] || null; }
+  return {ym, inc, out, pOut, net: r2(inc - out), over, under, top, byWho, toFund, debtPaid, n: L.length, grp, loans, big};
+}
+function reportHead(r) {
+  const mn = MONTHS[+r.ym.slice(5) - 1].toLowerCase(), cur = r.ym === curYM();
+  const main = r.net >= 0 ? `A ${mn}${cur ? ' (finora)' : ''} sono entrati ${eur(r.net)} più di quelli usciti.` : `A ${mn}${cur ? ' (finora)' : ''} sono usciti ${eur(-r.net)} più di quelli entrati.`;
+  const b = r.big; let why = '';
+  if (r.net < 0 && b && b.a >= -r.net * 0.3) why = b.pid && !b.rec ? ` Soprattutto per il prestito a ${(personOf(b.pid) || {}).n || ''} (${eur(b.a)}, tornerà).` : ` Soprattutto per «${b.note || catName(b)}» (${eur(b.a)}).`;
+  return main + why;
+}
+function reportRows(r) {
+  const g = r.grp;
+  return [['💶 Entrate', r.inc, 'g', ''], ['🏛️ Rate e debiti', -g.debt, '', ''], ['🔁 Pagamenti fissi', -g.fixed, '', 'bollette, abbonamenti, quote'], ['🛒 Spese nelle voci', -g.voci, '', ''], ['🧾 Spese obbligate', -g.oblig, '', 'pagate dal cuscinetto'], ['🎯 Spese sugli obiettivi', -g.goal, '', 'dal salvadanaio'], ['🤝 Prestiti fatti', -g.loan, '', 'torneranno']].filter(x => Math.abs(x[1]) > 0.004 || x[0].startsWith('💶'));
 }
 function reportText(r) {
-  const l = [`Future · resoconto di ${ymLabel(r.ym).toLowerCase()}`, `Entrate ${eur(r.inc)} · Uscite ${eur(r.out)} · ${r.net >= 0 ? 'Avanzano' : 'Mancano'} ${eur(Math.abs(r.net))}`];
-  if (r.debtPaid) l.push(`Ai debiti: ${eur(r.debtPaid)}`); if (r.toFund) l.push(`Messi da parte: ${eur(r.toFund)}`);
+  const l = [`Future · resoconto di ${ymLabel(r.ym).toLowerCase()}`, reportHead(r)];
+  for (const [k, v] of reportRows(r)) l.push(`${k.replace(/^\S+ /, '')}: ${v >= 0 ? '+' : '−'}${eur(Math.abs(v))}`);
+  l.push(`Differenza: ${r.net >= 0 ? '+' : '−'}${eur(Math.abs(r.net))}`);
+  if (r.toFund) l.push(`Spostati sul fondo casa: ${eur(r.toFund)} (restano vostri, non sono spese)`);
   if (r.over.length) l.push('Sforato: ' + r.over.map(o => `${o.n} (+${eur(o.by)})`).join(', '));
-  if (r.top.length) l.push('Spese più grandi: ' + r.top.map(t => `${t.note || catName(t)} ${eur(t.a)}`).join(', '));
   if (r.byWho.length) l.push(r.byWho.map(x => `${x.p}: ${eur(x.out)}`).join(' · '));
   return l.join('\n');
 }
 function openReport(ym) {
   ym = ym || (+today().slice(8) <= 5 ? addMonths(curYM(), -1) : curYM());
   const r = reportData(ym), d = r.pOut > 0 ? r2((r.out - r.pOut) / r.pOut * 100) : null;
-  const w = openSheet(`<div id="report-print"><h3 class="sh-title">📄 ${esc(ymLabel(ym))}</h3><p class="sh-sub">Il resoconto del mese${ym === curYM() ? ' (ancora in corso)' : ''} · ${r.n} movimenti</p>
-    <div class="mtiles" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:6px 0 12px">${[['Entrate', r.inc, 'g'], ['Uscite', r.out, 'o'], [r.net >= 0 ? 'Avanzano' : 'Mancano', Math.abs(r.net), r.net >= 0 ? 'g' : 'r']].map(([k, v, c]) => `<div class="card tight" style="margin:0;padding:10px;text-align:center"><div class="muted" style="font-size:12px">${k}</div><b class="num ${c}" style="font-size:15px">${eur(v)}</b></div>`).join('')}</div>
-    ${d !== null ? `<div class="vrule">${d <= 0 ? '📉' : '📈'} Hai speso il <b>${Math.abs(d)}% ${d <= 0 ? 'in meno' : 'in più'}</b> di ${ymLabel(addMonths(ym, -1)).toLowerCase()} (${eur(r.pOut)}).</div>` : ''}
-    ${r.debtPaid || r.toFund ? `<div class="vrule" style="margin-top:8px">${r.debtPaid ? `🏛️ Ai debiti: <b>${eur(r.debtPaid)}</b>` : ''}${r.debtPaid && r.toFund ? '<br>' : ''}${r.toFund ? `🔐 Messi da parte: <b>${eur(r.toFund)}</b>` : ''}</div>` : ''}
-    ${r.over.length ? `<div class="h-label" style="margin-top:12px">Dove hai sforato</div>${r.over.map(o => `<div class="pr" style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span>${esc(o.e)} ${esc(o.n)}</span><b class="num r">+${eur(o.by)}</b></div>`).join('')}` : `<div class="vrule" style="margin-top:8px">✓ Nessuna voce sforata.</div>`}
-    ${r.under.length ? `<div class="h-label" style="margin-top:12px">${ym === curYM() ? 'Ancora liberi nelle voci' : 'Dove hai risparmiato'}</div>${r.under.slice(0, 5).map(o => `<div class="pr" style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span>${esc(o.e)} ${esc(o.n)}</span><b class="num g">${eur(o.left)}</b></div>`).join('')}` : ''}
-    ${r.top.length ? `<div class="h-label" style="margin-top:12px">Le spese più grandi</div>${r.top.map(t => `<div class="pr" style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span>${esc(t.note || catName(t))} · ${esc(dateShort(t.d))}</span><b class="num">${eur(t.a)}</b></div>`).join('')}` : ''}
-    ${r.byWho.length ? `<div class="h-label" style="margin-top:12px">Chi ha speso</div>${r.byWho.map(x => `<div class="pr" style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span>${esc(x.p)}</span><b class="num">${eur(x.out)}</b></div>`).join('')}` : ''}</div>
+  const rr = (lab, sub, v, cls) => `<div class="rp-r"><div style="min-width:0"><div class="ell">${lab}</div>${sub ? `<small class="m ell">${sub}</small>` : ''}</div><b class="num ${cls || ''}">${v}</b></div>`;
+  const sg = v => (v >= 0 ? '+' : '−') + eur(Math.abs(v));
+  const w = openSheet(`<div id="report-print"><h3 class="sh-title">📄 ${esc(ymLabel(ym))}</h3><p class="sh-sub">${ym === curYM() ? 'Mese in corso' : 'Mese concluso'} · ${r.n} movimenti</p>
+    <div class="rp-head ${r.net >= 0 ? 'g' : 'r'}">${esc(reportHead(r))}</div>
+    <div class="h-label" style="margin-top:14px">Il conto del mese</div>
+    <div class="card tight rp">${reportRows(r).map(([k, v, c, sub]) => rr(esc(k), esc(sub), sg(v), c || (v < 0 ? 'o' : 'g'))).join('')}<div class="rp-r rp-tot"><div>Differenza</div><b class="num ${r.net >= 0 ? 'g' : 'r'}">${sg(r.net)}</b></div></div>
+    ${r.toFund ? `<div class="vrule" style="margin-top:10px">🔐 Spostati sul Fondo casa: <b class="num">${eur(r.toFund)}</b>. Restano vostri, non sono spese: per questo non sono nel conto sopra.</div>` : ''}
+    ${d !== null ? `<div class="vrule" style="margin-top:8px">${d <= 0 ? '📉' : '📈'} Uscite ${d <= 0 ? 'in calo' : 'in aumento'} del <b>${Math.abs(d)}%</b> rispetto a ${ymLabel(addMonths(ym, -1)).toLowerCase()}.</div>` : ''}
+    ${r.over.length ? `<div class="h-label" style="margin-top:14px">Dove hai sforato</div><div class="card tight rp">${r.over.map(o => rr(`${esc(o.e)} ${esc(o.n)}`, o.cause ? (o.cause.pid && !o.cause.rec ? `per il prestito a ${esc((personOf(o.cause.pid) || {}).n || '')}` : `per «${esc(o.cause.note || catName(o.cause))}»`) : '', '+' + eur(o.by), 'r')).join('')}</div>` : `<div class="vrule" style="margin-top:10px">✓ Nessuna voce sforata.</div>`}
+    ${r.under.length ? `<div class="h-label" style="margin-top:14px">${ym === curYM() ? 'Ancora liberi nelle voci' : 'Dove hai risparmiato'}</div><div class="card tight rp">${r.under.slice(0, 6).map(o => rr(`${esc(o.e)} ${esc(o.n)}`, '', eur(o.left), 'g')).join('')}</div>` : ''}
+    ${r.top.length ? `<div class="h-label" style="margin-top:14px">Le spese più grandi</div><div class="card tight rp">${r.top.map(t => rr(esc(t.note || catName(t)), `${dm(t.d)} · ${esc(catName(t))}`, eur(t.a))).join('')}</div>` : ''}
+    ${r.byWho.length ? `<div class="h-label" style="margin-top:14px">Chi ha speso</div><div class="card tight rp">${r.byWho.map(x => rr(esc(x.p), '', eur(x.out))).join('')}</div>` : ''}</div>
     <div class="row2" style="margin-top:14px"><button class="btn mt0" data-rp="share">Condividi</button><button class="btn mt0" data-rp="print">Stampa / PDF</button></div>
     <div class="row2" style="margin-top:8px"><button class="btn ghost mt0" data-rp="prev">‹ Mese prima</button><button class="btn ghost mt0" data-rp="next" ${ym >= curYM() ? 'disabled' : ''}>Mese dopo ›</button></div>`);
   w.addEventListener('click', async e => {
