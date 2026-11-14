@@ -4547,6 +4547,8 @@ Object.assign(ACT, {
   'sit-seen': el => { saveStateField({sitLv: {lv: +el.dataset.lv, d: today()}}); S.anim = true; render(); },
   'asset-edit': el => openAssetEdit(el.dataset.id || ''),
   'ae-type': el => { const w = el.closest('.wrap'); w._a.t = el.dataset.v; if (el.dataset.v === 'oro') w._a.k = 24; drawAssetEdit(w); },
+  'ae-buy-add': el => { const w = el.closest('.wrap'); assetRead(w); if (w._buys.length === 1 && !w._buys[0].d) w._buys[0].d = ''; w._buys.push({d: '', g: '', p: ''}); $('#ae-buys', w).innerHTML = goldBuysHTML(w); assetPrev(w); },
+  'ae-buy-del': el => { const w = el.closest('.wrap'); assetRead(w); w._buys.splice(+el.dataset.i, 1); if (!w._buys.length) w._buys = [{d: '', g: '', p: ''}]; $('#ae-buys', w).innerHTML = goldBuysHTML(w); assetPrev(w); },
   'ae-back': el => { const w = el.closest('.wrap'); assetRead(w); w._a.t = ''; drawAssetEdit(w); },
   'ae-save': el => assetSave(el.closest('.wrap')),
   'ae-del': async el => { const w = el.closest('.wrap'), a = assets().find(x => x.id === el.dataset.id); if (!a) return; if (!(await confirmSheet(`Eliminare «${esc(a.n)}»?`, `Esce dai beni e dal patrimonio netto (${eur(a.v)}).`, 'Elimina', true))) return; const c = clone(cfg()); c.assets = (c.assets || []).filter(x => x.id !== a.id); if (await saveConfig(c) === false) return; closeSheet(w); S.anim = true; render(); toast('Bene eliminato'); },
@@ -5541,8 +5543,14 @@ const aKind = a => (ATYPES.some(x => x[0] === a.t) ? a.t : /casa|appartament|ter
 const ASRC = {perizia: 'perizia', stima: 'stima mia', acquisto: 'acquisto'};
 const CURS = ['EUR', 'EGP', 'USD', 'GBP', 'CHF', 'AED', 'SAR'];
 // valore in euro: oro = grammi × carati/24 × prezzo dell'oro puro; in un'altra valuta = importo ÷ cambio (1 € = X)
+/* oro: acquisti (grammi, pagato) → prezzo medio; valore = ultima offerta ricevuta, altrimenti quanto l'hai pagato */
+const goldBuys = a => (Array.isArray(a.buys) ? a.buys : []).filter(b => (+b.g || 0) > 0 || (+b.p || 0) > 0);
+const goldG = a => goldBuys(a).length ? r2(goldBuys(a).reduce((t, b) => t + (+b.g || 0), 0)) : (+a.g || 0);
+const goldPaid = a => goldBuys(a).length ? r2(goldBuys(a).reduce((t, b) => t + (+b.p || 0), 0)) : (+a.paid || 0);
+const goldQuote = a => (a.q && +a.q.pg > 0 ? a.q : (!a.buys && +a.pg > 0 ? {pg: r2(+a.pg * Math.min(24, Math.max(1, +a.k || 24)) / 24), d: a.d || ''} : null));
+const goldQVal = a => { const q = goldQuote(a); return q ? r2(goldG(a) * q.pg) : 0; };
 function assetCalc(a) {
-  if (aKind(a) === 'oro') return r2((+a.g || 0) * (Math.min(24, Math.max(1, +a.k || 24)) / 24) * (+a.pg || 0));
+  if (aKind(a) === 'oro') { const q = goldQVal(a); return q > 0 ? q : goldPaid(a); }
   if (a.cur && a.cur !== 'EUR') return +a.fx > 0 ? r2((+a.vc || 0) / +a.fx) : 0;
   return r2(+a.v || 0);
 }
@@ -5552,7 +5560,13 @@ const otherTot = () => r2(assets().filter(a => aKind(a) !== 'immobile').reduce((
 const goldTot = () => r2(assetsBy('oro').reduce((t, a) => t + (+a.v || 0), 0));
 function assetSub(a) {
   const k = aKind(a), when = a.d ? ` · ${dm(a.d)}${a.d.slice(0, 4) !== curYM().slice(0, 4) ? ' ' + a.d.slice(0, 4) : ''}` : '';
-  if (k === 'oro') return `${nf2.format(+a.g || 0).replace(/,00$/, '')} g · ${+a.k || 24} kt · ${eurR(+a.pg || 0)}/g${when}`;
+  if (k === 'oro') {
+    const g = goldG(a), paid = goldPaid(a), q = goldQuote(a), gs = `${nf2.format(g).replace(/,00$/, '')} g`;
+    if (!paid) return `${gs} · <span class="a">quanto l\u2019hai pagato? ›</span>`;
+    if (!q) return `${gs} · pagato in media ${eurR(paid / (g || 1))}/g`;
+    const d = r2(goldQVal(a) - paid);
+    return `${gs} · <span class="${d >= 0 ? 'g' : 'r'}">${d >= 0 ? '+' : '−'}${eurR(Math.abs(d))} se vendi</span>${q.d ? ' · offerta ' + dm(q.d) : ''}`;
+  }
   const parts = [ATYPE(k)[2].split(' ')[0]];
   if (a.place) parts.push(esc(a.place));
   if (a.cur && a.cur !== 'EUR') parts.push(`${nf2.format(+a.vc || 0)} ${esc(a.cur)} (1 € = ${String(+a.fx).replace('.', ',')} ${esc(a.cur)})`);
@@ -5583,10 +5597,12 @@ function drawAssetEdit(w) {
     return;
   }
   const morts0 = morts();
-  $('#ae-body', w).innerHTML = `<h3 class="sh-title">${T[1]} ${w._new ? T[2] : esc(a.n)}</h3><p class="sh-sub">${k === 'oro' ? 'Scrivi grammi e carati: il valore lo calcola l’app con il prezzo dell’oro puro. Quando la quotazione cambia, aggiorni solo il prezzo.' : 'Scrivi un valore realistico e da dove viene. Conta nel patrimonio netto, non nella riserva.'}</p>
+  if (k === 'oro' && !w._buys) w._buys = goldBuys(a).length ? clone(goldBuys(a)) : [{d: '', g: +a.g || '', p: +a.paid || ''}];
+  $('#ae-body', w).innerHTML = `<h3 class="sh-title">${T[1]} ${w._new ? T[2] : esc(a.n)}</h3><p class="sh-sub">${k === 'oro' ? 'Scrivi quanti grammi hai e quanto li hai pagati: l\u2019app calcola il prezzo medio. Quando vuoi vendere, scrivi l\u2019offerta che ti fanno e vedi subito se ci guadagni o ci perdi.' : 'Scrivi un valore realistico e da dove viene. Conta nel patrimonio netto, non nella riserva.'}</p>
     <label class="fld"><span>Nome</span><input id="ae-n" value="${esc(a.n || '')}" placeholder="${T[3]}" autocomplete="off"></label>
-    ${k === 'oro' ? `<div class="row2"><label class="fld"><span>Grammi</span><input id="ae-g" inputmode="decimal" value="${+a.g > 0 ? String(+a.g).replace('.', ',') : ''}" placeholder="65"></label><label class="fld"><span>Prezzo oro puro al grammo</span><input id="ae-pg" inputmode="decimal" value="${v(a.pg)}" placeholder="117,13"></label></div>
-      <div class="fld"><span>Carati</span>${segHTML('ae-k', [['24', '24'], ['22', '22'], ['21', '21'], ['18', '18']], String(+a.k || 24))}</div>`
+    ${k === 'oro' ? `<div class="fld"><span>Grammi e quanto li hai pagati</span><div id="ae-buys">${goldBuysHTML(w)}</div><button class="chipbtn" data-act="ae-buy-add" type="button" style="margin-top:2px">＋ Aggiungi acquisto</button></div>
+      <div class="fld"><span>Carati</span>${segHTML('ae-k', [['24', '24'], ['22', '22'], ['21', '21'], ['18', '18']], String(+a.k || 24))}</div>
+      <label class="fld"><span>Offerta ricevuta, al grammo</span><input id="ae-q" inputmode="decimal" value="${goldQuote(a) ? v(goldQuote(a).pg) : ''}" placeholder="facoltativa"></label><div id="ae-prev"></div>`
     : `${k === 'immobile' ? `<label class="fld"><span>Dove</span><input id="ae-place" value="${esc(a.place || '')}" placeholder="es. Milano, Il Cairo"></label>` : ''}
       <div class="row2"><label class="fld"><span>Valore</span><input id="ae-v" inputmode="decimal" value="${a.cur && a.cur !== 'EUR' ? v(a.vc) : v(a.v)}" placeholder="0,00"></label><label class="fld"><span>Valuta</span><select id="ae-cur">${CURS.map(c => `<option ${c === (a.cur || 'EUR') ? 'selected' : ''}>${c}</option>`).join('')}</select></label></div>
       ${a.cur && a.cur !== 'EUR' ? `<label class="fld"><span>Cambio: 1 € = quanti ${esc(a.cur)}</span><input id="ae-fx" inputmode="decimal" value="${+a.fx > 0 ? String(a.fx).replace('.', ',') : ''}" placeholder="es. 55"></label>` : ''}
@@ -5594,15 +5610,32 @@ function drawAssetEdit(w) {
       ${k === 'immobile' ? `<div class="row2">${morts0.length ? `<label class="fld"><span>Mutuo collegato</span><select id="ae-mid"><option value="">Nessuno</option>${morts0.map(g => `<option value="${esc(g.id)}" ${g.id === a.mid ? 'selected' : ''}>${esc(g.n)}</option>`).join('')}</select></label>` : ''}<label class="fld"><span>Affitto al mese (facoltativo)</span><input id="ae-rent" inputmode="decimal" value="${v(a.rent)}" placeholder="0,00"></label></div>` : ''}`}
     <label class="fld"><span>Nota (facoltativa)</span><input id="ae-note" value="${esc(a.note || '')}" placeholder="${k === 'gioielli' ? 'es. certificato GIA' : 'es. dove si trova, documenti'}"></label>
     <div class="fld"><span>A cosa serve</span>${segHTML('ae-use', Object.entries(AUSE).filter(([u]) => u !== 'debt' || assetSellable(a)).map(([u, v]) => [u, v[0]]), assetUse(a))}</div><p class="ss" id="ae-use-h" style="margin:-6px 2px 12px">${AUSE[assetUse(a)][2]}</p>
-    <div id="ae-prev"></div>
+    ${k === 'oro' ? '' : '<div id="ae-prev"></div>'}
     <button class="btn primary" data-act="ae-save">${w._new ? 'Aggiungi' : 'Salva'}</button>
     ${w._new ? '<button class="btn ghost" data-act="ae-back">‹ Cambia tipo</button>' : `<button class="btn danger" data-act="ae-del" data-id="${esc(a.id)}">Elimina il bene</button><button class="btn ghost" data-act="close-sheet">Annulla</button>`}`;
   assetPrev(w);
 }
+function goldBuysHTML(w) {
+  const L = w._buys || [], many = L.length > 1;
+  return L.map((b, i) => `<div class="edrow3" style="grid-template-columns:1fr 1fr${many ? ' 42px' : ''}"><div class="amtin sm"><input data-bi="${i}" data-bf="g" inputmode="decimal" value="${parseAmt(b.g) > 0 ? String(parseAmt(b.g)).replace('.', ',') : ''}" placeholder="0"><b style="font-size:15px">g</b></div><div class="amtin sm"><input data-bi="${i}" data-bf="p" inputmode="decimal" value="${parseAmt(b.p) > 0 ? nf2.format(parseAmt(b.p)) : ''}" placeholder="0"><b style="font-size:15px">€</b></div>${many ? `<button class="tg" data-act="ae-buy-del" data-i="${i}" type="button" aria-label="Togli">✕</button>` : ''}</div>`).join('');
+}
+function goldPrevHTML(a) {
+  const g = goldG(a), paid = goldPaid(a), q = goldQuote(a);
+  if (!(g > 0 && paid > 0)) return '';
+  const avg = r2(paid / g), tiles = [['Pagato', eurR(paid), `${eurR(avg)}/g`, '']];
+  if (q) { const val = goldQVal(a), d = r2(val - paid), pc = Math.round(d / paid * 100); tiles.push(['Ti danno', eurR(val), `${eurR(q.pg)}/g`, ''], ['Se vendi ora', `${d >= 0 ? '+' : '−'}${eurR(Math.abs(d))}`, `${d >= 0 ? '+' : '−'}${Math.abs(pc)}%`, d >= 0 ? 'g' : 'r']); }
+  return `<div class="ms-tiles" style="margin:0 0 10px;grid-template-columns:repeat(${tiles.length},minmax(0,1fr))">${tiles.map(([k, v, sub, c]) => `<div class="ms-t ${c}"><span>${k}</span><b>${v}</b><small>${sub}</small></div>`).join('')}</div>${q ? '<p class="ss" style="margin:-4px 2px 10px">Nel patrimonio conta l\u2019offerta. Senza offerta conta quanto l\u2019hai pagato.</p>' : ''}`;
+}
 function assetRead(w) {
   const a = w._a, val = id => { const e = $(id, w); return e ? e.value : null; }, num = id => { const x = val(id); return x === null ? undefined : parseAmt(x); };
   if (val('#ae-n') !== null) a.n = val('#ae-n').trim();
-  if (a.t === 'oro') { a.g = num('#ae-g'); a.pg = num('#ae-pg'); a.k = +(picked(w, 'ae-k') || a.k || 24); a.cur = 'EUR'; }
+  if (a.t === 'oro') {
+    const old = goldQuote(a);
+    $$('[data-bi]', w).forEach(el => { const b = (w._buys || [])[+el.dataset.bi]; if (b) b[el.dataset.bf] = el.dataset.bf === 'd' ? el.value : el.value; });
+    a.buys = (w._buys || []).map(b => ({d: b.d || '', g: parseAmt(b.g) || 0, p: parseAmt(b.p) || 0})).filter(b => b.g > 0 || b.p > 0);
+    a.g = goldG(a); a.paid = goldPaid(a); a.k = +(picked(w, 'ae-k') || a.k || 24); a.cur = 'EUR';
+    const qv = val('#ae-q'); if (qv !== null) { const pq = parseAmt(qv); a.q = pq > 0 ? {pg: pq, d: old && Math.abs(old.pg - pq) < 0.005 ? (old.d || today()) : today()} : null; delete a.pg; }
+  }
   else {
     const cur = val('#ae-cur'), vv = num('#ae-v'); if (cur !== null) a.cur = cur;
     if (a.cur && a.cur !== 'EUR') { a.vc = vv; const fx = val('#ae-fx'); if (fx !== null) a.fx = parseAmt(fx); } else { a.v = vv; a.vc = undefined; a.fx = undefined; }
@@ -5615,16 +5648,17 @@ function assetRead(w) {
 }
 function assetPrev(w) {
   const box = $('#ae-prev', w); if (!box) return; const a = assetRead(w), v = assetCalc(a);
+  if (a.t === 'oro') { box.innerHTML = goldPrevHTML(a); return; }
   box.innerHTML = a.t === 'oro' || (a.cur && a.cur !== 'EUR') ? `<div class="plan" style="margin:0 0 8px"><div class="pr"><span>Valore in euro</span><b class="num">${eur(v)}</b></div>${a.t === 'oro' && +a.k < 24 ? `<div class="ss">${+a.k} carati = ${String(Math.round(+a.k / 24 * 1000) / 10).replace('.', ',')}% di oro puro</div>` : ''}</div>` : '';
 }
 async function assetSave(w) {
   const a = assetRead(w); if (!a.n) { toast('Dai un nome al bene'); return; }
-  if (a.t === 'oro' && !(a.g > 0 && a.pg > 0)) { toast('Scrivi grammi e prezzo al grammo'); return; }
+  if (a.t === 'oro' && !(a.g > 0 && a.paid > 0)) { toast('Scrivi grammi e quanto li hai pagati'); return; }
   if (a.t !== 'oro' && a.cur && a.cur !== 'EUR' && !(a.fx > 0)) { toast('Scrivi il cambio'); return; }
   const v = assetCalc(a); if (!(v > 0)) { toast('Scrivi il valore'); return; }
   const c = clone(cfg()), L = Array.isArray(c.assets) ? c.assets : [], prev = a.id ? assets().find(x => x.id === a.id) : null, before = useSnap();
   const o = {id: a.id || 'a' + newId().slice(-7), t: a.t, n: a.n, v, d: today(), note: a.note || ''};
-  if (a.t === 'oro') Object.assign(o, {g: a.g, k: +a.k || 24, pg: a.pg});
+  if (a.t === 'oro') Object.assign(o, {g: a.g, k: +a.k || 24, buys: a.buys, paid: a.paid, q: a.q || null});
   else Object.assign(o, {cur: a.cur || 'EUR', src: a.src || 'stima'}, a.cur && a.cur !== 'EUR' ? {vc: a.vc, fx: a.fx} : {}, a.t === 'immobile' ? {place: a.place || '', mid: a.mid || '', rent: +a.rent || 0} : {});
   o.use = assetUse(a); if (o.use === 'debt' && !assetSellable(o)) o.use = 'keep';
   const i = L.findIndex(x => x.id === o.id); if (i >= 0) L[i] = o; else L.push(o);
