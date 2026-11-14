@@ -565,6 +565,7 @@ input,select,textarea{font-family:inherit}
 .sityd{margin-top:6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04)}
 @keyframes fcdraw{to{stroke-dashoffset:0}}
 .homewrap.hw-cur>*{order:0!important}
+.ci .ci-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05)}.ci .ci-r>div{min-width:0}.ci .ci-r small{display:block;font-size:12px;margin-top:1px}.ci .ci-r b{white-space:nowrap;font-size:15px}.ci .ci-tot{border:0;font-weight:750;font-size:16px;padding-top:12px}.ci .ci-tot b{font-size:19px}
 .cathint{font-size:13px;color:var(--muted);margin:8px 4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cathint b{color:var(--text);font-weight:700}.cathint.r{color:var(--amber);white-space:normal}
 .hqb .hqb-ask{color:var(--amber);border:1.5px solid rgba(255,181,71,.55);background:linear-gradient(180deg,rgba(255,181,71,.16),rgba(255,181,71,.07))}
 .hqb{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin:14px 0}.hqb .btn{min-height:54px;font-size:15.5px;white-space:nowrap}
@@ -1776,7 +1777,27 @@ function homeHTML() {
 function flexLeftHTML(st) {
   const L = st.filter(b => !b.l && !b.auto && !b.rec && !b.bills && b.eff > 0);
   if (!L.length) return '';
-  return `<div class="card stag hfl" style="--i:3"><div class="h-label">Cosa resta nelle voci</div><div class="hfl-g">${L.map(b => `<div class="hfl-i ${b.left < -0.005 ? 'r' : b.left < 0.5 ? 'z' : ''}" data-act="add-cat" data-cat="${esc(b.k)}"><span class="ell">${esc(b.e)} ${esc(b.n)}</span><b>${b.left < -0.005 ? '−' + eurR(-b.left) : eurR(Math.max(0, b.left))}</b></div>`).join('')}</div></div>`;
+  return `<div class="card stag hfl" style="--i:3"><div class="h-label">Cosa resta nelle voci</div><div class="hfl-g">${L.map(b => `<div class="hfl-i ${b.left < -0.005 ? 'r' : b.left < 0.5 ? 'z' : ''}" data-act="cat-info" data-k="${esc(b.k)}"><span class="ell">${esc(b.e)} ${esc(b.n)}</span><b>${b.left < -0.005 ? '−' + eurR(-b.left) : eurR(Math.max(0, b.left))}</b></div>`).join('')}</div></div>`;
+}
+/* perché una voce ha quel valore: budget, spostamenti, spese, in arrivo → quanto resta */
+function openCatInfo(k) {
+  const ym = S.ym, b = catStats(ym).find(x => x.k === k); if (!b) return;
+  const mn = MONTHS[+ym.slice(5) - 1].toLowerCase(), sh = D().shifts.filter(x => x.m === ym && (x.to === k || x.from === k)).sort((p, q) => p.ts - q.ts);
+  const T = monthTx(ym).filter(t => !t.plan && t.kind === 'out' && t.cat === k && !t.xb).sort((p, q) => q.d.localeCompare(p.d) || q.ts - p.ts);
+  const pend = ym === curYM() ? recs().filter(r => r.kind === 'out' && r.cat === k && ['due', 'later'].includes(recState(r, ym))) : [];
+  const waits = ym === curYM() ? D().waits.filter(w => w.cat === k && w.st !== 'no' && ['48h', 'over', 'loan'].includes(w.type)) : [];
+  const line = (lab, sub, v, cls) => `<div class="ci-r"><div style="min-width:0"><div class="ell">${lab}</div>${sub ? `<small class="m ell">${sub}</small>` : ''}</div><b class="num ${cls || ''}">${v}</b></div>`;
+  const amt = v => (v >= 0 ? '+' : '−') + eur(Math.abs(v));
+  let h = line(`Budget di ${mn}`, b.rec ? 'somma dei pagamenti ricorrenti' : b.pct ? 'quota delle entrate' : '', eur(b.base));
+  for (const x of sh) { const inn = x.to === k, o = bud(inn ? x.from : x.to); h += line(`${inn ? '↗ Da' : '↘ A'} ${esc(o ? o.n : (inn ? x.from : x.to))}`, `${esc(x.why || 'Spostamento')}${x.ts ? ' · ' + dm(new Date(x.ts).toISOString().slice(0, 10)) : ''}`, amt(inn ? x.a : -x.a), inn ? 'g' : 'o'); }
+  for (const t of T.slice(0, 8)) h += line(esc(t.note || catName(t)), dm(t.d) + (t.pid ? ' · prestito' : ''), '−' + eur(t.a), 'o');
+  if (T.length > 8) h += line(`Altre ${T.length - 8} spese`, '', '−' + eur(r2(T.slice(8).reduce((v, t) => v + t.a, 0))), 'o');
+  for (const r of pend) h += line(`${esc(r.n)} <span class="a">in arrivo</span>`, `il ${r.day}`, '−' + eur(recAmount(r)), 'a');
+  for (const w of waits) h += line(`${esc(w.desc || 'Richiesta')} <span class="a">in attesa</span>`, 'soldi tenuti da parte', '−' + eur(w.a), 'a');
+  const flex = !b.l && !b.auto;
+  openSheet(`<h3 class="sh-title">${esc(b.e)} ${esc(b.n)}</h3><p class="sh-sub">${mn[0].toUpperCase() + mn.slice(1)} · ${b.l ? 'intoccabile' : 'flessibile'}${catHint(b) ? ' · ' + esc(catHint(b)) : ''}</p>
+    <div class="card tight ci">${h}<div class="ci-r ci-tot"><div>${b.left < -0.005 ? 'Sforata di' : 'Restano'}</div><b class="num ${b.left < -0.005 ? 'r' : 'g'}">${eur(Math.abs(b.left))}</b></div></div>
+    ${ym === curYM() || isFut(ym) ? `<button class="btn primary" data-act="add-cat" data-cat="${esc(k)}">＋ Registra qui</button>${flex || b.left < -0.005 ? `<button class="btn" data-act="${b.left < -0.005 ? 'shift-cover' : 'shift'}" data-to="${esc(k)}">${b.left < -0.005 ? 'Copri lo sforamento' : 'Sposta budget'}</button>` : ''}` : ''}`);
 }
 // Home: gli ultimi movimenti, per vedere subito che la registrazione c'è
 function recentHTML() {
@@ -2210,7 +2231,7 @@ function bilHTML() {
   const st = catStats(S.ym), sh = D().shifts.filter(s => s.m === S.ym).sort((a, b) => b.ts - a.ts), fut = isFut(S.ym), dpm = phaseAt(S.ym);
   const locked = st.filter(b => b.l && !b.auto && !(b.bills && !b.eff && !b.spent)), flex = st.filter(b => !b.l && !b.auto), fondo = st.find(b => b.auto);
   const sum = a => a.reduce((x, b) => x + b.eff, 0);
-  const row = b => `<div class="trow"><span class="nm">${esc(b.e)} ${esc(b.n)}</span><span class="num">${eurR(b.eff)}${b.inS || b.outS ? `<br><small class="m">${b.inS ? '+' + eurR(b.inS) : ''}${b.outS ? ' −' + eurR(b.outS) : ''}</small>` : ''}</span><span class="num">${eurR(b.spent)}${b.pend ? `<br><small class="a">+${eurR(b.pend)}</small>` : ''}</span><span class="num ${b.left < -0.005 ? 'r' : b.auto ? 'g' : b.l ? (b.pend && b.left < 0.01 ? 'a' : 'g') : txtColor(b.pct)}">${b.auto ? (b.eff < -0.005 ? '<span class="r">−' + eurR(-b.eff) + '</span>' : b.savWait ? '—' : b.left <= 0.01 ? '✓' : eurR(b.left)) : b.l && b.pend && Math.abs(b.left) < 0.01 ? eurR(0) : eurR(b.left)}</span></div>`;
+  const row = b => `<div class="trow" ${b.auto ? '' : `data-act="cat-info" data-k="${esc(b.k)}" style="cursor:pointer"`}><span class="nm">${esc(b.e)} ${esc(b.n)}</span><span class="num">${eurR(b.eff)}${b.inS || b.outS ? `<br><small class="m">${b.inS ? '+' + eurR(b.inS) : ''}${b.outS ? ' −' + eurR(b.outS) : ''}</small>` : ''}</span><span class="num">${eurR(b.spent)}${b.pend ? `<br><small class="a">+${eurR(b.pend)}</small>` : ''}</span><span class="num ${b.left < -0.005 ? 'r' : b.auto ? 'g' : b.l ? (b.pend && b.left < 0.01 ? 'a' : 'g') : txtColor(b.pct)}">${b.auto ? (b.eff < -0.005 ? '<span class="r">−' + eurR(-b.eff) + '</span>' : b.savWait ? '—' : b.left <= 0.01 ? '✓' : eurR(b.left)) : b.l && b.pend && Math.abs(b.left) < 0.01 ? eurR(0) : eurR(b.left)}</span></div>`;
   return `<div class="grid2b"><div>
     ${S.ym === curYM() ? forecastHTML() : ''}${spendDonutHTML()}${trendHTML()}${coupleHTML()}${S.ym === curYM() ? bilToolsHTML() : ''}${S.ym === curYM() ? sitBilHTML() + `<div class="card tight bil-saldi" style="--i:0">${balancesHTML(true)}</div>` + assetsCardHTML() : ''}
     <div class="card bil-budget" style="--i:0"><div class="h-label">${fut ? 'Budget previsto' : 'Budget del mese'} · ${ymLabel(S.ym)}</div>
@@ -2272,7 +2293,7 @@ function goalsHTML() {
   const cushionCard = `<div class="card goal" style="--i:0"><div class="top"><div style="min-width:0"><div class="gt">🛟 Cuscinetto</div><div class="gs ell">Per i mesi scarsi · nel ${esc(mainAcc())}</div></div><span class="badge ${cp >= 1 ? 'g' : ''}">${cp >= 1 ? 'Pieno ✓' : Math.round(cp * 100) + '%'}</span></div>
     <div class="gv num">${eur0(c.bal)} <small class="m" style="font-size:16px;font-weight:600">/ ${eur0(c.target)}</small></div>
     <div class="gbar"><i style="width:${r2(cp * 100)}%;background:linear-gradient(90deg,#FFB547,#2EE59D)"></i></div>
-    <div class="gd"><span>Si riempie con gli avanzi di fine mese</span></div>
+    <div class="gd" data-act="cushion" style="cursor:pointer">${(() => { const L = (cfg().cushionLog || []).filter(x => Math.abs(+x.a || 0) > 0.004); const x = L[L.length - 1]; return x ? `<span class="ell">Ultimo: <b class="${x.a < 0 ? 'o' : 'g'}">${x.a < 0 ? '−' : '+'}${eur(Math.abs(x.a))}</b> ${esc(String(x.why || '').replace(/^Spesa (obbligata|straordinaria): /, ''))}${x.ts ? ' · ' + dm(new Date(x.ts).toISOString().slice(0, 10)) : ''}</span><span>›</span>` : '<span>Si riempie con gli avanzi di fine mese</span>'; })()}</div>
     <div class="row2" style="margin-top:6px"><button class="btn" data-act="cushion">Usa o ricarica</button><button class="btn" data-act="close-open" data-m="${addMonths(curYM(), -1)}">Chiusura mese</button></div></div>`;
   return `<div class="grid2b">` + cushionCard + `<div class="card" style="--i:0"><div class="h-label">Ordine di attacco</div><p class="muted" style="font-size:13px;margin:6px 0 6px">I debiti nell\u2019ordine in cui li saldi, come li calcola il piano. ${activeMort() ? 'Chiusi i debiti, il risparmio va al mutuo e al fondo casa secondo la strada scelta.' : 'Chiusi i debiti parte il versamento al fondo casa.'}</p><div class="steps">${steps}</div></div></div>
     <div class="grid2b gcards">${cards}</div>
@@ -2760,8 +2781,10 @@ function openTx(existing, opts = {}) {
   if (t.kind === 'in' && !t.cat) t.cat = 'Stipendio';
   const w = openSheet('<div id="tx-body"></div>');
   w._t = t; w._ex = existing || null; w._fixedId = opts.fixedId || null; w._rec = opts.rec || ''; w._apprWait = opts.wait || '';
-  w.addEventListener('change', e => { if (e.target && e.target.id === 'tx-oblig') { readTx(w); drawTx(w); } });
+  w._openedAt = Date.now();
+  w.addEventListener('change', e => { if (e.target && ['tx-oblig', 'tx-loan', 'tx-lp'].includes(e.target.id)) { if (e.target.id === 'tx-oblig' && e.target.checked) { const l = $('#tx-loan', w); if (l) l.checked = false; } if (e.target.id === 'tx-loan' && e.target.checked) { const o = $('#tx-oblig', w); if (o) o.checked = false; } readTx(w); drawTx(w); } });
   drawTx(w);
+  return w;
 }
 function drawTx(w) {
   const t = w._t, ex = w._ex;
@@ -2771,7 +2794,7 @@ function drawTx(w) {
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="chipbtn" data-act="sp-add" type="button">+ Aggiungi parte</button><button class="chipbtn" data-act="sp-off" type="button">Una sola voce</button></div></div>`;
   const ogL = t.kind === 'out' && !w._rec && !(ex && ex.rec) ? cfg().goals.filter(g => isSpendGoal(g) && (gPhase(g) === 'live' || g.id === t.og)) : [];
   const ogPart = ogL.length ? `<div class="fld"><span>Dove va</span><div class="toolbar" style="flex-wrap:wrap;margin:0">${[['', '📊 Budget del mese']].concat(ogL.map(g => [g.id, `🎯 ${esc(g.n)} · restano ${eur0(r2((+g.target || 0) - goalSpent(g.id)))}`])).map(([v, l]) => `<button class="chip ${(t.og || '') === v ? 'on' : ''}" data-act="tx-og" data-v="${esc(v)}" type="button">${l}</button>`).join('')}</div>${t.og ? `<p class="muted" style="font-size:12.5px;margin:6px 2px 0">Fuori dal budget del mese. I soldi escono dal salvadanaio dell\u2019obiettivo (oggi ${eur(Math.max(0, goalPot(goalById(t.og))))}); se non bastano, il resto dal conto scelto.</p>` : ''}</div>` : '';
-  const catPart = ogPart + (t.kind === 'out' && (t.oblig || t.og) ? '' : t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}<div id="tx-hint">${catHintHTML(t.cat, false, '')}</div></div>`
+  const catPart = ogPart + (t.kind === 'out' && (t.oblig || t.og || t.loan) ? '' : t.kind === 'out' ? `<div class="fld"><span>Voce di budget · quanto resta</span>${catGrid(t.cat, 'tx-cat', {stats: catStats(t.d.slice(0, 7), ex && ex.id)})}<div id="tx-hint">${catHintHTML(t.cat, false, '')}</div></div>`
     : t.kind === 'in' ? (w._split ? splitRows() : `<div class="fld"><span>Tipo di entrata</span>${chipsGrid(cfg().incomeCats.filter(c => c !== 'Rientro prestito').concat('Rientro prestito'), t.cat, 'tx-icat').replace('data-v="Rientro prestito">Rientro prestito<', 'data-v="Rientro prestito">🤝 Rientro prestito<')}${!ex && t.cat !== 'Rientro prestito' ? '<button class="chipbtn" data-act="sp-on" type="button" style="margin-top:4px">＋ Dividi in più voci (es. stipendio + tredicesima)</button>' : ''}</div>${t.cat === 'Rientro prestito' ? rpFieldHTML(t) : ''}`)
     : `<div class="row2"><label class="fld"><span>Da</span><select id="tx-acc">${accOpts(t.acc)}</select></label><label class="fld"><span>A</span><select id="tx-to">${accOpts(t.to || 'Fondo casa')}</select></label></div>`);
   $('#tx-body', w).innerHTML = `<h3 class="sh-title">${ex ? 'Modifica movimento' : 'Nuovo movimento'}</h3><p class="sh-sub">${ex && (ex.who || ex.by) ? 'Registrato da ' + esc(ex.who || nameOf(ex.by) || 'qualcuno') + ' · ' : ''}${ex ? dateShort(ex.d) : 'Entrate, uscite e versamenti, insieme.'}</p>
@@ -2783,9 +2806,10 @@ function drawTx(w) {
     <div class="row2"><label class="fld"><span>Data</span><input id="tx-d" type="date" value="${esc(t.d)}"></label>${t.kind !== 'move' ? `<label class="fld"><span>Conto</span><select id="tx-acc">${accOpts(t.acc)}</select></label>` : '<div></div>'}</div>
     ${!w._fixedId && !(ex && ex.rec) && (t.d > today() || (ex && ex.plan)) ? `<div class="vrule" style="margin-top:0">📌 <b>Prevista</b>: con una data futura conta nel budget di quel mese e nel piano debiti, ma non tocca i saldi. Quando arriva il giorno la trovi in Da fare.</div>` : ''}
     ${t.kind === 'out' && (bud(t.cat) || {}).bills ? `<div class="fld"><span>Bolletta</span>${segHTML('tx-paid', [['paid', 'Già pagata'], ['due', 'Da pagare']], t.unpaid ? 'due' : 'paid')}</div>${t.unpaid ? `<label class="fld"><span>Scade il</span><input id="tx-due" type="date" value="${esc(t.due || '')}"></label>` : ''}` : ''}
-    ${t.kind === 'out' && !t.og && !w._rec && !(ex && ex.rec) && !(ex && ex.pid) ? `<label class="check" style="margin:2px 0 10px"><input type="checkbox" id="tx-oblig" ${t.oblig ? 'checked' : ''}> 🧾 <span><b>Spesa obbligata</b> (viaggio necessario, medico, guasto…): fuori dal budget del mese, la paga prima il cuscinetto${hasPartner() ? ` · ${esc(apprName())} riceve un avviso` : ''}</span></label>` : ''}
+    ${t.kind === 'out' && !t.og && !t.loan && !w._rec && !(ex && ex.rec) && !(ex && ex.pid) ? `<label class="check" style="margin:2px 0 10px"><input type="checkbox" id="tx-oblig" ${t.oblig ? 'checked' : ''}> 🧾 <span><b>Spesa obbligata</b> (viaggio necessario, medico, guasto…): fuori dal budget del mese, la paga prima il cuscinetto${hasPartner() ? ` · ${esc(apprName())} riceve un avviso` : ''}</span></label>` : ''}
+    ${t.kind === 'out' && !t.og && !t.oblig && !w._rec && !ex ? `<label class="check" style="margin:${t.loan ? '2px' : '-4px'} 0 10px"><input type="checkbox" id="tx-loan" ${t.loan ? 'checked' : ''}> 🤝 <span><b>È un prestito</b> a una persona</span></label>${t.loan ? `<div class="row2"><label class="fld"><span>A chi</span><select id="tx-lp">${peopleL().map(x => `<option value="${esc(x.id)}" ${x.id === t.lpid ? 'selected' : ''}>${esc(x.n)}</option>`).join('')}<option value="__new" ${t.lpid === '__new' ? 'selected' : ''}>＋ Nuova persona</option></select></label>${t.lpid === '__new' ? `<label class="fld"><span>Nome</span><input id="tx-ln" value="${esc(t.lname || '')}" placeholder="Nome" autocomplete="off"></label>` : `<label class="fld"><span>Rende entro</span><input id="tx-ldue" type="date" value="${esc(t.ldue || '')}"></label>`}</div><div class="vrule" style="margin-top:0">Esce dal 📦 Fuori budget. Se non basta, ti chiedo da dove togliere il resto.${hasPartner() ? ` ${esc(apprName())} riceve un avviso.` : ''}</div>` : ''}` : ''}
     ${t.kind === 'out' && !t.oblig && (tred > 0 || t.src === 'tredicesima') ? `<label class="check"><input type="checkbox" id="tx-tred" ${t.src === 'tredicesima' ? 'checked' : ''}> Pagata con la tredicesima (restano ${eur(tred)}) · escluso dal budget</label>` : ''}
-    ${!ex && !w._fixedId && !t.og && !t.oblig && t.kind !== 'move' && !(t.kind === 'in' && t.cat === 'Rientro prestito') ? `<label class="check"><input type="checkbox" id="tx-rep" ${w._rep ? 'checked' : ''}> 🔁 Si ripete ogni mese in questo giorno</label>` : ''}
+    ${!ex && !w._fixedId && !t.og && !t.oblig && !t.loan && t.kind !== 'move' && !(t.kind === 'in' && t.cat === 'Rientro prestito') ? `<label class="check"><input type="checkbox" id="tx-rep" ${w._rep ? 'checked' : ''}> 🔁 Si ripete ogni mese in questo giorno</label>` : ''}
     <button class="btn primary" data-act="tx-save">${ex ? 'Salva modifiche' : 'Registra'}</button>
     ${ex ? txActions(ex).filter(a => a[0] !== 'bill-paid' && a[0] !== 'bill-unpay').map(a => txBtn(ex, a.slice(0, 2).concat(a[2] === 'primary' ? '' : a[2]))).join('') : ''}`;
 }
@@ -2807,6 +2831,7 @@ function readTx(w) {
   if (g('#tx-to')) t.to = g('#tx-to').value;
   if (t.kind === 'out' && (bud(picked(w, 'tx-cat') || t.cat) || {}).bills) { const p = picked(w, 'tx-paid'); if (p) t.unpaid = p === 'due' ? 1 : 0; if (g('#tx-due')) t.due = g('#tx-due').value || ''; } else t.unpaid = 0;
   { const ob = g('#tx-oblig'); if (ob) t.oblig = ob.checked; }
+  { const lo = g('#tx-loan'); if (lo) { t.loan = lo.checked; if (t.loan && !t.lpid) t.lpid = (peopleL()[0] || {}).id || '__new'; } const lp = g('#tx-lp'); if (lp) t.lpid = lp.value; const ln = g('#tx-ln'); if (ln) t.lname = ln.value; const ld = g('#tx-ldue'); if (ld) t.ldue = ld.value; }
   if (t.kind === 'out') { t.cat = picked(w, 'tx-cat') || t.cat; const tr = g('#tx-tred'); if (tr) { t.src = tr.checked ? 'tredicesima' : (t.src === 'tredicesima' ? '' : t.src); t.xb = tr.checked || (t.xb && t.src !== '' && t.src !== 'tredicesima'); } }
   if (t.kind === 'in' && !w._split) t.cat = picked(w, 'tx-icat') || t.cat;
   if (g('#tx-pid')) t.pid = g('#tx-pid').value;
@@ -2846,6 +2871,14 @@ async function saveTx(w, coverFrom, asOver) {
   const a = parseAmt(t.a);
   if (!(a > 0)) { toast('Inserisci un importo valido'); return; }
   const ogG = t.kind === 'out' && t.og ? goalById(t.og) : null;
+  w._loanPid = '';
+  if (t.loan && t.kind === 'out' && !ex) {
+    let pid = t.lpid;
+    if (!pid || pid === '__new') { const nm = String(t.lname || '').trim(); if (!nm) { toast('Scrivi il nome della persona'); return; } const c = clone(cfg()); pid = 'p' + newId().slice(-7); c.people = (c.people || []).concat({id: pid, n: nm}); if (await saveConfig(c) === false) return; t.lpid = pid; }
+    const nm = (personOf(pid) || {n: t.lname || ''}).n;
+    t.cat = 'fuori'; t.oblig = false; t.xb = false; t.src = ''; w._loanPid = pid; w._loanDue = t.ldue || '';
+    if (!t.note) t.note = 'Prestito a ' + nm + (apprName() ? ' · sì di ' + apprName() + ' a voce' : '');
+  }
   if (ogG) { t.oblig = false; t.cat = 'obj'; t.xb = true; if (t.src !== 'applepay') t.src = 'obj'; t.unpaid = 0; }
   const oblig = t.kind === 'out' && !ogG && !!t.oblig && !w._rec && !(ex && ex.rec);
   if (oblig) { t.cat = 'straord'; t.xb = true; t.src = 'straord'; t.unpaid = 0; } else if (t.src === 'straord') { t.xb = false; t.src = ''; } else if (!ogG && (t.src === 'obj' || t.cat === 'obj')) { t.xb = false; if (t.src === 'obj') t.src = ''; if (t.cat === 'obj') t.cat = ''; }
@@ -2871,6 +2904,7 @@ async function saveTx(w, coverFrom, asOver) {
   const doc = {kind: t.kind, a, cat: t.kind === 'move' ? '' : t.cat, note: t.note, d: t.d, acc: t.acc, to: t.kind === 'move' ? t.to : '', xb: t.kind === 'out' ? !!t.xb : false, src: t.kind === 'out' ? t.src : '', goal: t.goal || '', over: !!asOver, rec: (ex && ex.rec) || w._rec || '', plan: planF, unpaid: unp, due: unp ? (t.due || '') : (ex && ex.due) || '', og: ogG ? ogG.id : ''};
   if (ogG) w._txid = ex ? ex.id : w._fixedId || w._txid || newId();
   if (ex && ex.pid) Object.assign(doc, {pid: ex.pid, who: ex.who || ''});
+  if (w._loanPid && !ex) Object.assign(doc, {pid: w._loanPid, due: w._loanDue || ''});
   let resetX = false;
   if (ex) {
     Object.assign(doc, {todo: ex.todo || 0, dest: ex.dest || '', keepAmt: ex.keepAmt || 0, grp: ex.grp || '', lnk: ex.lnk || '', par: ex.par || '', fin: ex.fin || 0, pid: doc.pid || ex.pid || ''});
@@ -2890,7 +2924,7 @@ async function saveTx(w, coverFrom, asOver) {
       const sh = openSheet(`<h3 class="sh-title">⚖️ Budget del mese</h3><p class="sh-sub">Questa spesa sfora <b>${esc(b.n)}</b> di <b>${eur(over)}</b>. Il totale del mese non si supera: da dove togli i soldi?</p>
         ${sources.filter(s => s.left + .001 >= over).map(s => `<button class="btn" data-cv="${esc(s.k)}">${esc(s.e)} Togli da ${esc(s.n)} <small class="m">(restano ${eur(s.left - over)})</small></button>`).join('')}
         ${flexTot + .001 >= over ? '<button class="btn" data-cv="*">Copri in automatico da più voci</button>' : `<div class="banner red" style="margin-top:10px"><div class="ic">🚫</div><div><b>Budget flessibile non basta</b>Nelle voci flessibili restano solo ${eur(flexTot)}.</div></div>${flexTot > 0.009 ? `<button class="btn" data-cv="part">Copri ${eur(flexTot)} da tutte le voci, il resto (${eur(r2(over - flexTot))}) come sforamento</button>` : ''}`}
-        <button class="btn danger" data-cv="!">Registra come sforamento</button><button class="btn" data-cv="ob">🧾 È una spesa obbligata (fuori budget)</button><button class="btn ghost" data-cv="x">Annulla</button>`);
+        <button class="btn danger" data-cv="!">Registra come sforamento</button>${w._loanPid ? '' : '<button class="btn" data-cv="ob">🧾 È una spesa obbligata (fuori budget)</button>'}<button class="btn ghost" data-cv="x">Annulla</button>`);
       sh.addEventListener('click', e => { const bt = e.target.closest('[data-cv]'); if (!bt) return; const v = bt.dataset.cv; closeSheet(sh); if (v === 'x') return; if (v === 'ob') { w._t.oblig = true; const ob = $('#tx-oblig', w); if (ob) ob.checked = true; saveTx(w); return; } if (v === '!') saveTx(w, undefined, true); else if (v === 'part') { w._cover.over = flexTot; saveTx(w, '', true); } else saveTx(w, v === '*' ? '' : v); });
       return;
     }
@@ -2931,7 +2965,8 @@ async function saveTx(w, coverFrom, asOver) {
     const cov = r2(Math.min(a, cushion().bal));
     if (cov > 0) { const c = clone(cfg()); c.cushion.bal = r2(Math.max(0, c.cushion.bal - cov)); c.cushionLog = (c.cushionLog || []).concat({m: curYM(), a: -cov, why: 'Spesa obbligata: ' + (t.note || ''), ts: Date.now(), tx: ex ? ex.id : (w._fixedId || w._txid)}).slice(-60); await saveConfig(c); cushTxt = ` · ${eur(cov)} dal cuscinetto`; }
   }
-  if (hasPartner() && !S.preview && window.FutureCloud && t.kind === 'out' && (newOblig || (asOver && !ex))) {
+  if (w._loanPid && !ex && hasPartner() && !S.preview && window.FutureCloud) window.FutureCloud.notify({title: `${meNow()} ha registrato un prestito`, body: `${eur(a)} a ${(personOf(w._loanPid) || {}).n || ''} · deciso insieme, già uscito`, tag: 'loan-' + Date.now(), url: './'});
+  else if (hasPartner() && !S.preview && window.FutureCloud && t.kind === 'out' && (newOblig || (asOver && !ex))) {
     const ovr = asOver ? (() => { const b0 = catStats(t.d.slice(0, 7)).find(x => x.k === t.cat); return b0 && b0.left < 0 ? -b0.left : 0; })() : 0;
     window.FutureCloud.notify({title: `${meNow()} ha registrato una spesa`, body: `${t.note || catName(Object.assign({}, doc))} · ${eur(a)} · ${newOblig ? 'spesa obbligata' : 'sforamento' + (ovr > 0.005 ? ' di ' + eur(ovr) : '')}`, tag: 'reg-' + Date.now(), url: './'});
   }
@@ -3091,11 +3126,11 @@ function openCushion() {
     <div class="card tight"><div class="tot"><div><div class="h-label">Nel cuscinetto</div><div class="big2 num" style="margin-top:6px">${eur(c.bal)}</div></div><span class="badge">tetto ${eur0(c.target)}</span></div>
       <div class="gbar"><i style="width:${r2(Math.min(1, c.bal / (c.target || 1)) * 100)}%;background:linear-gradient(90deg,#FFB547,#2EE59D)"></i></div>
       <div class="muted" style="font-size:12.5px">${esc(mainAcc())} ${eur(balance(mainAcc()))}${reservedForDebt() > 0 ? ` · per l\u2019estinzione ${eur(reservedForDebt())}` : ''} · spendibili ${eur(spendableConto())}</div></div>
+    ${log.length ? `<div class="day">Perché è a questa cifra</div><div class="card tight">${log.map(x => `<div class="txr" style="cursor:default"><div style="min-width:0"><div class="t1" style="font-size:14px">${esc(x.why || '')}</div><div class="t2">${x.ts ? dateShort(isoDate(new Date(x.ts))) : ''}</div></div><div class="amt num ${x.a >= 0 ? 'g' : 'r'}">${x.a >= 0 ? '+' : '−'}${eur(Math.abs(x.a))}</div></div>`).join('')}</div>` : ''}
     <label class="fld" style="margin-top:14px"><span>Importo</span><div class="amtin"><input id="cu-a" inputmode="decimal" placeholder="0,00"><b>€</b></div></label>
     <div class="row2"><button class="btn mt0" data-act="cu-use">Uso il cuscinetto</button><button class="btn mt0" data-act="cu-add">Aggiungo</button></div>
     <label class="fld" style="margin-top:16px"><span>Tetto del cuscinetto</span><input id="cu-t" inputmode="decimal" value="${String(c.target).replace('.', ',')}"></label>
-    <button class="btn" data-act="cu-target">Salva il tetto</button>
-    ${log.length ? `<div class="day">Ultimi movimenti del cuscinetto</div><div class="card tight">${log.map(x => `<div class="txr" style="cursor:default"><div style="min-width:0"><div class="t1" style="font-size:14px">${esc(x.why || '')}</div><div class="t2">${x.ts ? dateShort(isoDate(new Date(x.ts))) : ''}</div></div><div class="amt num ${x.a >= 0 ? 'g' : 'r'}">${x.a >= 0 ? '+' : '−'}${eur(Math.abs(x.a))}</div></div>`).join('')}</div>` : ''}`);
+    <button class="btn" data-act="cu-target">Salva il tetto</button>`);
 }
 async function cushionMove(w, sign) {
   const a = parseAmt($('#cu-a', w).value); if (!(a > 0)) { toast('Inserisci un importo'); return; }
@@ -3726,6 +3761,8 @@ const FAQ = [
     ['Come registro una busta paga con tredicesima o quattordicesima?', 'Entrata → <b>＋ Dividi in più voci</b>. Scrivi per esempio Stipendio 2.250 € e Tredicesima 2.000 €: il totale si calcola da solo e l\u2019app registra due entrate collegate. Così la tredicesima resta disponibile per “Pagata con la tredicesima” e la quattordicesima fa partire la regola 9. A dicembre e a luglio la seconda voce è già proposta. Se scrivi tutto insieme, l\u2019app ti chiede se dentro c\u2019è la tredicesima e la divide lei.'],
     ['Cos\u2019è “Pagata con la tredicesima”?', 'Se avete registrato una tredicesima, nelle uscite compare questa spunta: la spesa viene pagata da lì e resta <b>escluso dal budget del mese</b>, fino a esaurimento della tredicesima.'],
     ['Come verso nel fondo casa?', 'Finché ci sono debiti i versamenti sono fermi: la quota del mese resta sul conto come <b>salvadanaio debiti</b>. Chiuso l\u2019ultimo debito torna <b>Versa nel fondo</b> in Home e in Obiettivi, con la quota più tutte le rate liberate.'],
+    ['Perché una voce o il cuscinetto sono scesi?', 'Tocca la voce in Home (Cosa resta nelle voci) o in Bilancio: vedi il budget del mese, gli spostamenti con il motivo e la data, le spese e quanto resta. Per il cuscinetto: Obiettivi → Cuscinetto, sotto il saldo trovi «Perché è a questa cifra».'],
+    ['Come registro un prestito già fatto?', '<b>＋ Registra → Uscita → 🤝 È un prestito</b>: scegli la persona, importo e data. Esce dal Fuori budget; se non basta l\u2019app ti chiede da quale voce togliere il resto. Il partner riceve solo un avviso, perché ne avete già parlato. Se il prestito non è ancora deciso, usa «Posso comprarlo?» o Saldi → Soldi prestati.'],
     ['Come funziona il cuscinetto?', 'È una somma che scegli tu, dentro il conto corrente, per i mesi scarsi, non soldi da spendere: “Puoi ancora spendere” guarda solo il budget flessibile e il piano debiti conta solo i soldi oltre il cuscinetto. Si usa solo alla chiusura di un mese in rosso (sforamenti o entrate sotto il budget), per una spesa straordinaria obbligata o a mano, e poi si ricarica con gli avanzi prima di mandare soldi ai debiti. In Home compare un avviso <b>giallo</b> quando il mese è sotto (con <b>Copri da una voce flessibile</b>) e uno <b>rosso</b> se, dopo i pagamenti del mese, sul conto restano meno dei 700 €.'],
     ['E per un\u2019entrata futura?', 'In <b>📉 Prevedi</b> scegli <b>Entrata</b> e il tipo: <b>Entrata extra</b> (toglie il {QX} di {QN}), <b>Rientro prestito</b> (scegli da chi, senza quota) o <b>Altro</b>. Vedi quanto arriva ai debiti, debito per debito quanto si anticipa, la nuova data di <b>Libero dai debiti</b>, quanto avanza per il fondo casa e quando arriva al traguardo. Se è in un mese futuro la puoi mettere come <b>entrata prevista</b>: conta nel piano e quel mese la trovi in Da fare con <b>Arrivata</b>.'],
     ['Come vedo quanto pesa una spesa sui debiti?', 'In Home tocca <b>📉 Prevedi</b>: scrivi importo, voce e quando (oggi o un mese nei prossimi 24). Vedi subito quanto copre la voce, quanto esce dai soldi per i debiti, debito per debito la data prima e dopo, e se cambia <b>Libero dai debiti</b>. Non registra niente: se vuoi, da lì la registri o la metti come prevista. La stessa riga compare anche nella risposta di <b>Posso comprarlo?</b>.'],
@@ -4065,11 +4102,10 @@ async function saveLoan(w) {
     let pid0 = l.pid;
     if (pid0 === '__new') { const c = clone(cfg()); pid0 = 'p' + newId().slice(-7); c.people = (c.people || []).concat({id: pid0, n: l.n.trim()}); if (await saveConfig(c) === false) return; }
     const nm = (personOf(pid0) || {n: l.n.trim()}).n, d0 = l.d && l.d <= today() ? l.d : today();
-    const f0 = catStats(d0.slice(0, 7)).find(b => b.k === 'fuori'), over0 = !f0 || a > Math.max(0, f0.left) + 0.001;
-    const p0 = apprName(), m0 = String(l.m || '').trim();
-    if (await addTx({kind: 'out', a, cat: 'fuori', pid: pid0, d: d0, acc: l.acc, due: l.due || '', over: over0 ? 1 : 0, note: 'Prestito a ' + nm + (m0 ? ' · ' + m0 : '') + (p0 ? ' · sì di ' + p0 + ' a voce' : '')}) === false) return;
-    if (p0 && window.FutureCloud && !S.preview) window.FutureCloud.notify({title: `${meNow()} ha registrato un prestito`, body: `${eur(a)} a ${nm}${m0 ? ' · ' + m0 : ''} · deciso insieme, già uscito`, tag: 'loan-' + Date.now(), url: './'});
-    closeSheet(w); $$('#sheets .wrap[data-loans]').forEach(x => closeSheet(x)); toast(`${nm}: ${eur(a)} registrati ✓${over0 ? ' · come sforamento del mese' : ''}`); S.anim = true; render(); return;
+    const m0 = String(l.m || '').trim();
+    closeSheet(w); $$('#sheets .wrap[data-loans]').forEach(x => closeSheet(x));
+    const tw = openTx({_new: true, kind: 'out', a: String(a).replace('.', ','), cat: 'fuori', note: 'Prestito a ' + nm + (m0 ? ' · ' + m0 : '') + (apprName() ? ' · sì di ' + apprName() + ' a voce' : ''), d: d0, acc: l.acc || mainAcc(), to: 'Fondo casa', xb: false, src: '', loan: true, lpid: pid0, ldue: l.due || ''});
+    setTimeout(() => saveTx(tw), 60); return;
   }
   if (l.type === 'new') {
     const st = catStats(curYM()), f = st.find(b => b.k === 'fuori');
@@ -4257,6 +4293,7 @@ const ACT = {
   stress: () => openStress(),
   subs: () => openSubs(),
   'quick-help': () => openQuickHelp(),
+  'cat-info': el => openCatInfo(el.dataset.k),
   'add-cat': el => openTx({_new: true, kind: 'out', a: '', cat: el.dataset.cat, note: '', d: today(), acc: mainAcc(), to: 'Fondo casa', xb: false, src: ''}),
   'lefty': () => { const on = lsGet('future_lefty') !== '1'; lsSet('future_lefty', on ? '1' : '0'); document.body.classList.toggle('lefty', on); toast(on ? 'Pulsanti per la mano sinistra ✓' : 'Pulsanti per la mano destra ✓'); render(); },
   'og-start': el => goalStart(el.dataset.id),
