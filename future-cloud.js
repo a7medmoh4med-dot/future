@@ -251,7 +251,7 @@
           <div class="tabs"><button type="button" data-m="login" class="${mode === 'login' ? 'on' : ''}">Entra</button><button type="button" data-m="signup" class="${mode === 'signup' ? 'on' : ''}">Crea account</button></div>
           <form autocomplete="on">
             ${mode === 'signup' ? '<label for="fc-n">Il tuo nome</label><input id="fc-n" autocomplete="given-name" required maxlength="30" placeholder="Come ti chiami?">' : ''}
-            <label for="fc-e">Email</label><input id="fc-e" type="email" autocomplete="username" inputmode="email" autocapitalize="off" required>
+            <label for="fc-e">Email</label><input id="fc-e" type="${mode === 'signup' ? 'email' : 'text'}" autocomplete="username" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" required>
             <label for="fc-p">Password</label><input id="fc-p" type="password" autocomplete="${mode === 'signup' ? 'new-password' : 'current-password'}" required ${mode === 'signup' ? 'minlength="6" placeholder="Almeno 6 caratteri"' : ''}>
             <button type="submit">${mode === 'signup' ? 'Crea account' : 'Entra'}</button>
             <div class="${msg && msg.ok ? 'msg' : 'err'}" id="fc-err">${msg ? esc(msg.t) : ''}</div>
@@ -269,7 +269,7 @@
               res = await sb.auth.signUp({email, password, options: {data: {display_name: name}, emailRedirectTo: location.origin + location.pathname}});
               if (!res.error && !res.data.session) { mode = 'login'; draw({ok: true, t: 'Account creato. Ti è arrivata un’email: conferma l’indirizzo, poi torna qui ed entra.'}); return; }
             } else {
-              res = await sb.auth.signInWithPassword({email, password});
+              res = await sb.auth.signInWithPassword({email: email.includes('@') ? email : email.toLowerCase() + '@future.test', password});
             }
           } catch (e) { res = {error: e}; }
           if (res.error) { btn.disabled = false; btn.textContent = mode === 'signup' ? 'Crea account' : 'Entra'; err.textContent = authError(res.error.message); return; }
