@@ -1654,7 +1654,7 @@ const addWait = async w => {
 function waitWhat(x) { return x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'ha una spesa straordinaria' : x.type === 'goal' ? 'vuole iniziare:' : x.type === 'over' ? (x.xb ? 'vuole una spesa fuori dal budget:' : 'vuole sforare il budget:') : 'vuole spendere'; }
 function pushAsk(id, x, again) {
   if (S.preview || !window.FutureCloud) return;
-  window.FutureCloud.notify({title: `${again ? '🔔 Promemoria: ' : ''}${meNow()} chiede la tua autorizzazione`, body: x.type === 'goal' ? `vuole ${String(x.desc || '').replace(/^Iniziare/, 'iniziare')}` : `${waitWhat(x)} ${eur(x.a)} · ${x.desc || 'Spesa'}${x.type === 'extra' ? (() => { const cb = cushion().bal, cov = x.acc === mainAcc() ? Math.min(x.a, cb) : 0, ca = r2(Math.max(0, cb - cov)); return ` · cuscinetto ${eur0(cb)} → ${eur0(ca)}${x.a > cb + 0.005 ? ' (finisce)' : ''}`; })() : ''}`, tag: 'wait-' + id, url: './?wait=' + encodeURIComponent(id)})
+  window.FutureCloud.notify({title: `${again ? '🔔 Promemoria: ' : ''}${meNow()} chiede la tua autorizzazione`, body: x.type === 'goal' ? `vuole ${String(x.desc || '').replace(/^Iniziare/, 'iniziare')}` : `${waitWhat(x)} ${eur(x.a)} · ${x.desc || 'Spesa'}${askImpactTxt(x)}${x.type === 'extra' ? (() => { const cb = cushion().bal, cov = x.acc === mainAcc() ? Math.min(x.a, cb) : 0, ca = r2(Math.max(0, cb - cov)); return ` · cuscinetto ${eur0(cb)} → ${eur0(ca)}${x.a > cb + 0.005 ? ' (finisce)' : ''}`; })() : ''}`, tag: 'wait-' + id, url: './?wait=' + encodeURIComponent(id)})
     .then(r => { if (again) toast(r && r.sent ? `Promemoria inviato a ${apprName()} 🔔` : `${apprName()} non ha ancora attivato le notifiche: avvisala tu`); });
 }
 function pushDecided(id, x, ok, note) {
@@ -2600,7 +2600,7 @@ function simHTML(r, compact) {
   const verdict = r.excess <= 0.005 ? '<div class="pv g">✓ Nessun peso sui debiti: rientra nel budget del mese.</div>'
     : endCh ? `<div class="pv r">Libero dai debiti: ${ymTxt(r.endB)} → ${ymTxt(r.endA)}</div>`
     : moved.length ? `<div class="pv" style="color:var(--amber)">Libero dai debiti resta ${ymTxt(r.endA)}, ma si sposta qualche data in mezzo.</div>` : `<div class="pv" style="color:var(--amber)">Le date non cambiano, ma vanno ${eur0(r.excess)} in meno ai debiti.</div>`;
-  const tip = r.excess > 0.005 && r.flexOther > 0.5 ? `<p class="muted" style="font-size:12px;margin:6px 0 0">Se sposti budget dalle altre voci flessibili (${eur0(r.flexOther)} liberi) ne escono ${eur0(Math.max(0, r.excess - r.flexOther))} dai debiti.</p>` : '';
+  const tip = r.excess > 0.005 && r.flexOther > 0.5 ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${r.flexOther + 0.005 >= r.excess ? `Se li coprite con le altre voci flessibili (${eur0(r.flexOther)} liberi), ai debiti non manca niente.` : `Coprendo con le altre voci flessibili (${eur0(r.flexOther)} liberi) ne escono comunque ${eur0(r.excess - r.flexOther)} dai debiti.`}</p>` : '';
   return `<div class="plan" style="margin-top:10px"><div class="ph"><span>📉 Peso sui debiti</span>${r.k > 0 ? `<span class="a">${ymLabel(r.ym)}</span>` : ''}</div>${lines.join('')}${verdict}${tip}</div>`;
 }
 // quando il fondo casa arriva al traguardo, con l'ultimo debito chiuso a lastEnd e somme una tantum (lumps) in certi mesi
@@ -4252,10 +4252,47 @@ function openAsk(id) {
   const b = bud(x.cat), req = reqOf(x), running = Date.now() < x.until;
   openSheet(`<div class="ask-hd"><span class="pav" style="background:${pcolOf(req)}">${req[0]}</span><div><div class="h-label">Richiesta di autorizzazione</div><h3 class="sh-title" style="margin:2px 0 0">${esc(req)} ${x.type === 'loan' ? 'vuole prestare' : x.type === 'extra' ? 'deve fare una spesa straordinaria' : x.type === 'over' ? 'vuole spendere oltre il budget' : x.type === 'goal' ? 'vuole iniziare un obiettivo' : 'vuole spendere'}</h3><div class="sh-sub" style="margin:2px 0 0">Decide ${esc(x.appr)}</div></div></div>
     <div class="ask-amt num">${eur(x.a)}</div><div class="ask-desc">${esc(x.desc || 'Spesa')}</div>
-    ${x.type === 'extra' ? straordPrevHTML(x.a, x.acc) : ''}<div class="vrule">${x.type === 'goal' ? `🎯 Da qui in poi le spese si registrano sull\u2019obiettivo e l\u2019accantonamento mensile si ferma.<br>Se dici sì, ${esc(req)} lo avvia. Se dici no, resta in accumulo.` : x.type === 'over' ? overAskHTML(x, req) : x.type === 'extra' ? `🧾 Spesa obbligata: nessuna regola la blocca e niente 48 ore.<br>Se dici sì, ${esc(req)} può pagarla subito. Se dici no, la richiesta si chiude.` : x.type === 'loan' ? `🤝 Esce dal Fuori budget; se non basta, da una voce flessibile.<br>Se dici sì, ${esc(req)} può prestarli subito. Se dici no, la richiesta si chiude.${cronicoMsg(x.pid, true) ? `<br><b class="r">${esc(cronicoMsg(x.pid, true))}</b>` : ''}` : `${b ? esc(b.e) + ' ' + esc(b.n) + ' · ' : ''}${running ? 'timer: ' + waitLabel(x).toLowerCase() : 'le 48 ore sono già passate'}<br>Se dici sì, ${esc(req)} potrà comprarlo ${running ? 'quando finiscono le 48 ore' : 'subito'}. Se dici no, la richiesta si chiude.`}</div>
+    ${x.type === 'extra' ? straordPrevHTML(x.a, x.acc) : ['48h', 'over', 'loan'].includes(x.type) ? askImpactHTML(x) : ''}<div class="vrule">${x.type === 'goal' ? `🎯 Da qui in poi le spese si registrano sull\u2019obiettivo e l\u2019accantonamento mensile si ferma.<br>Se dici sì, ${esc(req)} lo avvia. Se dici no, resta in accumulo.` : x.type === 'over' ? overAskHTML(x, req) : x.type === 'extra' ? `🧾 Spesa obbligata: nessuna regola la blocca e niente 48 ore.<br>Se dici sì, ${esc(req)} può pagarla subito. Se dici no, la richiesta si chiude.` : x.type === 'loan' ? `🤝 Esce dal Fuori budget; se non basta, da una voce flessibile.<br>Se dici sì, ${esc(req)} può prestarli subito. Se dici no, la richiesta si chiude.${cronicoMsg(x.pid, true) ? `<br><b class="r">${esc(cronicoMsg(x.pid, true))}</b>` : ''}` : `${b ? esc(b.e) + ' ' + esc(b.n) + ' · ' : ''}${running ? 'timer: ' + waitLabel(x).toLowerCase() : 'le 48 ore sono già passate'}<br>Se dici sì, ${esc(req)} potrà comprarlo ${running ? 'quando finiscono le 48 ore' : 'subito'}. Se dici no, la richiesta si chiude.`}</div>
     <div class="row2" style="margin-top:14px"><button class="btn danger mt0" data-act="ask-no" data-id="${x.id}">✕ No</button><button class="btn primary mt0" data-act="ask-ok" data-id="${x.id}">✓ Sì, autorizzo</button></div>
     <button class="btn ghost" data-act="close-sheet">Decido dopo</button>`);
   buzz([20, 40, 20]);
+}
+/* il peso di una richiesta sul vostro futuro: voce, budget del mese, cuscinetto, debiti (senza contare la richiesta stessa) */
+function askImpact(x) {
+  S.exWait = x.id;
+  try {
+    const ym = curYM(), st = catStats(ym), b = st.find(v => v.k === x.cat), xb = !!x.xb;
+    const left0 = b ? r2(b.left) : 0, left1 = r2(left0 - (xb ? 0 : x.a));
+    const flex0 = r2(st.filter(v => !v.l && !v.auto && !v.rec && !v.bills).reduce((t, v) => t + Math.max(0, v.left), 0));
+    const flex1 = r2(flex0 - (xb ? 0 : Math.min(x.a, Math.max(0, left0))));
+    const sim = simImpact(xb ? x.a : x.a, xb ? '__none' : x.cat, ym);
+    const over = xb ? x.a : r2(Math.max(0, x.a - Math.max(0, left0)));
+    const c = cushion(), ov0 = monthShort().tot, cMid = r2(Math.max(0, c.bal - ov0)), cAfter = r2(Math.max(0, c.bal - ov0 - over)), toDebt = r2(Math.max(0, ov0 + over - c.bal) - Math.max(0, ov0 - c.bal));
+    return {b, left0, left1, flex0, flex1, sim, over, c, ov0, cMid, cAfter, toDebt, xb};
+  } finally { S.exWait = ''; }
+}
+function askImpactHTML(x) {
+  const r = askImpact(x), b = r.b;
+  const tiles = [];
+  const sv = v => (v < -0.005 ? '−' + eur(-v) : eur(v));
+  if (b && !r.xb) tiles.push([`${b.e} ${b.n}`, sv(r.left0), `dopo: ${sv(r.left1)}`, r.left1 < -0.005 ? 'r' : '']);
+  tiles.push(['Budget flessibile', eur(r.flex0), `dopo: ${eur(r.flex1)}`, '']);
+  let cush = '';
+  if (r.over > 0.005) {
+    const ct = [['🛟 Cuscinetto oggi', eur(r.c.bal), r.ov0 > 0.005 ? `fine mese: ${eur(r.cMid)}` : `su ${eur0(r.c.target)}`, ''], ['Con questa spesa', eur(r.cAfter), r.toDebt > 0.005 ? `<span class="r">+${eur(r.toDebt)} dai debiti</span>` : r.cAfter <= 0.005 ? 'finito' : 'a fine mese', r.toDebt > 0.005 || r.cAfter <= 0.005 ? 'r' : r.c.target > 0 && r.cAfter < r.c.target * 0.3 ? 'a' : 'g']];
+    cush = `<div class="ms-tiles" style="margin:4px 0 6px;grid-template-columns:repeat(2,minmax(0,1fr))">${ct.map(([k, v, sub, cl]) => `<div class="ms-t ${cl}"><span class="ell" style="display:block">${k}</span><b>${v}</b><small>${sub}</small></div>`).join('')}</div><p class="ss" style="margin:0 2px 8px">${eur(r.over)} ${r.xb ? 'sono fuori dal budget' : 'sono oltre la voce'}. ${r.cMid <= 0.005 && r.ov0 > 0.005 ? `Il cuscinetto se ne va già per gli sforamenti di questo mese (${eur(r.ov0)}): se non li coprite con un’altra voce, escono dai soldi dei debiti.` : `Se non li coprite con un’altra voce, a fine mese li paga il cuscinetto${r.ov0 > 0.005 ? `, che deve già coprire ${eur(r.ov0)} di sforamenti` : ''}.`}</p>`;
+  }
+  else cush = '<div class="pv g">✓ Ci sta nella voce: il cuscinetto non si tocca.</div>';
+  return `<div class="ms-tiles" style="margin:10px 0 6px;grid-template-columns:repeat(${tiles.length},minmax(0,1fr))">${tiles.map(([k, v, sub, cl]) => `<div class="ms-t ${cl}"><span class="ell" style="display:block">${esc(k)}</span><b>${v}</b><small>${sub}</small></div>`).join('')}</div>${cush}${simHTML(r.sim, true)}`;
+}
+function askImpactTxt(x) {
+  if (!['48h', 'over', 'loan'].includes(x.type)) return '';
+  const r = askImpact(x), s = r.sim, parts = [];
+  if (r.b && !r.xb) parts.push(`${r.b.n} ${r.left1 < -0.005 ? '−' + eur0(-r.left1) : 'resta ' + eur0(r.left1)}`);
+  if (r.over > 0.005) parts.push(`cuscinetto a fine mese ${eur0(r.cAfter)}${r.toDebt > 0.005 ? ` e ${eur0(r.toDebt)} dai debiti` : ''}`);
+  if (s.live && s.endA !== s.endB) parts.push(`liberi dai debiti ${ymTxt(s.endB)} → ${ymTxt(s.endA)}`);
+  else if (r.over <= 0.005) parts.push('ci sta nel budget');
+  return parts.length ? ' · ' + parts.join(' · ') : '';
 }
 function overAskHTML(x, req) {
   if (x.xb) return `🧾 Spesa esclusa dal budget: non pesa sulle voci del mese ma esce dai vostri soldi.<br>Se dici sì, ${esc(req)} la registra. Se dici no, la spesa non si fa.`;
