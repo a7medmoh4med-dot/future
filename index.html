@@ -567,6 +567,7 @@ input,select,textarea{font-family:inherit}
 @keyframes fcdraw{to{stroke-dashoffset:0}}
 .homewrap.hw-cur>*{order:0!important}
 .ci .ci-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05)}.ci .ci-r>div{min-width:0}.ci .ci-r small{display:block;font-size:12px;margin-top:1px}.ci .ci-r b{white-space:nowrap;font-size:15px}.wz-tot{display:flex;justify-content:space-between;align-items:center;margin:12px 2px 0;font-weight:700;font-size:15px}.wz-tot b{font-size:18px;color:var(--green)}.wzr{padding:12px!important}.wzh{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:8px;align-items:center}.wzh .tg{height:46px}.wzr .fld{margin-bottom:0}.wzr .row2+.row2{margin-top:8px}.wz-flex{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin-top:8px}.wz-flex .fld{margin:0}
+.calc{display:none;align-items:center;gap:8px;margin-top:8px}.fld:focus-within .calc,.calc.on{display:flex}.calc button{flex:0 0 46px;height:38px;border-radius:12px;border:1px solid var(--stroke2);background:rgba(255,255,255,.07);color:var(--text);font-size:20px;font-weight:700;line-height:1}.calc .cr{flex:1;min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;color:var(--muted)}.calc .cr b{color:var(--green);font-size:16px}
 html,.sheet{color-scheme:dark;scrollbar-color:rgba(255,255,255,.16) transparent}.sheet::-webkit-scrollbar{width:8px}.sheet::-webkit-scrollbar-track{background:transparent}.sheet::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:8px}select{color-scheme:dark}select option,select optgroup{background:#1b1b22;color:#f2f2f7}select option:checked{background:#2ee59d;color:#04130c}
 .rp .rp-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-size:14.5px}.rp .rp-r:last-child{border-bottom:0}.rp .rp-r>div{min-width:0}.rp .rp-r small{display:block;font-size:12px;margin-top:1px}.rp .rp-r b{white-space:nowrap}.rp .rp-tot{font-weight:750;font-size:16px;border-top:1px solid var(--stroke2)}.rp .rp-tot b{font-size:18px}.rp-head{font-size:16px;font-weight:700;line-height:1.4;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--stroke)}.rp-head.r{border-color:rgba(255,107,94,.35)}.rp-head.g{border-color:rgba(46,229,157,.35)}
 .num,.amt{white-space:nowrap}
@@ -696,7 +697,15 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// importi con somme e sottrazioni: «3+4», «12,50 + 8 − 2». Un operatore in fondo (si sta ancora scrivendo) si ignora
+const calcTerms = v => String(v || '').replace(/[−–—]/g, '-').replace(/[^\d.,+\-]/g, '').split(/(?=[+-])/).map(x => ({sg: x[0] === '-' ? -1 : 1, b: x.replace(/^[+-]+/, '')})).filter(x => /\d/.test(x.b));
+const isCalc = v => calcTerms(v).length > 1;
 const parseAmt = v => {
+  const T = calcTerms(v); if (!T.length) return NaN;
+  if (T.length === 1) return T[0].sg * parseAmt1(T[0].b);
+  let t = 0; for (const x of T) { const n = parseAmt1(x.b); if (isNaN(n)) return NaN; t += x.sg * n; } return r2(t);
+};
+const parseAmt1 = v => {
   v = String(v || '').trim().replace(/[^\d.,\-]/g, ''); if (!v || !/\d/.test(v)) return NaN;
   const lc = v.lastIndexOf(','), ld = v.lastIndexOf('.');
   if (lc >= 0 && ld >= 0) v = lc > ld ? v.replace(/\./g, '').replace(',', '.') : v.replace(/,/g, '');          // 1.234,56 · 1,234.56
@@ -845,7 +854,7 @@ function normTx(id, x) {
   x = x || {};
   return {id, kind: ['in', 'out', 'move', 'lend0'].includes(x.kind) ? x.kind : 'out', a: Math.abs(r2(x.a)), cat: String(x.cat || ''), note: String(x.note || ''),
     d: /^\d{4}-\d{2}-\d{2}$/.test(x.d) ? x.d : today(), acc: String(x.acc || mainAcc()), to: String(x.to || ''),
-    xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, og: String(x.og || ''), lnk: String(x.lnk || ''), par: String(x.par || ''), fin: x.fin ? 1 : 0, qd: /^\d{4}-\d{2}$/.test(x.qd || '') ? x.qd : '', by: String(x.by || ''), ts: +x.ts || 0};
+    xb: !!x.xb, src: String(x.src || ''), goal: String(x.goal || ''), over: !!x.over, rec: String(x.rec || ''), skip: !!x.skip, todo: x.todo ? 1 : 0, dest: String(x.dest || ''), grp: String(x.grp || ''), keepAmt: Math.abs(r2(x.keepAmt)), pid: String(x.pid || ''), due: /^\d{4}-\d{2}-\d{2}$/.test(x.due) ? x.due : '', who: String(x.who || ''), plan: x.plan ? 1 : 0, unpaid: x.unpaid ? 1 : 0, rev: x.rev ? 1 : 0, og: String(x.og || ''), lnk: String(x.lnk || ''), par: String(x.par || ''), fin: x.fin ? 1 : 0, ex: isCalc(x.ex) ? String(x.ex).slice(0, 160) : '', qd: /^\d{4}-\d{2}$/.test(x.qd || '') ? x.qd : '', by: String(x.by || ''), ts: +x.ts || 0};
 }
 function normShift(id, x) { x = x || {}; return {id, m: String(x.m || ''), from: String(x.from || ''), to: String(x.to || ''), a: Math.abs(r2(x.a)), why: String(x.why || ''), tx: String(x.tx || ''), cv: x.cv ? 1 : 0, who: String(x.who || ''), by: String(x.by || ''), ts: +x.ts || 0}; }
 function normWait(id, x) { x = x || {}; return {id, type: ['next', 'loan', 'extra', 'over', 'goal'].includes(x.type) ? x.type : '48h', desc: String(x.desc || ''), a: Math.abs(r2(x.a)), cat: String(x.cat || 'fuori'), acc: String(x.acc || mainAcc()), need: x.need === 'rinv' ? 'rinv' : 'need', until: +x.until || 0, pid: String(x.pid || ''), due: String(x.due || ''), xb: x.xb ? 1 : 0, gid: String(x.gid || ''),
@@ -1131,6 +1140,7 @@ function resOutAt(ym, live, lr) {
 // nei mesi futuri: i saldi che restano fermi (né nel piano dei debiti, né fondo casa, né salvadanaio del mutuo)
 function accFixedAt() { const inP = new Set(poolAccs()), pa = potAccs(); return r2(cfg().accounts.reduce((t, a) => ((a.n === 'Fondo casa' && accUse(a.n).goal) || inP.has(a.n) || pa.includes(a.n) ? t : t + balance(a.n)), 0)); }
 function avgAvz() { const L = (cfg().avzLog || []).slice(-3); return L.length ? Math.max(0, r2(L.reduce((t, x) => t + (+x.a || 0), 0) / L.length)) : 0; }
+let TXCALC = null;
 let renderSeq = 0, schMemo = {seq: -1, v: null};
 function nowAvail() { const c = cushion(), st = catStats(curYM()); const outLeft = r2(st.reduce((t, b) => t + Math.max(0, b.eff - b.spent), 0)); return r2(poolAccs().reduce((t, n) => t + balance(n), 0) - c.bal - outLeft - unpaidTot()); }
 // effetto sul piano delle spese/entrate previste: quello che sfora la voce (o è straordinario) esce dal salvadanaio; le entrate extra entrano (tolta la quota personale)
@@ -1515,6 +1525,7 @@ async function dbErr(e, retry) {
 }
 async function put(coll, id, doc) {
   if (!canWriteNow()) return false;
+  if (coll === 'tx' && TXCALC && doc && !doc.ex && Math.abs(Math.abs(+doc.a || 0) - TXCALC.a) < 0.005) doc = Object.assign({}, doc, {ex: TXCALC.ex});
   if (S.preview) { upsertMem(S.demo, coll, id, doc); render(); return true; }
   if (B.kind === 'db') {
     const ref = B.db.collection(coll).doc(id);
@@ -2548,8 +2559,8 @@ function openCheck0(pre) {
     <label class="fld"><span>Cosa vuoi comprare</span><input id="ck-desc" placeholder="es. Lavaggio auto" value="${esc(q.desc)}" autocomplete="off"></label><div class="sugg" id="ck-sugg"></div>
     <label class="fld"><span>Importo</span><div class="amtin"><input id="ck-a" inputmode="decimal" placeholder="0,00" value="${q.a ? esc(String(q.a).replace('.', ',')) : ''}"><b>€</b></div></label>
     <div class="fld"><span>Voce di budget · quanto resta</span><div id="ck-cats">${catGrid(q.cat, 'ck-cat', {flexOnly: !(bud(q.cat) && bud(q.cat).l), noBills: true, buy: true})}</div><div id="ck-hint">${catHintHTML(q.cat, false, q.desc)}</div>${(bud(q.cat) && bud(q.cat).l) || !budgets().some(b => b.l && buyable(b)) ? '' : '<button class="chipbtn" data-act="ck-all" style="margin-top:8px" type="button">Mostra anche le voci intoccabili</button>'}</div>
-    <div class="row2"><label class="fld"><span>Conto</span><select id="ck-acc">${accOpts(q.acc)}</select></label>
-    <div class="fld"><span>È…</span>${segHTML('ck-need', [['need', 'Necessaria'], ['rinv', 'Rinviabile']], q.need)}</div></div>
+    <div class="fld"><span>È…</span>${segHTML('ck-need', [['need', 'Necessaria'], ['rinv', 'Rinviabile']], q.need)}</div>
+    <label class="fld"><span>Conto</span><select id="ck-acc">${accOpts(q.acc)}</select></label>
     <button class="btn primary" data-act="ck-go">Verifica</button>${pre.pid || pre.waitId ? '' : '<button class="chipbtn" data-act="ck-straord" type="button" style="margin-top:10px">🧾 È una spesa obbligata</button>'}<div id="ck-res"></div>`);
   w._pre = pre;
   if (!q.desc) $('#ck-sugg', w).innerHTML = suggHTML(w, 'ck');
@@ -2835,7 +2846,7 @@ function drawTx(w) {
     : `<div class="row2"><label class="fld"><span>Da</span><select id="tx-acc">${accOpts(t.acc)}</select></label><label class="fld"><span>A</span><select id="tx-to">${accOpts(t.to || 'Fondo casa')}</select></label></div>`);
   $('#tx-body', w).innerHTML = `<h3 class="sh-title">${ex ? 'Modifica movimento' : 'Nuovo movimento'}</h3><p class="sh-sub">${ex && (ex.who || ex.by) ? 'Registrato da ' + esc(ex.who || nameOf(ex.by) || 'qualcuno') + ' · ' : ''}${ex ? dateShort(ex.d) : 'Entrate, uscite e versamenti, insieme.'}</p>
     <div class="fld">${segHTML('tx-kind', [['out', 'Uscita'], ['in', 'Entrata'], ['move', 'Trasferimento']], t.kind)}</div>
-    <label class="fld"><span>${w._split ? 'Totale' : 'Importo'}</span><div class="amtin"><input id="tx-a" inputmode="decimal" placeholder="${w._hint ? 'ultima: ' + nf2.format(w._hint) : '0,00'}" value="${w._split ? esc(nf2.format(splitSum(w))) : t.a ? esc(String(t.a).replace('.', ',')) : ''}" ${w._split ? 'readonly' : ''}><b>€</b></div></label>
+    <label class="fld"><span>${w._split ? 'Totale' : 'Importo'}</span><div class="amtin"><input id="tx-a" inputmode="decimal" placeholder="${w._hint ? 'ultima: ' + nf2.format(w._hint) : '0,00'}" value="${w._split ? esc(nf2.format(splitSum(w))) : typeof t.a === 'number' && t.ex && Math.abs(parseAmt(t.ex) - t.a) < 0.005 ? esc(t.ex) : t.a ? esc(String(t.a).replace('.', ',')) : ''}" ${w._split ? 'readonly' : ''}><b>€</b></div></label>
     <label class="fld"><span>Descrizione</span><input id="tx-note" placeholder="${t.kind === 'move' ? 'es. Versamento fondo casa' : t.kind === 'in' ? 'es. Stipendio' : 'es. Supermercato'}" value="${esc(t.note)}" autocomplete="off"></label>
     <div class="sugg" id="tx-sugg">${suggHTML(w, 'tx')}</div>
     ${catPart}
@@ -6270,21 +6281,62 @@ function receiptAmount(text) {
   const all = lines.flatMap(amt); return all.length ? Math.max(...all) : 0;
 }
 async function scanReceipt(w) {
-  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
   inp.onchange = async () => {
-    const f = inp.files && inp.files[0]; if (!f) return;
-    toast('Leggo lo scontrino… (la prima volta scarica il lettore, qualche secondo)');
+    const F = [...(inp.files || [])]; if (!F.length) return;
+    toast(F.length > 1 ? `Leggo ${F.length} scontrini… (la prima volta scarica il lettore)` : 'Leggo lo scontrino… (la prima volta scarica il lettore, qualche secondo)');
     try {
-      const T = await loadTess(); const r = await T.recognize(f, 'ita+eng'); const txt = (r && r.data && r.data.text) || '';
-      const bk = bankParse(txt), a = bk ? bk.a : receiptAmount(txt), first = bk ? bk.m : (txt.split('\n').map(x => x.trim()).find(x => /[a-z]{3,}/i.test(x)) || '');
-      if (bk && bk.d) { const idd = $('#tx-d', w); if (idd) { idd.value = bk.d; idd.dispatchEvent(new Event('input', {bubbles: true})); idd.dispatchEvent(new Event('change', {bubbles: true})); } }
-      if (a > 0) { const ia = $('#tx-a', w); if (ia) { ia.value = nf2.format(a); ia.dispatchEvent(new Event('input', {bubbles: true})); } }
-      const inote = $('#tx-note', w); if (inote && !inote.value && first) { inote.value = first.slice(0, 40); inote.dispatchEvent(new Event('input', {bubbles: true})); }
-      toast(a > 0 ? `Letto: ${eur(a)} · controlla prima di salvare` : 'Non ho trovato il totale: scrivilo tu');
+      const T = await loadTess(), got = []; let bk0 = null, first0 = '', miss = 0;
+      for (const f of F) {
+        const r = await T.recognize(f, 'ita+eng'), txt = (r && r.data && r.data.text) || '';
+        const bk = bankParse(txt), a = bk ? bk.a : receiptAmount(txt);
+        if (a > 0) got.push(a); else miss++;
+        if (!bk0 && bk) bk0 = bk; if (!first0) first0 = bk ? bk.m : (txt.split('\n').map(x => x.trim()).find(x => /[a-z]{3,}/i.test(x)) || '');
+      }
+      if (bk0 && bk0.d) { const idd = $('#tx-d', w); if (idd) { idd.value = bk0.d; idd.dispatchEvent(new Event('input', {bubbles: true})); idd.dispatchEvent(new Event('change', {bubbles: true})); } }
+      const ia = $('#tx-a', w);
+      if (got.length && ia) {
+        const add = got.map(a => nf2.format(a)).join('+'), old = ia.value.trim(), oldA = parseAmt(old);
+        let v = add;
+        if (oldA > 0) { const ch = await choiceSheet('C’è già un importo', `Nel campo ci sono ${eur(oldA)}. ${got.length > 1 ? 'Questi scontrini li' : 'Questo scontrino lo'} aggiungo o sostituisco?`, [['add', `Aggiungi: ${eur(r2(oldA + got.reduce((x, y) => x + y, 0)))}`], ['rep', `Sostituisci: ${eur(r2(got.reduce((x, y) => x + y, 0)))}`]]); if (!ch) return; if (ch === 'add') v = old.replace(/[+\-−\s]+$/, '') + '+' + add; }
+        ia.value = v; ia.dispatchEvent(new Event('input', {bubbles: true}));
+      }
+      const inote = $('#tx-note', w); if (inote && !inote.value && first0) { inote.value = first0.slice(0, 40); inote.dispatchEvent(new Event('input', {bubbles: true})); }
+      toast(got.length ? `Letto ${got.map(a => eur(a)).join(' + ')}${miss ? ` · ${miss} non letto, scrivilo tu` : ''} · controlla prima di salvare` : 'Non ho trovato il totale: scrivilo tu');
     } catch (e) { toast('Lettura non riuscita: serve la rete la prima volta'); }
   };
   inp.click();
 }
+
+/* ---------- calcolo negli importi: tasti ＋ − e risultato sotto il campo ---------- */
+function calcLine(v) {
+  const T = calcTerms(v); if (T.length < 2) return '';
+  const tot = parseAmt(v); if (isNaN(tot)) return '';
+  return T.map((x, i) => (i ? (x.sg < 0 ? ' − ' : ' + ') : (x.sg < 0 ? '−' : '')) + nf2.format(parseAmt1(x.b))).join('') + ' = <b>' + (tot < 0 ? '−' + eur(-tot) : eur(tot)) + '</b>';
+}
+function calcUpd(inp) {
+  const row = inp && inp._calc; if (!row) return;
+  const l = calcLine(inp.value); row.classList.toggle('on', !!l);
+  $('.cr', row).innerHTML = l || 'Più spese? Sommale con ＋';
+}
+function calcWire(root) {
+  $$('.amtin:not(.sm) > input[inputmode="decimal"]:not([data-calc]):not([readonly])', root || document).forEach(inp => {
+    inp.dataset.calc = '1'; const box = inp.closest('.amtin');
+    box.insertAdjacentHTML('afterend', '<div class="calc"><button type="button" data-cop="+" aria-label="Più">＋</button><button type="button" data-cop="-" aria-label="Meno">−</button><span class="cr"></span></div>');
+    inp._calc = box.nextElementSibling; calcUpd(inp);
+  });
+}
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('[data-cop]')) e.preventDefault(); }, true);
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-cop]'); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const row = b.closest('.calc'), inp = row && row.previousElementSibling && $('input', row.previousElementSibling); if (!inp) return;
+  const v = inp.value.replace(/[+\-−\s]+$/, '');
+  if (!/\d/.test(v)) { toast('Scrivi prima il primo importo'); inp.focus(); return; }
+  inp.value = v + (b.dataset.cop === '-' ? '-' : '+'); inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (err) {}
+  inp.dispatchEvent(new Event('input', {bubbles: true}));
+}, true);
+document.addEventListener('input', e => { if (e.target && e.target._calc) calcUpd(e.target); });
+{ let q = 0; new MutationObserver(() => { if (q) return; q = requestAnimationFrame(() => { q = 0; calcWire(); }); }).observe(document.body, {childList: true, subtree: true}); }
 
 /* ---------- avvio delle funzioni nuove ---------- */
 function featuresBoot() {
@@ -6309,6 +6361,13 @@ async function openAutoBackups() {
   });
 }
 
+/* calcolo dell'importo: resta sul movimento, così in modifica si ritrova «3+4» */
+const _saveTx0 = saveTx;
+saveTx = async function (w, ...a) {
+  const el = $('#tx-a', w), v = el && !w._split ? el.value : '';
+  TXCALC = isCalc(v) && parseAmt(v) > 0 ? {a: parseAmt(v), ex: v.trim().replace(/\s+/g, '')} : null;
+  try { return await _saveTx0(w, ...a); } finally { TXCALC = null; }
+};
 /* scontrino: pulsante nel foglio del movimento */
 const _drawTx0 = drawTx;
 drawTx = function (w) {
