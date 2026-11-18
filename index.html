@@ -567,7 +567,7 @@ input,select,textarea{font-family:inherit}
 @keyframes fcdraw{to{stroke-dashoffset:0}}
 .homewrap.hw-cur>*{order:0!important}
 .ci .ci-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05)}.ci .ci-r>div{min-width:0}.ci .ci-r small{display:block;font-size:12px;margin-top:1px}.ci .ci-r b{white-space:nowrap;font-size:15px}.wz-tot{display:flex;justify-content:space-between;align-items:center;margin:12px 2px 0;font-weight:700;font-size:15px}.wz-tot b{font-size:18px;color:var(--green)}.wzr{padding:12px!important}.wzh{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:8px;align-items:center}.wzh .tg{height:46px}.wzr .fld{margin-bottom:0}.wzr .row2+.row2{margin-top:8px}.wz-flex{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin-top:8px}.wz-flex .fld{margin:0}
-select{color-scheme:dark}select option,select optgroup{background:#1b1b22;color:#f2f2f7}select option:checked{background:#2ee59d;color:#04130c}
+html,.sheet{color-scheme:dark;scrollbar-color:rgba(255,255,255,.16) transparent}.sheet::-webkit-scrollbar{width:8px}.sheet::-webkit-scrollbar-track{background:transparent}.sheet::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:8px}select{color-scheme:dark}select option,select optgroup{background:#1b1b22;color:#f2f2f7}select option:checked{background:#2ee59d;color:#04130c}
 .rp .rp-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-size:14.5px}.rp .rp-r:last-child{border-bottom:0}.rp .rp-r>div{min-width:0}.rp .rp-r small{display:block;font-size:12px;margin-top:1px}.rp .rp-r b{white-space:nowrap}.rp .rp-tot{font-weight:750;font-size:16px;border-top:1px solid var(--stroke2)}.rp .rp-tot b{font-size:18px}.rp-head{font-size:16px;font-weight:700;line-height:1.4;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--stroke)}.rp-head.r{border-color:rgba(255,107,94,.35)}.rp-head.g{border-color:rgba(46,229,157,.35)}
 .num,.amt{white-space:nowrap}
 .row2>*{min-width:0}.fld input,.fld select{min-width:0;max-width:100%}
@@ -5982,15 +5982,26 @@ function openWizard() {
   const card = (kind, i, L, r, nameIf, body) => `<div class="accard wzr"><div class="wzh">${sel(L, kind, i, r.t)}<button class="tg" data-wz="del" data-k="${kind}" data-i="${i}" type="button" aria-label="Togli">✕</button></div>${nameIf ? `<label class="fld" style="margin-top:8px"><span>Nome</span><input data-wr="${kind}" data-i="${i}" data-f="n" value="${esc(r.n || '')}" placeholder="Scrivi il nome" autocomplete="off"></label>` : ''}${body}</div>`;
   const addBtn = (kind, lab) => `<button class="btn" data-wz="add" data-k="${kind}" type="button">＋ ${lab}</button>`;
   const tot = (lab, v) => `<div class="wz-tot"><span>${lab}</span><b class="num">${eur(v)}</b></div>`;
+  const sumHTML = () => {
+    const t = wizTotals(s), flexT = r2(WZ_FLEX.reduce((a, k) => a + wzNum((s.flex || {})[k]), 0)), sav = r2(t.inc - t.fixed - t.rates - flexT);
+    return `<div class="card tight rp" style="margin:0"><div class="rp-r"><div>💶 Entrate</div><b class="num g">+${eur(t.inc)}</b></div>${t.fixed > 0 ? `<div class="rp-r"><div>🔒 Spese fisse</div><b class="num o">−${eur(t.fixed)}</b></div>` : ''}${t.rates > 0 ? `<div class="rp-r"><div>🏛️ Rate dei debiti</div><b class="num o">−${eur(t.rates)}</b></div>` : ''}<div class="rp-r"><div>🧺 Voci flessibili</div><b class="num o">−${eur(flexT)}</b></div><div class="rp-r rp-tot"><div>💰 Metti da parte</div><b class="num ${sav < 0 ? 'r' : 'g'}">${sav < 0 ? '−' + eur(-sav) : eur(sav)}</b></div></div>`;
+  };
   const premioHTML = () => {
-    const t = wizTotals(s), fx = s.flex, flexT = r2(WZ_FLEX.reduce((a, k) => a + wzNum(fx[k]), 0)), p = wizPremio(wizBuild(s)), sav = r2(t.inc - t.fixed - t.rates - flexT);
+    const t = wizTotals(s), fx = s.flex, flexT = r2(WZ_FLEX.reduce((a, k) => a + wzNum(fx[k]), 0)), c0 = wizBuild(s), p = wizPremio(c0), sav = r2(t.inc - t.fixed - t.rates - flexT);
     if (sav < -0.005) return `<div class="banner red" style="margin:10px 0 0"><div class="ic">⚠️</div><div><b>Le uscite superano le entrate di ${eur(-sav)}</b>Abbassa qualche voce: così il mese non si chiude.</div></div>`;
     const ok = y => y && y < '9999', row = (ic, k, sub, v, cl) => `<div class="rp-r"><div><span class="ell" style="display:block">${ic} ${k}</span><small class="ss">${sub}</small></div><b class="num ${cl}">${v}</b></div>`;
-    const R = [row('💰', 'Metti da parte', 'ogni mese', eur(sav), 'g')];
+    const R = [];
     if (p.debts) R.push(row('🏛️', 'Debiti chiusi', ok(p.dEnd) ? 'tra ' + durTxt(monthsBetween(curYM(), p.dEnd)) : 'con questo budget non si chiudono', ok(p.dEnd) ? ymShort(p.dEnd) : 'mai', ok(p.dEnd) ? '' : 'o'));
     if (p.gHas) R.push(row('🎯', esc(p.gName), p.gYm ? 'tra ' + durTxt(monthsBetween(curYM(), p.gYm)) : 'serve mettere da parte di più', p.gYm ? ymShort(p.gYm) : 'mai', p.gYm ? 'g' : 'o'));
-    return `<div class="h-label" style="margin-top:14px">🏆 Dove ti porta questo budget</div><div class="card tight rp" style="margin:8px 0 6px">${R.join('')}</div>
-      <p class="ss" style="margin:0 2px">${p.debts ? 'Quello che metti da parte va prima ai debiti' + (p.gHas ? ', poi al tuo obiettivo.' : '.') : p.gHas ? 'Quello che metti da parte va al tuo obiettivo.' : 'Quando vuoi, aggiungi un obiettivo da Obiettivi.'}${p.debts || p.gHas ? ' Il calcolo conta anche i soldi che hai già. Se abbassi una voce, le date si avvicinano.' : ''}</p>`;
+    if (!R.length) return `<p class="ss" style="margin:12px 2px 0">Quando vuoi, aggiungi un obiettivo da Obiettivi: l’app ti dirà quando lo raggiungi.</p>`;
+    // la leva: stessa situazione con 100 € in più al mese messi da parte
+    const tgt = x => (x.gHas ? x.gYm : ok(x.dEnd) ? x.dEnd : '') || '', y0 = tgt(p);
+    let lev = '';
+    if (y0) { const c1 = clone(c0); c1.income = c1.income.concat([{n: '\u0000leva', a: 100}]); const y1 = tgt(wizPremio(c1)), d = y1 ? monthsBetween(y1, y0) : 0;
+      if (d > 0) lev = `<div class="rp-r"><div><span class="ell" style="display:block">💡 Con ${eurR(100)} in più al mese</span><small class="ss">togliendoli da una voce · ${durTxt(d)} prima</small></div><b class="num g">${ymShort(y1)}</b></div>`; }
+    else { const need = p.gHas ? 'il tuo obiettivo' : 'i debiti'; lev = `<p class="ss" style="margin:6px 2px 0">Per arrivare a ${need} devi mettere da parte di più: abbassa qualche voce.</p>`; }
+    return `<div class="h-label" style="margin-top:14px">🏆 Dove ti porta questo budget</div><div class="card tight rp" style="margin:8px 0 6px">${R.join('')}${lev.startsWith('<div') ? lev : ''}</div>${lev.startsWith('<p') ? lev : ''}
+      <p class="ss" style="margin:0 2px">${p.debts ? 'Quello che metti da parte va prima ai debiti' + (p.gHas ? ', poi al tuo obiettivo.' : '.') : 'Quello che metti da parte va al tuo obiettivo.'} Il calcolo conta anche i soldi che hai già.</p>`;
   };
   const draw = () => {
     const dots = Array.from({length: N}, (_, i) => `<span style="display:inline-block;width:${i === s.step ? 22 : 8}px;height:8px;border-radius:8px;margin-right:5px;background:${i <= s.step ? 'var(--green)' : 'rgba(255,255,255,.15)'}"></span>`).join('');
@@ -6020,7 +6031,7 @@ function openWizard() {
       if (!s.flex) s.flex = wizFlex(s);
       const fb = cfg().budgets.filter(b => WZ_FLEX.includes(b.k));
       body = `<h3 class="sh-title">Il tuo piano</h3><p class="sh-sub">Costruito sui tuoi numeri. Le voci flessibili sono una proposta: cambiale come vuoi.</p>
-        <div class="card tight rp" style="margin:0"><div class="rp-r"><div>💶 Entrate</div><b class="num g">+${eur(t.inc)}</b></div>${t.fixed > 0 ? `<div class="rp-r"><div>🔒 Spese fisse</div><b class="num o">−${eur(t.fixed)}</b></div>` : ''}${t.rates > 0 ? `<div class="rp-r"><div>🏛️ Rate dei debiti</div><b class="num o">−${eur(t.rates)}</b></div>` : ''}<div class="rp-r rp-tot"><div>Restano</div><b class="num">${eur(t.free)}</b></div></div>
+        <div id="wz-sum">${sumHTML()}</div>
         <div class="h-label" style="margin-top:14px">Voci flessibili al mese</div>
         <div class="wz-flex">${fb.map(b => `<label class="fld"><span>${esc(b.e)} ${esc(b.n)}</span><input data-fx="${b.k}" inputmode="decimal" value="${esc(String(s.flex[b.k] ?? ''))}" placeholder="0"></label>`).join('')}</div>
         <div id="wz-res">${premioHTML()}</div>`;
@@ -6040,7 +6051,7 @@ function openWizard() {
   };
   const live = () => { grab(); const t = wizTotals(s), b = $('#wz-live', w);
     if (b) b.innerHTML = s.step === 0 ? tot('Entrate al mese', t.inc) : s.step === 1 && s.fix.length ? tot('Spese fisse al mese', t.fixed) : s.step === 2 && s.debts.length ? tot('Rate al mese', t.rates) : '';
-    const r = $('#wz-res', w); if (r) r.innerHTML = premioHTML(); };
+    const r = $('#wz-res', w); if (r) r.innerHTML = premioHTML(); const sm = $('#wz-sum', w); if (sm) sm.innerHTML = sumHTML(); };
   w.addEventListener('input', live);
   w.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.f === 't') { grab(); draw(); } });
   const blank = {incs: () => ({t: WZ_INC.find(x => !s.incs.some(r => r.t === x[0]))[0], n: '', a: '', day: ''}), fix: () => ({t: (WZ_FIX.find(x => !s.fix.some(r => r.t === x[0])) || WZ_FIX[8])[0], n: '', a: '', day: ''}), debts: () => ({t: 'fin', n: '', cur: '', rata: '', day: '', taeg: ''}), haves: () => ({t: (WZ_HAVE.find(x => !s.haves.some(r => r.t === x[0])) || WZ_HAVE[5])[0], n: '', v: '', g: ''})};
