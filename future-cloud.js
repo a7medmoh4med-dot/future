@@ -385,6 +385,13 @@
     if (info().role === 'partner') { location.reload(); return; }
     await loadMembers();
   }
+  // azzera e ricomincia da zero: chi ha creato lo spazio lo svuota (backup prima, partner scollegato); il partner esce e riparte da solo
+  async function resetSpace() {
+    const {data, error} = await sb.rpc('reset_my_space');
+    if (error) throw new Error(error.message);
+    ['future_intro_v1', 'future_preview_off', 'future_tour_v2', cacheKey(), qKey(), 'future_members_' + session.user.id].forEach(k => LS.del(k));
+    return data;
+  }
   async function useCode(code) {
     LS.set('future_invite', String(code || '').trim().toUpperCase());
     LS.del(cacheKey()); location.reload();
@@ -480,7 +487,7 @@
 
   window.FutureCloud = {
     connect, logout, info, onMembers: cb => memberL.add(cb),
-    createInvite, unlinkPartner, useCode, rename,
+    createInvite, unlinkPartner, useCode, rename, resetSpace,
     autoBackup, listBackups, restoreBackup, quickToken, newQuickToken, flushQueue, pending: () => readQ().length, onQueue: cb => qL.add(cb), isOffline: () => offlineStart && !navigator.onLine,
     pushState, enablePush, notify, isIOS, standalone,
     enabled: () => !!CFG.SUPABASE_URL, email: () => (session && session.user.email) || ''

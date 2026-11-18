@@ -2385,6 +2385,10 @@ function rulesHTML() {
       <div class="setrow" data-act="import"><span>Ripristina da un backup<br><small>Carica un file di backup di Future</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="toggle-preview"><span>${S.preview ? 'Esci dall\u2019anteprima' : 'Mostra anteprima con dati di esempio'}<br><small>${S.preview ? 'Torna ai vostri dati veri' : 'Prova l\u2019app senza toccare i dati'}</small></span><span class="chev">›</span></div>
       <div class="setrow" style="cursor:default"><span>Sincronizzazione<br><small>${S.mode === 'db' ? 'Condivisa in tempo reale tra i vostri dispositivi' : 'Solo questo dispositivo'}</small></span><span class="pill ${statusInfo().cls}"><i></i>${esc(statusInfo().t)}</span></div>
+    </div>
+    <div class="sec-title">Ricominciare</div>
+    <div class="card tight" style="--i:4">
+      <div class="setrow" data-act="reset-all"><span style="color:var(--red)">🗑️ Azzera e ricomincia da zero<br><small>${S.role === 'partner' && hasPartner() ? 'Esci dallo spazio condiviso e riparti con uno tutto tuo' : 'Cancella movimenti, budget e obiettivi · prima salva un backup'}</small></span><span class="chev">›</span></div>
     </div>`;
 }
 function loadingHTML() { return `<div class="loading"><div class="spin"></div><div>Carico i vostri conti…</div></div>`; }
@@ -4402,6 +4406,7 @@ const ACT = {
   'rev-ok': async () => { for (const t of TX().filter(t => t.rev)) { await put('tx', t.id, Object.assign(stripId(t), {rev: 0})); } toast('Fatto ✓'); render(); },
   'quick-copy': async () => { const t = location.origin + location.pathname + '?add='; try { await navigator.clipboard.writeText(t); toast('Link copiato ✓'); } catch (e) { toast(t); } },
   'auto-backups': () => openAutoBackups(),
+  'reset-all': () => openResetAll(),
   'ch-start': el => { const st = Object.assign({}, chState()); st[el.dataset.id] = {start: today(), by: meNow()}; const won = el.dataset.won === '1'; saveStateField(Object.assign({challenges: st}, won ? {chWins: (((S.real.state || {}).chWins) || 0) + 1} : {})); toast('Sfida iniziata 🔥'); render(); },
   'ch-stop': el => { const st = Object.assign({}, chState()); delete st[el.dataset.id]; saveStateField({challenges: st}); render(); },
   'goal-casa': () => openGoalEdit('casa'),
@@ -6373,6 +6378,34 @@ function featuresBoot() {
   if (window.FutureCloud && window.FutureCloud.onQueue) window.FutureCloud.onQueue(() => render());
   setTimeout(() => { if (B.kind === 'db' && !S.preview && window.FutureCloud && window.FutureCloud.autoBackup) window.FutureCloud.autoBackup().then(r => { if (r && r.ok && !r.skipped) saveStateField({lastAuto: today()}); }); }, 9000);
   navigator.serviceWorker && navigator.serviceWorker.addEventListener && navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'open' && /add=/.test(e.data.url || '')) { history.replaceState(null, '', e.data.url); handleQuickAdd(); } else if (e.data && e.data.type === 'open' && /report=/.test(e.data.url || '')) { history.replaceState(null, '', e.data.url); handleReportParam(); } });
+}
+/* ---------- azzera e ricomincia da zero ---------- */
+function openResetAll() {
+  if (S.preview) { toast('Sei nell’anteprima: esci dall’anteprima per azzerare i tuoi dati'); return; }
+  const part = S.role === 'partner' && hasPartner(), pn = apprName(), C = cfg();
+  const nTx = TX().filter(t => !t.plan).length, nG = C.goals.filter(g => g.type === 'debt' || +g.target > 0).length, nA = (C.assets || []).length;
+  const li = (ic, t) => `<div class="rp-r"><div>${ic} ${t}</div></div>`;
+  const body = part
+    ? `<p class="sh-sub">Esci dallo spazio di <b>${esc(pn)}</b> e ricominci con uno spazio vuoto tutto tuo: presentazione, configurazione e tour, come la prima volta.</p>
+       <div class="card tight rp" style="margin:0 0 12px">${li('👤', `I dati di ${esc(pn)} restano: non cancelli niente di suo`)}${li('🔗', 'Per tornare insieme serve un nuovo invito')}</div>`
+    : `<p class="sh-sub">L’app riparte come la prima volta: presentazione, configurazione e tour. Il tuo accesso resta lo stesso.</p>
+       <div class="card tight rp" style="margin:0 0 12px">${li('🧾', `${nTx} ${nTx === 1 ? 'movimento' : 'movimenti'} cancellati`)}${li('⚙️', 'Budget, conti, regole e pagamenti ricorrenti cancellati')}${nG ? li('🎯', `${nG} ${nG === 1 ? 'obiettivo o debito cancellato' : 'obiettivi e debiti cancellati'}`) : ''}${nA ? li('🏠', `${nA} ${nA === 1 ? 'bene cancellato' : 'beni cancellati'}`) : ''}${hasPartner() ? li('🔗', `<b>${esc(pn)}</b> viene scollegato e riparte con uno spazio suo · gli arriva una notifica`) : ''}${B.kind === 'db' ? li('🛟', 'Prima salvo un backup: se cambi idea, Impostazioni → Backup automatici') : ''}</div>`;
+  const w = openSheet(`<h3 class="sh-title">${part ? 'Esci e ricomincia da zero' : 'Azzera e ricomincia da zero'}</h3>${body}
+    <label class="fld"><span>Per confermare scrivi AZZERA</span><input id="rz-in" autocomplete="off" autocapitalize="characters" placeholder="AZZERA"></label>
+    <button class="btn danger" data-rz="go" disabled>${part ? 'Esci e ricomincia' : 'Azzera tutto'}</button><button class="btn ghost" data-act="close-sheet">Annulla</button>`);
+  const inp = $('#rz-in', w), go = $('[data-rz="go"]', w);
+  inp.addEventListener('input', () => { go.disabled = inp.value.trim().toUpperCase() !== 'AZZERA'; });
+  go.addEventListener('click', async () => {
+    if (go.disabled) return; go.disabled = true; go.textContent = 'Un momento…';
+    try {
+      if (B.kind === 'db' && window.FutureCloud && window.FutureCloud.resetSpace) {
+        if (hasPartner() && !part) await window.FutureCloud.notify({title: `${meNow()} ha azzerato Future`, body: 'Lo spazio condiviso è stato svuotato e sei stato scollegato: alla prossima apertura riparti con uno spazio tutto tuo.', tag: 'reset-' + Date.now()});
+        await window.FutureCloud.resetSpace();
+      } else { [LS_KEY, 'future_intro_v1', 'future_preview_off', 'future_tour_v2'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} }); }
+      toast('Fatto: si riparte da zero'); setTimeout(() => location.reload(), 700);
+    } catch (e) { toast('Non riuscito: ' + (e.message || e)); go.disabled = false; go.textContent = part ? 'Esci e ricomincia' : 'Azzera tutto'; }
+  });
+  setTimeout(() => inp.focus(), 400);
 }
 async function openAutoBackups() {
   const FC = window.FutureCloud; if (!FC || !FC.listBackups) return;
