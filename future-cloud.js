@@ -341,6 +341,12 @@
     try { const r = await sb.auth.getSession(); session = r.data.session; } catch (e) { session = null; }
     if (!session) await showAuth();
     overlay('<h1>Future</h1><p>Apro il tuo spazio…</p>');
+    // account di prova «demo»: a ogni apertura riparte da zero, come un utente nuovo (presentazione, configurazione, tour)
+    if (String(session.user.email || '').toLowerCase() === 'demo@future.test') {
+      try { const {error} = await sb.rpc('reset_demo'); if (error) throw error;
+        ['future_intro_v1', 'future_preview_off', 'future_tour_v2', cacheKey(), qKey(), 'future_members_' + session.user.id].forEach(k => LS.del(k));
+      } catch (e) { console.warn('reset demo', e); }
+    }
     try { await ensureSpace(); LS.set('future_members_' + session.user.id, JSON.stringify({spaceId, members})); } catch (e) {
       const saved = (() => { try { return JSON.parse(LS.get('future_members_' + session.user.id) || 'null'); } catch (x) { return null; } })();
       if (saved && saved.spaceId && isNetErr(e)) { spaceId = saved.spaceId; members = saved.members || []; offlineStart = true; }
