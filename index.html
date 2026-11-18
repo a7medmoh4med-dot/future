@@ -566,7 +566,8 @@ input,select,textarea{font-family:inherit}
 .sityd{margin-top:6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04)}
 @keyframes fcdraw{to{stroke-dashoffset:0}}
 .homewrap.hw-cur>*{order:0!important}
-.ci .ci-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05)}.ci .ci-r>div{min-width:0}.ci .ci-r small{display:block;font-size:12px;margin-top:1px}.ci .ci-r b{white-space:nowrap;font-size:15px}.rp .rp-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-size:14.5px}.rp .rp-r:last-child{border-bottom:0}.rp .rp-r>div{min-width:0}.rp .rp-r small{display:block;font-size:12px;margin-top:1px}.rp .rp-r b{white-space:nowrap}.rp .rp-tot{font-weight:750;font-size:16px;border-top:1px solid var(--stroke2)}.rp .rp-tot b{font-size:18px}.rp-head{font-size:16px;font-weight:700;line-height:1.4;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--stroke)}.rp-head.r{border-color:rgba(255,107,94,.35)}.rp-head.g{border-color:rgba(46,229,157,.35)}
+.ci .ci-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05)}.ci .ci-r>div{min-width:0}.ci .ci-r small{display:block;font-size:12px;margin-top:1px}.ci .ci-r b{white-space:nowrap;font-size:15px}.wz-tot{display:flex;justify-content:space-between;align-items:center;margin:12px 2px 0;font-weight:700;font-size:15px}.wz-tot b{font-size:18px;color:var(--green)}.wzr{padding:12px!important}.wzh{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:8px;align-items:center}.wzh .tg{height:46px}.wzr .fld{margin-bottom:0}.wzr .row2+.row2{margin-top:8px}.wz-flex{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin-top:8px}.wz-flex .fld{margin:0}
+.rp .rp-r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-size:14.5px}.rp .rp-r:last-child{border-bottom:0}.rp .rp-r>div{min-width:0}.rp .rp-r small{display:block;font-size:12px;margin-top:1px}.rp .rp-r b{white-space:nowrap}.rp .rp-tot{font-weight:750;font-size:16px;border-top:1px solid var(--stroke2)}.rp .rp-tot b{font-size:18px}.rp-head{font-size:16px;font-weight:700;line-height:1.4;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--stroke)}.rp-head.r{border-color:rgba(255,107,94,.35)}.rp-head.g{border-color:rgba(46,229,157,.35)}
 .num,.amt{white-space:nowrap}
 .row2>*{min-width:0}.fld input,.fld select{min-width:0;max-width:100%}
 /* una riga sola: il nome si accorcia, l'importo resta intero */
@@ -5897,64 +5898,166 @@ function openCurrency() {
 }
 
 /* ---------- configurazione guidata (2 minuti) ---------- */
-function wizPlan(s) {
-  const inc = r2((s.inc || 0) + (s.other || 0)), fixed = r2((s.casa || 0) + (s.bills || 0)), free = Math.max(0, inc - fixed);
-  const rnd = v => Math.max(0, Math.round(v / 5) * 5);
-  const p = {casa: r2(s.casa || 0), utenze: r2(s.bills || 0), spesa: rnd(Math.min(free * 0.3, inc * 0.15)), auto: rnd(free * 0.12), personali: rnd(free * 0.1), svago: rnd(free * 0.08), salute: rnd(free * 0.05), fuori: rnd(free * 0.05)};
-  const used = Object.values(p).reduce((a, b) => a + b, 0);
-  return {p, inc, fondo: r2(Math.max(0, inc - used)), cushion: rnd(fixed + p.spesa)};
+/* ---------- configurazione iniziale: parte dalla situazione vera di chi entra ---------- */
+const WZ_INC = [['stipendio', 'Stipendio'], ['lavoro2', 'Secondo lavoro'], ['attivita', 'Attività in proprio'], ['assegno', 'Assegno unico'], ['pensione', 'Pensione'], ['affitto', 'Affitto che ricevo'], ['altro', 'Altro (scrivi tu)']];
+const WZ_FIX = [['affitto', 'Affitto', 'casa'], ['mutuo', 'Rata del mutuo', 'casa'], ['condo', 'Condominio', 'condo'], ['luce', 'Luce e gas', 'utenze'], ['internet', 'Internet e telefono', 'utenze'], ['abbon', 'Abbonamenti', 'abbon'], ['assic', 'Assicurazione', 'assic'], ['scuola', 'Asilo o scuola', 'scuola'], ['altro', 'Altro (scrivi tu)', 'fisse']];
+const WZ_DEBT = [['fin', 'Finanziamento'], ['carta', 'Carta di credito'], ['persona', 'Debito con una persona']];
+const WZ_HAVE = [['dep', 'Deposito o conto risparmio'], ['invest', 'Investimenti'], ['oro', 'Oro'], ['immobile', 'Immobile o terreno'], ['veicolo', 'Auto o moto'], ['altro', 'Altro']];
+const WZ_VOCI = {casa: ['🏠', '#7C8CFF', 'Casa'], condo: ['🏢', '#4FD1C5', 'Condominio'], utenze: ['⚡', '#F6C744', 'Utenze'], abbon: ['📺', '#C58CFF', 'Abbonamenti'], assic: ['🛡️', '#8CB4FF', 'Assicurazione'], scuola: ['🎒', '#FFB86B', 'Asilo e scuola'], fisse: ['📌', '#A7A7B8', 'Altre spese fisse'], finanz: ['🏛️', '#FF8A5B', 'Finanziamenti'], carta: ['💳', '#FF5E7A', 'Carta di credito']};
+const WZ_FLEX = ['spesa', 'auto', 'personali', 'svago', 'salute', 'fuori'];
+const wzNum = v => { const x = parseAmt(v); return x > 0 ? x : 0; };
+const wzLab = (L, r) => (r.t === 'altro' || r.t === 'persona' || !L.find(x => x[0] === r.t) ? String(r.n || '').trim() : '') || (L.find(x => x[0] === r.t) || ['', 'Altro'])[1];
+function wizTotals(s) {
+  const inc = r2(s.incs.reduce((t, r) => t + wzNum(r.a), 0)), fixed = r2(s.fix.reduce((t, r) => t + wzNum(r.a), 0)), rates = r2(s.debts.reduce((t, r) => t + wzNum(r.rata), 0));
+  return {inc, fixed, rates, free: Math.max(0, r2(inc - fixed - rates))};
+}
+function wizFlex(s) {
+  const t = wizTotals(s), rnd = v => Math.max(0, Math.round(v / 5) * 5), f = t.free;
+  return {spesa: rnd(Math.min(f * 0.3, t.inc * 0.15)), auto: rnd(f * 0.12), personali: rnd(f * 0.1), svago: rnd(f * 0.08), salute: rnd(f * 0.05), fuori: rnd(f * 0.05)};
+}
+// dalla situazione scritta nella configurazione alla config completa: entrate e spese fisse ricorrenti, voci, debiti, conti, beni, obiettivo
+function wizBuild(s) {
+  const c = clone(cfg()), cur = curYM(), td = +today().slice(8), main = 'Conto corrente';
+  const fromOf = day => ((+day || 1) <= td ? addMonths(cur, 1) : cur), dayOf = v => Math.min(31, Math.max(1, Math.round(+v || 1)));
+  const uniq = (n, used) => { let x = n, k = 2; while (used.has(norm(x))) x = `${n} ${k++}`; used.add(norm(x)); return x; };
+  c.cur = s.cur; c.recurring = []; c.people = c.people || [];
+  // entrate
+  const usedI = new Set();
+  c.income = []; for (const r of s.incs) { const a = wzNum(r.a); if (!(a > 0)) continue; const n = uniq(wzLab(WZ_INC, r), usedI); c.income.push({n, a: r2(a)}); c.recurring.push({id: 'r' + newId().slice(-7), n, kind: 'in', a: r2(a), cat: n, acc: main, to: '', day: dayOf(r.day), var: 0, auto: 0, on: 1, from: fromOf(r.day), every: 1}); }
+  c.incomeCats = c.income.map(i => i.n).concat(['Entrate extra', 'Tredicesima', 'Quattordicesima', 'Altro'].filter(x => !usedI.has(norm(x))));
+  c.yearly = [[wzNum(s.y13), 'Tredicesima', '12'], [wzNum(s.y14), 'Quattordicesima', '07']].filter(y => y[0] > 0).map(y => ({n: y[1], a: r2(y[0]), mm: y[2]}));
+  // voci fisse (budget = somma dei pagamenti ricorrenti)
+  const fixV = [], usedF = new Set();
+  for (const r of s.fix) { const a = wzNum(r.a); if (!(a > 0)) continue; const T = WZ_FIX.find(x => x[0] === r.t) || WZ_FIX[WZ_FIX.length - 1], k = T[2]; if (!fixV.includes(k)) fixV.push(k);
+    c.recurring.push({id: 'r' + newId().slice(-7), n: uniq(wzLab(WZ_FIX, r), usedF), kind: 'out', a: r2(a), cat: k, acc: main, to: '', day: dayOf(r.day), var: 0, auto: 0, self: r.t === 'affitto' ? 1 : 0, on: 1, from: fromOf(r.day), every: 1}); }
+  // debiti
+  const debtV = []; c.goals = c.goals.filter(g => g.type !== 'debt');
+  for (const r of s.debts) { const res = wzNum(r.cur); if (!(res > 0)) continue; const id = 'g' + newId().slice(-7), nm = String(r.n || '').trim() || wzLab(WZ_DEBT, r);
+    if (r.t === 'persona') { const pid = 'p' + newId().slice(-7); c.people.push({id: pid, n: nm}); c.goals.push({id, type: 'debt', kind: 'person', pid, n: 'Debito con ' + nm, sub: 'Verso una persona · niente rate', start: res, cur: res, rata: 0, taeg: 0, plan: '', target: 0, cat: ''}); continue; }
+    const k = r.t === 'carta' ? 'carta' : 'finanz', rata = wzNum(r.rata), rid = 'r' + newId().slice(-7); if (!debtV.includes(k)) debtV.push(k);
+    if (rata > 0) c.recurring.push({id: rid, n: nm, kind: 'out', a: r2(rata), cat: k, acc: main, to: '', day: dayOf(r.day), var: 0, auto: 0, on: 1, from: fromOf(r.day), every: 1});
+    const g = {id, type: 'debt', n: nm, sub: '', start: res, cur: res, curTs: Date.now(), rata: r2(rata), extra: 0, taeg: wzNum(r.taeg), plan: '', cat: k, obj: 'asap', recId: rata > 0 ? rid : ''}; g.sub = debtSub(g); c.goals.push(g); }
+  // budget: fisse e rate (intoccabili), salvadanaio, flessibili
+  const fx = s.flex || wizFlex(s), old = c.budgets, casaN = s.fix.some(r => r.t === 'mutuo' && wzNum(r.a) > 0) ? (s.fix.some(r => r.t === 'affitto' && wzNum(r.a) > 0) ? 'Affitto e mutuo' : 'Mutuo') : 'Affitto';
+  c.budgets = fixV.concat(debtV).map(k => ({k, n: k === 'casa' ? casaN : WZ_VOCI[k][2], a: 0, l: 1, e: WZ_VOCI[k][0], c: WZ_VOCI[k][1], rec: 1}))
+    .concat(old.filter(b => b.auto))
+    .concat(old.filter(b => !b.auto && !b.l && !WZ_VOCI[b.k]).map(b => (b.k in fx ? Object.assign({}, b, {a: r2(wzNum(fx[b.k]))}) : b)));
+  // conti e beni
+  const acc = n => c.accounts.find(a => a.n === n);
+  if (acc(main)) acc(main).init = r2(wzNum(s.cc)); if (acc('Contanti')) acc('Contanti').init = r2(wzNum(s.cash));
+  c.assets = Array.isArray(c.assets) ? c.assets : []; const usedA = new Set(c.accounts.map(a => norm(a.n)));
+  for (const r of s.haves) { const v = wzNum(r.v); if (!(v > 0)) continue; const nm = String(r.n || '').trim() || (WZ_HAVE.find(x => x[0] === r.t) || ['', 'Bene'])[1];
+    if (r.t === 'dep') { c.accounts.push({n: uniq(nm === 'Deposito o conto risparmio' ? 'Deposito' : nm, usedA), init: r2(v)}); continue; }
+    const o = {id: 'a' + newId().slice(-7), t: r.t, n: nm === 'Auto o moto' ? 'Auto' : nm === 'Immobile o terreno' ? 'Immobile' : nm, v: r2(v), d: today(), note: ''};
+    if (r.t === 'oro') Object.assign(o, {g: wzNum(r.g), k: 24, buys: [{d: '', g: wzNum(r.g), p: r2(v)}], paid: r2(v), q: null}); else Object.assign(o, {cur: 'EUR', src: 'stima'});
+    c.assets.push(o); }
+  c.accountsSet = true;
+  // obiettivo
+  const gn = String(s.gname || '').trim(), gt = wzNum(s.gtarget), has = s.goalOn && gt > 0;
+  c.goals = c.goals.map(g => (g.id === 'casa' ? Object.assign({}, g, {n: has ? (gn || 'Il mio obiettivo') : 'Risparmi', sub: has ? 'Il tuo obiettivo di risparmio' : 'Quello che metti da parte', target: has ? gt : 0}) : g));
+  const t = wizTotals(s), rnd = v => Math.max(0, Math.round(v / 10) * 10);
+  c.cushion = Object.assign({}, c.cushion, {target: rnd(t.fixed + t.rates + wzNum(fx.spesa))});
+  c.wizardDone = 1; if (!c.startYM) c.startYM = cur;
+  return c;
+}
+// il premio: con questo budget, quando chiudi i debiti e quando raggiungi l'obiettivo
+function wizPremio(c) {
+  const old = S.real.config;
+  try {
+    renderSeq++; S.real.config = normConfig(c);
+    const nx = addMonths(curYM(), 1), sav = r2(incomeTotal() - budgets().filter(b => !b.auto).reduce((t, b) => t + baseOf(b, nx), 0));
+    const live = cfg().goals.filter(g => g.type === 'debt' && debtCur(g) > 0); let dEnd = '';
+    if (live.length) { const sch = debtSchedule(); dEnd = live.map(g => (sch[g.id] || {}).ym || '9999-12').reduce((m, x) => (x > m ? x : m), '0000-00'); }
+    const g = cfg().goals.find(x => x.id === 'casa'), gi = g && +g.target > 0 ? goalInfo(g) : null;
+    return {sav, debts: live.length, dEnd, gName: g ? g.n : '', gYm: gi ? gi.ym : '', gHas: !!(g && +g.target > 0)};
+  } catch (e) { console.warn('wizPremio', e); return {err: 1, sav: 0}; } finally { S.real.config = old; renderSeq++; }
 }
 function openWizard() {
   const w = openSheet('<div id="wz"></div>'); w.dataset.wiz = '1';
-  const g0 = (cfg().goals || []).find(g => g.id === 'casa') || {};
-  w._s = {step: 0, cur: cfg().cur || 'EUR', inc: incomeTotal() || '', other: '', casa: '', bills: '', cc: '', cash: '', gname: g0.n && g0.n !== 'Fondo casa' ? g0.n : '', gtarget: ''};
-  const num = id => { const v = parseAmt(($('#' + id, w) || {}).value); return v > 0 ? v : 0; };
-  const field = (id, label, val, ph) => `<label class="fld"><span>${label}</span><div class="amtin"><input id="${id}" inputmode="decimal" placeholder="${ph || '0,00'}" value="${val ? String(val).replace('.', ',') : ''}"><b>${esc(curSym())}</b></div></label>`;
+  const s = w._s = {step: 0, cur: cfg().cur || 'EUR', incs: [{t: 'stipendio', n: '', a: '', day: '27'}], y13: '', y14: '', fix: [], debts: [], cc: '', cash: '', haves: [], goalOn: true, gname: '', gtarget: '', flex: null};
+  const N = 6, sym = () => esc((CURRENCIES.find(c => c[0] === s.cur) || CURRENCIES[0])[1]);
+  const sel = (L, kind, i, v) => `<label class="fld"><select data-wr="${kind}" data-i="${i}" data-f="t">${L.map(x => `<option value="${x[0]}" ${x[0] === v ? 'selected' : ''}>${esc(x[1])}</option>`).join('')}</select></label>`;
+  const inp = (kind, i, f, lab, v, ph, mode) => `<label class="fld"><span>${lab}</span><input data-wr="${kind}" data-i="${i}" data-f="${f}" inputmode="${mode || 'decimal'}" value="${esc(v || '')}" placeholder="${ph || '0'}" autocomplete="off"></label>`;
+  const card = (kind, i, L, r, nameIf, body) => `<div class="accard wzr"><div class="wzh">${sel(L, kind, i, r.t)}<button class="tg" data-wz="del" data-k="${kind}" data-i="${i}" type="button" aria-label="Togli">✕</button></div>${nameIf ? `<label class="fld" style="margin-top:8px"><span>Nome</span><input data-wr="${kind}" data-i="${i}" data-f="n" value="${esc(r.n || '')}" placeholder="Scrivi il nome" autocomplete="off"></label>` : ''}${body}</div>`;
+  const addBtn = (kind, lab) => `<button class="btn" data-wz="add" data-k="${kind}" type="button">＋ ${lab}</button>`;
+  const tot = (lab, v) => `<div class="wz-tot"><span>${lab}</span><b class="num">${eur(v)}</b></div>`;
+  const premioHTML = () => {
+    const t = wizTotals(s), fx = s.flex, flexT = r2(WZ_FLEX.reduce((a, k) => a + wzNum(fx[k]), 0)), p = wizPremio(wizBuild(s)), sav = r2(t.inc - t.fixed - t.rates - flexT);
+    if (sav < -0.005) return `<div class="banner red" style="margin:10px 0 0"><div class="ic">⚠️</div><div><b>Le uscite superano le entrate di ${eur(-sav)}</b>Abbassa qualche voce: così il mese non si chiude.</div></div>`;
+    const ok = y => y && y < '9999', row = (ic, k, sub, v, cl) => `<div class="rp-r"><div><span class="ell" style="display:block">${ic} ${k}</span><small class="ss">${sub}</small></div><b class="num ${cl}">${v}</b></div>`;
+    const R = [row('💰', 'Metti da parte', 'ogni mese', eur(sav), 'g')];
+    if (p.debts) R.push(row('🏛️', 'Debiti chiusi', ok(p.dEnd) ? 'tra ' + durTxt(monthsBetween(curYM(), p.dEnd)) : 'con questo budget non si chiudono', ok(p.dEnd) ? ymShort(p.dEnd) : 'mai', ok(p.dEnd) ? '' : 'o'));
+    if (p.gHas) R.push(row('🎯', esc(p.gName), p.gYm ? 'tra ' + durTxt(monthsBetween(curYM(), p.gYm)) : 'serve mettere da parte di più', p.gYm ? ymShort(p.gYm) : 'mai', p.gYm ? 'g' : 'o'));
+    return `<div class="h-label" style="margin-top:14px">🏆 Dove ti porta questo budget</div><div class="card tight rp" style="margin:8px 0 6px">${R.join('')}</div>
+      <p class="ss" style="margin:0 2px">${p.debts ? 'Quello che metti da parte va prima ai debiti' + (p.gHas ? ', poi al tuo obiettivo.' : '.') : p.gHas ? 'Quello che metti da parte va al tuo obiettivo.' : 'Quando vuoi, aggiungi un obiettivo da Obiettivi.'}${p.debts || p.gHas ? ' Il calcolo conta anche i soldi che hai già. Se abbassi una voce, le date si avvicinano.' : ''}</p>`;
+  };
   const draw = () => {
-    const s = w._s, dots = [0, 1, 2, 3, 4].map(i => `<span style="display:inline-block;width:${i === s.step ? 22 : 8}px;height:8px;border-radius:8px;margin-right:5px;background:${i <= s.step ? 'var(--green)' : 'rgba(255,255,255,.15)'};transition:all .3s"></span>`).join('');
-    let body = '';
-    if (s.step === 0) body = `<h3 class="sh-title">Quanto entra ogni mese?</h3><p class="sh-sub">Stipendio o entrate fisse. Poi ti propongo un budget.</p>
+    const dots = Array.from({length: N}, (_, i) => `<span style="display:inline-block;width:${i === s.step ? 22 : 8}px;height:8px;border-radius:8px;margin-right:5px;background:${i <= s.step ? 'var(--green)' : 'rgba(255,255,255,.15)'}"></span>`).join('');
+    const t = wizTotals(s); let body = '', skip = '';
+    if (s.step === 0) body = `<h3 class="sh-title">Cosa entra ogni mese?</h3><p class="sh-sub">Tutte le entrate su cui puoi contare. Aggiungine quante ne hai.</p>
       <label class="fld"><span>Valuta</span><select id="wz-cur">${CURRENCIES.map(c => `<option value="${c[0]}" ${c[0] === s.cur ? 'selected' : ''}>${esc(c[1])} · ${esc(c[2])}</option>`).join('')}</select></label>
-      ${field('wz-inc', 'Entrate fisse al mese', s.inc)}${field('wz-other', 'Altre entrate al mese (facoltativo)', s.other)}`;
-    if (s.step === 1) body = `<h3 class="sh-title">Le spese che non puoi evitare</h3><p class="sh-sub">Più o meno: le correggi quando vuoi.</p>${field('wz-casa', 'Affitto o rata del mutuo', s.casa)}${field('wz-bills', 'Bollette e utenze (luce, gas, internet, telefono)', s.bills)}`;
-    if (s.step === 2) body = `<h3 class="sh-title">Quanto hai oggi?</h3><p class="sh-sub">Il saldo di adesso: da qui l’app tiene il conto.</p>${field('wz-cc', mainAcc(), s.cc)}${field('wz-cash', 'Contanti', s.cash)}`;
-    if (s.step === 3) body = `<h3 class="sh-title">Il tuo obiettivo</h3><p class="sh-sub">Per cosa stai mettendo da parte? Casa, viaggio, auto, tranquillità…</p>
-      <label class="fld"><span>Nome dell’obiettivo</span><input id="wz-gn" maxlength="40" placeholder="es. Casa nuova" value="${esc(s.gname)}"></label>${field('wz-gt', 'Quanto ti serve', s.gtarget, 'es. 20.000,00')}`;
-    if (s.step === 4) {
-      const pl = wizPlan(s), L = [['casa', '🏠', 'Affitto o mutuo'], ['utenze', '⚡', 'Utenze'], ['spesa', '🛒', 'Spesa'], ['auto', '🚗', 'Trasporti'], ['personali', '👤', 'Spese personali'], ['svago', '🎉', 'Svago'], ['salute', '💊', 'Salute'], ['fuori', '📦', 'Fuori budget']];
-      body = `<h3 class="sh-title">Il tuo budget</h3><p class="sh-sub">Su ${eur(pl.inc)} al mese ti propongo così. Ogni voce la cambi quando vuoi da Impostazioni → Budget del mese.</p>
-        <div class="card tight" style="margin:0">${L.map(([k, e, n]) => `<div class="pr" style="display:flex;justify-content:space-between;padding:7px 2px;font-size:15px"><span>${e} ${n}</span><b class="num">${eur(pl.p[k])}</b></div>`).join('')}
-        <div class="pr" style="display:flex;justify-content:space-between;padding:9px 2px;font-size:15px;border-top:1px solid rgba(255,255,255,.08)"><span>🔐 ${esc(s.gname || 'Il tuo obiettivo')} (risparmio)</span><b class="num g">${eur(pl.fondo)}</b></div></div>
-        <div class="vrule" style="margin-top:12px">🛟 Cuscinetto di emergenza consigliato: <b>${eur(pl.cushion)}</b> (un mese di spese indispensabili).${pl.fondo <= 0 ? '<br>⚠️ Le spese fisse superano le entrate: la priorità è tagliare o aumentare le entrate.' : ''}</div>`;
+      ${s.incs.map((r, i) => card('incs', i, WZ_INC, r, r.t === 'altro', `<div class="row2" style="margin-top:8px">${inp('incs', i, 'a', 'Importo al mese', r.a)}${inp('incs', i, 'day', 'Giorno del mese', r.day, '27', 'numeric')}</div>`)).join('')}
+      ${addBtn('incs', 'Aggiungi entrata')}
+      <div class="row2" style="margin-top:12px">${`<label class="fld"><span>Tredicesima</span><input id="wz-y13" inputmode="decimal" value="${esc(s.y13)}" placeholder="se ce l’hai"></label><label class="fld"><span>Quattordicesima</span><input id="wz-y14" inputmode="decimal" value="${esc(s.y14)}" placeholder="se ce l’hai"></label>`}</div>
+      <div id="wz-live">${tot('Entrate al mese', t.inc)}</div>`;
+    if (s.step === 1) { body = `<h3 class="sh-title">Le tue spese fisse</h3><p class="sh-sub">Solo quelle che paghi tu, ogni mese. Se non ne hai, vai avanti.</p>
+      ${s.fix.map((r, i) => card('fix', i, WZ_FIX, r, r.t === 'altro', `<div class="row2" style="margin-top:8px">${inp('fix', i, 'a', 'Importo al mese', r.a)}${inp('fix', i, 'day', 'Giorno del mese', r.day, '1', 'numeric')}</div>`)).join('')}
+      ${addBtn('fix', 'Aggiungi spesa fissa')}${s.fix.some(r => r.t === 'mutuo') ? '<p class="ss" style="margin:8px 2px 0">Qui il mutuo conta come rata. Il piano completo della banca lo carichi dopo da Obiettivi.</p>' : ''}
+      <div id="wz-live">${s.fix.length ? tot('Spese fisse al mese', t.fixed) : ''}</div>`; skip = s.fix.length ? '' : 'Non ho spese fisse'; }
+    if (s.step === 2) { body = `<h3 class="sh-title">Hai debiti?</h3><p class="sh-sub">Finanziamenti, carte, soldi da restituire. L’app ti dice quando li chiudi.</p>
+      ${s.debts.map((r, i) => card('debts', i, WZ_DEBT, r, true, r.t === 'persona' ? `<div class="row2" style="margin-top:8px">${inp('debts', i, 'cur', 'Quanto devi', r.cur)}<span></span></div>` : `<div class="row2" style="margin-top:8px">${inp('debts', i, 'cur', 'Quanto resta', r.cur)}${inp('debts', i, 'rata', 'Rata al mese', r.rata)}</div><div class="row2">${inp('debts', i, 'day', 'Giorno della rata', r.day, '1', 'numeric')}${inp('debts', i, 'taeg', 'Tasso % (TAEG)', r.taeg, '0')}</div>`)).join('')}
+      ${addBtn('debts', 'Aggiungi debito')}
+      <div id="wz-live">${s.debts.length ? tot('Rate al mese', t.rates) : ''}</div>`; skip = s.debts.length ? '' : 'Non ho debiti'; }
+    if (s.step === 3) body = `<h3 class="sh-title">Cosa hai oggi?</h3><p class="sh-sub">I saldi di adesso: da qui l’app tiene il conto. Aggiungi anche depositi, investimenti, oro o altro.</p>
+      <div class="row2"><label class="fld"><span>Conto corrente</span><input id="wz-cc" inputmode="decimal" value="${esc(s.cc)}" placeholder="0"></label><label class="fld"><span>Contanti</span><input id="wz-cash" inputmode="decimal" value="${esc(s.cash)}" placeholder="0"></label></div>
+      ${s.haves.map((r, i) => card('haves', i, WZ_HAVE, r, true, `<div class="row2" style="margin-top:8px">${inp('haves', i, 'v', r.t === 'oro' ? 'Quanto l’hai pagato' : r.t === 'dep' ? 'Saldo di oggi' : 'Quanto vale', r.v)}${r.t === 'oro' ? inp('haves', i, 'g', 'Grammi', r.g) : '<span></span>'}</div>`)).join('')}
+      ${addBtn('haves', 'Aggiungi altro che hai')}`;
+    if (s.step === 4) { body = `<h3 class="sh-title">Hai un obiettivo?</h3><p class="sh-sub">Qualcosa per cui mettere da parte: casa, viaggio, auto, tranquillità. Puoi anche deciderlo dopo.</p>
+      <label class="fld"><span>Nome dell’obiettivo</span><input id="wz-gn" maxlength="40" placeholder="es. Casa nuova" value="${esc(s.gname)}"></label>
+      <label class="fld"><span>Quanto ti serve</span><div class="amtin"><input id="wz-gt" inputmode="decimal" placeholder="0" value="${esc(s.gtarget)}"><b>${sym()}</b></div></label>`; skip = 'Per ora nessun obiettivo'; }
+    if (s.step === 5) {
+      if (!s.flex) s.flex = wizFlex(s);
+      const fb = cfg().budgets.filter(b => WZ_FLEX.includes(b.k));
+      body = `<h3 class="sh-title">Il tuo piano</h3><p class="sh-sub">Costruito sui tuoi numeri. Le voci flessibili sono una proposta: cambiale come vuoi.</p>
+        <div class="card tight rp" style="margin:0"><div class="rp-r"><div>💶 Entrate</div><b class="num g">+${eur(t.inc)}</b></div>${t.fixed > 0 ? `<div class="rp-r"><div>🔒 Spese fisse</div><b class="num o">−${eur(t.fixed)}</b></div>` : ''}${t.rates > 0 ? `<div class="rp-r"><div>🏛️ Rate dei debiti</div><b class="num o">−${eur(t.rates)}</b></div>` : ''}<div class="rp-r rp-tot"><div>Restano</div><b class="num">${eur(t.free)}</b></div></div>
+        <div class="h-label" style="margin-top:14px">Voci flessibili al mese</div>
+        <div class="wz-flex">${fb.map(b => `<label class="fld"><span>${esc(b.e)} ${esc(b.n)}</span><input data-fx="${b.k}" inputmode="decimal" value="${esc(String(s.flex[b.k] ?? ''))}" placeholder="0"></label>`).join('')}</div>
+        <div id="wz-res">${premioHTML()}</div>`;
     }
     $('#wz', w).innerHTML = `<div style="margin:0 0 12px">${dots}</div>${body}
-      <div class="row2" style="margin-top:14px">${s.step ? '<button class="btn mt0" data-wz="back">Indietro</button>' : '<button class="btn ghost mt0" data-act="close-sheet">Più tardi</button>'}<button class="btn primary mt0" data-wz="next">${s.step === 4 ? 'Va bene, inizia' : 'Avanti'}</button></div>`;
-    setTimeout(() => { const i = $('#wz input', w); if (i && !i.value) i.focus(); }, 300);
+      ${skip ? `<button class="btn ghost" data-wz="skip" type="button">${skip}</button>` : ''}
+      <div class="row2" style="margin-top:10px">${s.step ? '<button class="btn mt0" data-wz="back">Indietro</button>' : '<button class="btn ghost mt0" data-act="close-sheet">Più tardi</button>'}<button class="btn primary mt0" data-wz="next">${s.step === N - 1 ? 'Va bene, inizia' : 'Avanti'}</button></div>`;
+    const sh = $('.sheet', w); if (sh) sh.scrollTop = 0;
   };
   const grab = () => {
-    const s = w._s;
-    if (s.step === 0) { s.cur = $('#wz-cur', w).value; s.inc = num('wz-inc'); s.other = num('wz-other'); }
-    if (s.step === 1) { s.casa = num('wz-casa'); s.bills = num('wz-bills'); }
-    if (s.step === 2) { s.cc = num('wz-cc'); s.cash = num('wz-cash'); }
-    if (s.step === 3) { s.gname = $('#wz-gn', w).value.trim(); s.gtarget = num('wz-gt'); }
+    $$('[data-wr]', w).forEach(el => { const r = (s[el.dataset.wr] || [])[+el.dataset.i]; if (r) r[el.dataset.f] = el.value; });
+    const v = id => { const e = $('#' + id, w); return e ? e.value : null; };
+    if (v('wz-cur') !== null) s.cur = v('wz-cur'); if (v('wz-y13') !== null) { s.y13 = v('wz-y13'); s.y14 = v('wz-y14'); }
+    if (v('wz-cc') !== null) { s.cc = v('wz-cc'); s.cash = v('wz-cash'); }
+    if (v('wz-gn') !== null) { s.gname = v('wz-gn').trim(); s.gtarget = v('wz-gt'); }
+    $$('[data-fx]', w).forEach(el => { s.flex[el.dataset.fx] = el.value; });
   };
+  const live = () => { grab(); const t = wizTotals(s), b = $('#wz-live', w);
+    if (b) b.innerHTML = s.step === 0 ? tot('Entrate al mese', t.inc) : s.step === 1 && s.fix.length ? tot('Spese fisse al mese', t.fixed) : s.step === 2 && s.debts.length ? tot('Rate al mese', t.rates) : '';
+    const r = $('#wz-res', w); if (r) r.innerHTML = premioHTML(); };
+  w.addEventListener('input', live);
+  w.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.f === 't') { grab(); draw(); } });
+  const blank = {incs: () => ({t: WZ_INC.find(x => !s.incs.some(r => r.t === x[0]))[0], n: '', a: '', day: ''}), fix: () => ({t: (WZ_FIX.find(x => !s.fix.some(r => r.t === x[0])) || WZ_FIX[8])[0], n: '', a: '', day: ''}), debts: () => ({t: 'fin', n: '', cur: '', rata: '', day: '', taeg: ''}), haves: () => ({t: (WZ_HAVE.find(x => !s.haves.some(r => r.t === x[0])) || WZ_HAVE[5])[0], n: '', v: '', g: ''})};
   w.addEventListener('click', async e => {
-    const b = e.target.closest('[data-wz]'); if (!b) return; grab(); const s = w._s;
-    if (b.dataset.wz === 'back') { s.step--; draw(); return; }
-    if (s.step === 0 && !(s.inc > 0)) { toast('Scrivi quanto entra ogni mese'); return; }
-    if (s.step < 4) { s.step++; draw(); return; }
-    const pl = wizPlan(s), c = clone(cfg());
-    c.cur = s.cur;
-    c.income = [{n: 'Stipendio', a: r2(s.inc)}].concat(s.other > 0 ? [{n: 'Altre entrate', a: r2(s.other)}] : []);
-    if (s.other > 0 && !c.incomeCats.includes('Altre entrate')) c.incomeCats.splice(1, 0, 'Altre entrate');
-    c.budgets = c.budgets.map(x => (x.k in pl.p ? Object.assign({}, x, {a: pl.p[x.k]}) : x));
-    const acc = n => c.accounts.find(a => a.n === n);
-    if (acc('Conto corrente')) acc('Conto corrente').init = r2(s.cc); if (acc('Contanti')) acc('Contanti').init = r2(s.cash);
-    c.accountsSet = true;
-    c.goals = c.goals.map(g => (g.id === 'casa' ? Object.assign({}, g, {n: s.gname || g.n, target: s.gtarget || g.target}) : g));
-    c.cushion = Object.assign({}, c.cushion, {target: pl.cushion});
-    c.wizardDone = 1;
-    if (await saveConfig(c) === false) return;
+    const b = e.target.closest('[data-wz]'); if (!b) return; grab(); const a = b.dataset.wz;
+    if (a === 'add') { s[b.dataset.k].push(blank[b.dataset.k]()); s.flex = null; draw(); setTimeout(() => { const L = $$('.wzr', w), x = L[L.length - 1]; if (x) x.scrollIntoView({block: 'center', behavior: 'smooth'}); }, 60); return; }
+    if (a === 'del') { s[b.dataset.k].splice(+b.dataset.i, 1); s.flex = null; draw(); return; }
+    if (a === 'back') { s.step--; draw(); return; }
+    if (a === 'skip') { if (s.step === 4) { s.goalOn = false; s.gname = ''; s.gtarget = ''; } s.step++; draw(); return; }
+    if (s.step === 0 && !(wizTotals(s).inc > 0)) { toast('Scrivi almeno un’entrata'); return; }
+    if (s.step === 2) { const bad = s.debts.find(r => wzNum(r.cur) > 0 && !String(r.n || '').trim()); if (bad) { toast('Dai un nome a ogni debito'); return; } }
+    if (s.step === 4) { s.goalOn = wzNum(s.gtarget) > 0; if (!s.goalOn && s.gname) { toast('Scrivi quanto ti serve, o scegli «Per ora nessun obiettivo»'); return; } }
+    if (s.step < 4) s.flex = null;
+    if (s.step < N - 1) { s.step++; draw(); return; }
+    const t = wizTotals(s), flexT = WZ_FLEX.reduce((x, k) => x + wzNum(s.flex[k]), 0);
+    if (t.inc - t.fixed - t.rates - flexT < -0.005) { toast('Le uscite superano le entrate: abbassa qualche voce'); return; }
+    b.disabled = true;
+    if (await saveConfig(wizBuild(s)) === false) { b.disabled = false; return; }
     closeSheet(w); buzz(20); toast('Fatto: Future è pronta 🎉'); S.anim = true; render();
     setTimeout(() => { if (!((((S.real.state || {}).tour) || {})[meNow()]) && !TOUR.on) startTour(); }, 1400);
   });
