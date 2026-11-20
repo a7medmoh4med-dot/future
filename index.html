@@ -499,6 +499,32 @@ input,select,textarea{font-family:inherit}
   #mc-list .plan{margin:0}
   .mchg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;align-items:start}
 }
+.fw{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:grid;place-items:center;transition:opacity .25s}
+.fw.out{opacity:0}
+.fw canvas{position:absolute;inset:0;pointer-events:none}
+.fw-card{position:relative;width:min(420px,90vw);background:rgba(18,18,24,.94);border:1px solid var(--stroke2);border-radius:28px;padding:24px 20px 14px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.6);animation:fwPop .55s cubic-bezier(.2,1.4,.4,1)}
+.fw-card .big{font-size:60px;line-height:1}
+.fw-card h2{margin:8px 0 4px;font-size:26px}
+.fw-t{font-weight:700;font-size:16px;margin-bottom:8px}
+.fw-save{font-size:15px;margin:6px 0}.fw-save b{color:#2EE59D}
+.fw-xp{color:#F6C744;font-weight:700;font-size:14px;margin:4px 0 8px}
+.fw-tr{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 4px}.fw-tr span{background:rgba(246,199,68,.14);border:1px solid rgba(246,199,68,.4);border-radius:999px;padding:5px 10px;font-size:13px;font-weight:650;white-space:nowrap}
+@keyframes fwPop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.chlv{flex:none;white-space:nowrap;font-weight:750;font-size:13px;padding:6px 11px;border-radius:999px;background:linear-gradient(90deg,rgba(46,229,157,.18),rgba(90,169,255,.18));border:1px solid rgba(46,229,157,.35)}
+.ch-xpl{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin:10px 2px 5px;white-space:nowrap}
+.ch-xp{height:8px;border-radius:8px;background:rgba(255,255,255,.08);overflow:hidden}.ch-xp i{display:block;height:100%;background:linear-gradient(90deg,#2EE59D,#5AA9FF);border-radius:8px;transition:width .6s}
+.ch-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 4px}
+.ch-stat{background:rgba(255,255,255,.05);border:1px solid var(--stroke);border-radius:14px;padding:8px 6px;text-align:center;min-width:0}
+.ch-stat b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ch-stat small{display:block;color:var(--muted);font-size:11px;white-space:nowrap}
+.ch-bar{height:6px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden}.ch-bar i{display:block;height:100%;background:#F6C744;border-radius:6px;transition:width .6s}
+.ch-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}.ch-chips .chip{white-space:nowrap}
+.chgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:2px}.chc .chgrid b.ell{font-size:15px}
+.trophies{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.trophy{background:rgba(255,255,255,.05);border:1px solid var(--stroke);border-radius:14px;padding:10px 6px;text-align:center;min-width:0}
+.trophy .te{font-size:28px}.trophy b{display:block;font-size:12px;margin-top:4px}.trophy small{display:block;color:var(--muted);font-size:10.5px;line-height:1.3;margin-top:2px}
+.trophy.off{opacity:.38;filter:grayscale(1)}
+@media (min-width:700px){.ch-stats{grid-template-columns:repeat(4,minmax(0,1fr))}.trophies{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:900px){.chgrid{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .mtiles{display:grid;gap:8px}
 .mtile{display:grid;grid-template-columns:40px 1fr;column-gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--stroke);background:rgba(255,255,255,.04);border-radius:18px;padding:12px 14px;color:var(--text)}
@@ -2363,6 +2389,7 @@ function rulesHTML() {
       <div class="setrow" data-act="rec-list"><span>Pagamenti ricorrenti<br><small>${recs().length} impostati · ${eur(recs().filter(r => r.on && r.kind === 'out').reduce((s, r) => s + recAmount(r), 0))} al mese</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-icats"><span>Tipi di entrata<br><small>${cfg().incomeCats.slice(0, 4).map(esc).join(' · ')}${cfg().incomeCats.length > 4 ? '…' : ''}</small></span><span class="chev">›</span></div>
       <div class="setrow" data-act="set-accounts"><span>Conti<br><small>${cfg().accounts.map(a => esc(a.n)).join(' · ')}</small></span><span class="chev">›</span></div>
+      <div class="setrow" data-act="ch-set"><span>🏆 Sfide<br><small>Cosa fa perdere ogni sfida · crea le tue</small></span><span class="chev">›</span></div>
     </div>
     <div class="sec-title">Regole di spesa</div>
     <div class="card" style="--i:1"><div class="h-label" style="margin-bottom:4px">Le tue regole</div>
@@ -2407,6 +2434,7 @@ function doRender() {
   maybeAsk();
   maybeCatchUp();
   maybeClose();
+  try { chTick(); } catch (e) { console.error(e); }
   $$('#sheets .wrap').forEach(w => { if (w._close && !S.preview && (cfg().closed || '') >= w._m) closeSheet(w); if (w._catInfo) { const bd = $('.ci-body', w), h = catInfoHTML(w._catInfo, w._ciYm); if (bd && h && bd.innerHTML !== h) bd.innerHTML = h; } });
   if (S.anim && S.mode !== 'loading') {
     S.anim = false; v.classList.add('anim'); countUps(v);
@@ -4407,8 +4435,14 @@ const ACT = {
   'quick-copy': async () => { const t = location.origin + location.pathname + '?add='; try { await navigator.clipboard.writeText(t); toast('Link copiato ✓'); } catch (e) { toast(t); } },
   'auto-backups': () => openAutoBackups(),
   'reset-all': () => openResetAll(),
-  'ch-start': el => { const st = Object.assign({}, chState()); st[el.dataset.id] = {start: today(), by: meNow()}; const won = el.dataset.won === '1'; saveStateField(Object.assign({challenges: st}, won ? {chWins: (((S.real.state || {}).chWins) || 0) + 1} : {})); toast('Sfida iniziata 🔥'); render(); },
-  'ch-stop': el => { const st = Object.assign({}, chState()); delete st[el.dataset.id]; saveStateField({challenges: st}); render(); },
+  'ch-start': el => chStart(el.dataset.id),
+  'ch-stop': el => chStop(el.dataset.id),
+  'ch-ck': el => chCk(el.dataset.id, el.dataset.off === '1'),
+  'ch-g': el => { S.chG = el.dataset.g; render(); },
+  'ch-info': el => chInfo(el.dataset.id),
+  'ch-board': () => chBoard(),
+  'ch-new': () => chEdit(null),
+  'ch-set': () => chSettings(),
   'goal-casa': () => openGoalEdit('casa'),
   'setup-done': async () => { const c = clone(cfg()); c.setupDone = 1; await saveConfig(c); S.anim = true; render(); },
   'wait-nudge': el => { const w = D().waits.find(x => x.id === el.dataset.id); if (w) pushAsk(w.id, w, true); },
@@ -6225,35 +6259,390 @@ function openSubs() {
   });
 }
 
-/* ---------- sfide ---------- */
+/* ---------- sfide: il gioco ---------- */
+// Ogni sfida: g gruppo, lv difficoltà (1-3 stelle), days durata.
+// Tipi: kw = parole nella nota, cats = voci del budget, zero = nessuna spesa a mano, cap = tetto di spesa, ck = spunta «Fatto oggi» (need volte in days giorni).
+// duo = di coppia (contano le spese di tutti e due), per = euro risparmiati per ogni spunta.
+const CH_GROUPS = [['cibo', '🍽️ Cibo'], ['shop', '🛍️ Shopping'], ['voci', '🛒 Voci del budget'], ['risp', '💰 Risparmio'], ['altro', '✂️ Abbonamenti e spostamenti'], ['coppia', '💞 In coppia'], ['mie', '✨ Le tue']];
+const KW_DELIVERY = ['glovo', 'deliveroo', 'just eat', 'justeat', 'uber eats', 'ubereats', 'delivery', 'domicilio'];
+const KW_BAR = ['bar', 'caffe', 'caffè', 'starbucks', 'colazione', 'cornetto'];
+const KW_ONLINE = ['amazon', 'shein', 'temu', 'zalando', 'aliexpress', 'ebay', 'vinted', 'wish'];
+const KW_TAXI = ['taxi', 'uber', 'free now', 'freenow', 'bolt', 'lime', 'dott', 'monopattino', 'itaxi'];
 const CHALLENGES = [
-  {id: 'nodelivery', e: '🛵', t: '7 giorni senza delivery', d: 'Niente Glovo, Deliveroo, Just Eat, Uber Eats.', days: 7, kw: ['glovo', 'deliveroo', 'just eat', 'justeat', 'uber eats', 'ubereats', 'delivery', 'domicilio']},
-  {id: 'nobar', e: '☕', t: '14 giorni senza bar', d: 'Caffè e colazioni a casa.', days: 14, kw: ['bar', 'caffe', 'caffè', 'starbucks', 'colazione', 'cornetto']},
-  {id: 'zero3', e: '🧊', t: '3 giorni a spesa zero', d: 'Nessuna uscita registrata a mano per 3 giorni di fila.', days: 3, zero: true},
-  {id: 'nofuori', e: '📦', t: '30 giorni senza Fuori budget', d: 'Solo spese previste dalle voci.', days: 30, cat: 'fuori'}
+  {id: 'nodelivery', g: 'cibo', e: '🛵', t: '7 giorni senza delivery', d: 'Niente Glovo, Deliveroo, Just Eat, Uber Eats.', days: 7, lv: 1, kw: KW_DELIVERY},
+  {id: 'nodelivery14', g: 'cibo', e: '🛵', t: '14 giorni senza delivery', d: 'Due settimane di cucina di casa.', days: 14, lv: 2, kw: KW_DELIVERY},
+  {id: 'nodelivery30', g: 'cibo', e: '👨‍🍳', t: '30 giorni senza delivery', d: 'Un mese intero senza cibo a domicilio.', days: 30, lv: 3, kw: KW_DELIVERY},
+  {id: 'nobar7', g: 'cibo', e: '☕', t: '7 giorni senza bar', d: 'Caffè e colazioni a casa.', days: 7, lv: 1, kw: KW_BAR},
+  {id: 'nobar', g: 'cibo', e: '☕', t: '14 giorni senza bar', d: 'Caffè e colazioni a casa per due settimane.', days: 14, lv: 2, kw: KW_BAR},
+  {id: 'pranzo5', g: 'cibo', e: '🥪', t: '5 pranzi da casa in 7 giorni', d: 'Ogni volta che pranzi con cibo portato da casa, tocca «Fatto oggi».', days: 7, need: 5, ck: 1, lv: 1, per: 8},
+  {id: 'noonline7', g: 'shop', e: '📦', t: '7 giorni senza acquisti online', d: 'Niente Amazon, Shein, Temu, Zalando, AliExpress, eBay, Vinted.', days: 7, lv: 1, kw: KW_ONLINE},
+  {id: 'noonline30', g: 'shop', e: '🛍️', t: '30 giorni senza acquisti online', d: 'Un mese senza carrelli online.', days: 30, lv: 3, kw: KW_ONLINE},
+  {id: 'wait48', g: 'shop', e: '⏳', t: 'Regola delle 48 ore per 7 giorni', d: 'Prima di ogni acquisto non previsto aspetti 48 ore. Ogni sera tocca «Fatto oggi».', days: 7, need: 7, ck: 1, lv: 2},
+  {id: 'zero1', g: 'shop', e: '🧊', t: '1 giorno a spesa zero', d: 'Nessuna spesa registrata a mano per un giorno intero.', days: 1, zero: 1, lv: 1},
+  {id: 'zero3', g: 'shop', e: '🧊', t: '3 giorni a spesa zero', d: 'Nessuna spesa registrata a mano per 3 giorni di fila.', days: 3, zero: 1, lv: 2},
+  {id: 'zero7', g: 'shop', e: '🥶', t: '7 giorni a spesa zero', d: 'Solo i pagamenti ricorrenti: nessuna spesa registrata a mano.', days: 7, zero: 1, lv: 3},
+  {id: 'capspesa', g: 'voci', e: '🛒', t: 'Spesa sotto il tetto per 7 giorni', d: 'Le spese della voce Spesa non superano il tetto che scegli all’inizio.', days: 7, lv: 2, cats: ['spesa'], cap: 1},
+  {id: 'nofuori7', g: 'voci', e: '📦', t: '7 giorni senza Fuori budget', d: 'Solo spese previste dalle voci.', days: 7, lv: 1, cats: ['fuori']},
+  {id: 'nofuori', g: 'voci', e: '📦', t: '30 giorni senza Fuori budget', d: 'Un mese di sole spese previste dalle voci.', days: 30, lv: 3, cats: ['fuori']},
+  {id: 'nosvago7', g: 'voci', e: '🎉', t: '7 giorni senza Svago', d: 'Niente locali, cinema, uscite a pagamento: solo svago gratis.', days: 7, lv: 2, cats: ['svago']},
+  {id: 'nopers14', g: 'voci', e: '👤', t: '14 giorni senza Spese personali', d: 'Solo l’indispensabile per due settimane.', days: 14, lv: 2, cats: ['personali']},
+  {id: 'save2', g: 'risp', e: '🐷', t: 'Metti da parte 2,00 € al giorno per 7 giorni', d: 'Ogni giorno sposta 2,00 € sui risparmi, poi tocca «Fatto oggi».', days: 7, need: 7, ck: 1, lv: 1, per: 2},
+  {id: 'save5', g: 'risp', e: '💰', t: 'Metti da parte 5,00 € al giorno per 30 giorni', d: 'Ogni giorno sposta 5,00 € sui risparmi, poi tocca «Fatto oggi».', days: 30, need: 30, ck: 1, lv: 3, per: 5},
+  {id: 'round', g: 'risp', e: '🪙', t: 'Arrotonda ogni spesa per 14 giorni', d: 'Arrotonda all’euro ogni spesa e metti da parte la differenza. Ogni sera tocca «Fatto oggi».', days: 14, need: 14, ck: 1, lv: 2},
+  {id: 'cutsub', g: 'altro', e: '✂️', t: 'Disdici un abbonamento entro 7 giorni', d: 'Scegline uno che usi poco e disdicilo davvero, poi tocca «Fatto». Trovi i tuoi in Bilancio → Abbonamenti.', days: 7, need: 1, ck: 1, lv: 2},
+  {id: 'notaxi7', g: 'altro', e: '🚕', t: '7 giorni senza taxi e monopattini', d: 'Niente taxi, Uber, Free Now, Bolt, Lime, Dott.', days: 7, lv: 1, kw: KW_TAXI},
+  {id: 'cpzero3', g: 'coppia', e: '💞', t: '3 giorni a spesa zero in coppia', d: 'Vincete solo se nessuno dei due registra spese a mano.', days: 3, zero: 1, lv: 2, duo: 1},
+  {id: 'cpdel14', g: 'coppia', e: '🍝', t: '14 giorni senza delivery in coppia', d: 'Si cucina a casa, tutti e due.', days: 14, lv: 2, duo: 1, kw: KW_DELIVERY}
 ];
-const chState = () => ((S.real.state || {}).challenges) || {};
-function chStatus(ch, st) {
-  if (!st || !st.start) return null;
-  const hit = TX().filter(t => t.kind === 'out' && !t.rec && t.d >= st.start && (ch.zero || (ch.cat && t.cat === ch.cat) || (ch.kw && ch.kw.some(k => norm(t.note).includes(norm(k))))));
-  const days = Math.max(0, Math.floor((new Date(today()) - new Date(st.start)) / 864e5));
-  if (hit.length) return {s: 'lost', days: Math.max(0, Math.floor((new Date(hit.sort((a, b) => a.d < b.d ? -1 : 1)[0].d) - new Date(st.start)) / 864e5)), by: hit[0]};
-  return days >= ch.days ? {s: 'won', days: ch.days} : {s: 'run', days};
+const CH_XP = {1: 50, 2: 120, 3: 250};
+const CH_LEVELS = [[0, 'Principiante', '🌱'], [150, 'Risparmiatore', '🪙'], [500, 'Stratega', '🎯'], [1200, 'Squalo', '🦈'], [2500, 'Leggenda', '👑']];
+const CH_TROPHIES = [
+  ['first', '🥉', 'Prima vittoria', 'Vinci una sfida', s => s.wins >= 1],
+  ['w3', '🥈', 'Tre vittorie', 'Vinci 3 sfide', s => s.wins >= 3],
+  ['w10', '🥇', 'Dieci vittorie', 'Vinci 10 sfide', s => s.wins >= 10],
+  ['row3', '🔥', 'Tris', 'Vinci 3 sfide di fila senza perderne nessuna', s => s.bestRow >= 3],
+  ['hard', '💎', 'Osso duro', 'Vinci una sfida ★★★', s => s.hard >= 1],
+  ['multi', '🤹', 'Giocoliere', 'Tieni 3 sfide in corso insieme', s => s.multi],
+  ['streak14', '📆', 'Due settimane', 'Arriva a una serie di 14 giorni', s => s.best >= 14],
+  ['s100', '💶', '100 € risparmiati', 'Risparmia circa 100,00 € con le sfide vinte', s => s.saved >= 100],
+  ['s500', '💰', '500 € risparmiati', 'Risparmia circa 500,00 € con le sfide vinte', s => s.saved >= 500],
+  ['duo', '💞', 'Squadra', 'Vinci una sfida in coppia (serve un partner collegato)', s => s.duo >= 1],
+  ['shark', '🦈', 'Squalo', 'Arriva al livello Squalo (1.200 XP)', s => s.xp >= 1200],
+  ['legend', '👑', 'Leggenda', 'Arriva al livello Leggenda (2.500 XP)', s => s.xp >= 2500]
+];
+const chSt = () => S.real.state || {};
+const chState = () => chSt().challenges || {};
+const chAdd = (d, n) => isoDate(new Date(new Date(d + 'T12:00:00').getTime() + n * 864e5));
+const chDiff = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
+const chDs = iso => { const s = dateShort(iso); return iso.slice(0, 4) === today().slice(0, 4) ? s.replace(/ \d{4}$/, '') : s; };
+const chStars = lv => '★'.repeat(lv) + '☆'.repeat(3 - lv);
+const chKind = ch => ch.ck ? 'ck' : ch.zero ? 'zero' : ch.cap ? 'cap' : ch.cats && !ch.kw ? 'cats' : 'kw';
+// le regole di ogni sfida si possono cambiare (Impostazioni → Sfide): qui si uniscono a quelle di partenza
+function chDef(ch) {
+  const r = (chSt().chRules || {})[ch.id];
+  if (!r || ch.ck || ch.zero) return ch;
+  return Object.assign({}, ch, Array.isArray(r.kw) ? {kw: r.kw} : {}, Array.isArray(r.cats) ? {cats: r.cats} : {});
 }
+const chCustom = () => (chSt().chCustom || []).filter(c => c && c.id);
+const chAll = () => CHALLENGES.filter(ch => !ch.duo || hasPartner()).concat(chCustom()).map(chDef);
+const chById = id => chAll().find(c => c.id === id) || CHALLENGES.concat(chCustom()).find(c => c.id === id);
+function chMatch(ch, t) {
+  if (ch.zero) return true;
+  if (ch.cats && ch.cats.length && ch.cats.includes(t.cat)) return true;
+  if (ch.kw && ch.kw.length) { const n = ' ' + norm(t.note).replace(/[^a-z0-9]+/g, ' ') + ' '; return ch.kw.some(k => { const w = norm(k).replace(/[^a-z0-9]+/g, ' ').trim(); return w && n.includes(' ' + w + ' '); }); }
+  return false;
+}
+// spese che contano per una sfida: solo uscite registrate a mano; se non è di coppia, solo quelle di chi l'ha iniziata
+const chTxOk = (ch, t, who) => t.kind === 'out' && !t.rec && !t.plan && (ch.duo || !who || !t.by || t.by === who);
+function chHits(ch, st) {
+  const end = chAdd(st.start, Math.max(0, ch.days - 1));
+  return TX().filter(t => chTxOk(ch, t, st.by) && t.d >= st.start && t.d <= end && chMatch(ch, t)).sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+}
+function chStatus(ch, st) {
+  if (!ch || !st || !st.start) return null;
+  const el = Math.max(0, chDiff(st.start, today()));
+  if (ch.ck) {
+    const ck = (st.ck || []).filter(d => d >= st.start), n = ck.length, tod = ck.includes(today());
+    if (n >= ch.need) return {s: 'won', days: Math.min(el, ch.days), n};
+    const rem = ch.days - el - (tod ? 1 : 0);
+    if (ch.need - n > rem) return {s: 'lost', days: Math.min(el, ch.days), n};
+    return {s: 'run', days: el, n, tod};
+  }
+  const hits = chHits(ch, st);
+  if (ch.cap) { let s = 0; for (const t of hits) { s = r2(s + t.a); if (s > (st.cap || 0) + 0.005) return {s: 'lost', days: chDiff(st.start, t.d), by: t, sum: s}; } }
+  else if (hits.length) return {s: 'lost', days: chDiff(st.start, hits[0].d), by: hits[0]};
+  return el >= ch.days ? {s: 'won', days: ch.days} : {s: 'run', days: el, sum: ch.cap ? r2(hits.reduce((a, t) => a + t.a, 0)) : 0};
+}
+// media giornaliera delle spese che la sfida vieta, negli ultimi 90 giorni
+function chDaily(ch, who) {
+  const from = chAdd(today(), -90), t0 = today();
+  const all = TX().filter(t => chTxOk(ch, t, who) && t.d >= from && t.d < t0);
+  const first = TX().reduce((m, t) => (t.d && t.d < m ? t.d : m), t0);
+  const days = Math.max(7, chDiff(first > from ? first : from, t0));
+  return all.filter(t => chMatch(ch, t)).reduce((a, t) => a + t.a, 0) / days;
+}
+function chEst(ch, cap) {
+  if (ch.ck) return r2((ch.per || 0) * ch.need);
+  const v = chDaily(ch, meNow()) * ch.days;
+  return r2(Math.max(0, ch.cap ? v - (cap || 0) : v));
+}
+function chCapDefault(ch) { const v = chDaily(ch, meNow()) * ch.days * 0.8; return v > 1 ? Math.max(5, Math.round(v / 5) * 5) : 50; }
+function chWhy(ch, st, x) {
+  if (ch.ck) return `Spuntati ${x.n} giorni su ${ch.need} richiesti: i giorni rimasti non bastavano più.`;
+  const t = x.by; if (!t) return '';
+  const tw = `${t.note ? '«' + t.note + '»' : 'una spesa'} di ${eur(t.a)} del ${chDs(t.d)}${ch.duo && t.by ? ' (' + t.by + ')' : ''}`;
+  if (ch.cap) return `Con ${tw} la voce è arrivata a ${eur(x.sum)}, sopra il tetto di ${eur(st.cap)}.`;
+  if (ch.zero) return `È stata registrata a mano ${tw}.`;
+  const b = ch.cats && ch.cats.includes(t.cat) ? budgets().find(z => z.k === t.cat) : null;
+  return `È stata registrata ${tw}${b ? ' nella voce ' + b.n : ''}.`;
+}
+const chMine = l => l.duo || !l.by || l.by === meNow();
+function chStats(log) {
+  log = (log || chSt().chLog || []).filter(chMine).slice().sort((a, b) => (a.end || '') < (b.end || '') ? -1 : 1);
+  const f = (chSt().chFlags || {})[meNow()] || {}, legacy = +chSt().chWins || 0;
+  const s = {wins: legacy, xp: legacy * CH_XP[1], saved: 0, hard: 0, duo: 0, bestRow: 0, multi: !!f.multi, best: +f.best || 0, lost: 0};
+  let row = 0;
+  for (const l of log) {
+    if (l.s === 'won') { s.wins++; s.xp += +l.xp || 0; s.saved = r2(s.saved + (+l.saved || 0)); if (l.lv === 3) s.hard++; if (l.duo) s.duo++; row++; s.bestRow = Math.max(s.bestRow, row); }
+    else { s.lost++; row = 0; }
+  }
+  s.streak = chStreak(log); s.best = Math.max(s.best, s.streak);
+  const lvI = CH_LEVELS.reduce((m, L, i) => (s.xp >= L[0] ? i : m), 0);
+  s.lv = CH_LEVELS[lvI]; s.next = CH_LEVELS[lvI + 1] || null;
+  return s;
+}
+// serie: giorni di fila (fino a oggi) coperti da sfide vinte o in corso, dall’ultima sfida persa in poi
+function chStreak(log) {
+  const lastLoss = log.filter(l => l.s === 'lost').reduce((m, l) => (l.end > m ? l.end : m), '');
+  const cov = new Set(), add = (a, b) => { let d = a, k = 0; while (d <= b && k++ < 400) { if (d > lastLoss) cov.add(d); d = chAdd(d, 1); } };
+  log.filter(l => l.s === 'won').forEach(l => add(l.start, l.end));
+  const st = chState(); Object.keys(st).forEach(id => { const ch = chById(id); if (ch && (ch.duo || !st[id].by || st[id].by === meNow())) add(st[id].start, today()); });
+  let n = 0, d = today(); if (!cov.has(d)) d = chAdd(d, -1);
+  while (cov.has(d) && n < 3650) { n++; d = chAdd(d, -1); }
+  return n;
+}
+const chTrophies = s => CH_TROPHIES.filter(t => t[4](s));
+
+// chiude le sfide finite (vinte o perse) e le scrive nella bacheca: così non spariscono mai in silenzio
+function chTick() {
+  if (S.preview || !S.real || !S.real.state || !(S.mode === 'local' || S.txReady)) return;
+  const st = chState(), done = [];
+  for (const id of Object.keys(st)) { const ch = chById(id); if (!ch) continue; const x = chStatus(ch, st[id]); if (x && x.s !== 'run') done.push([ch, st[id], x]); }
+  const me = meNow(), flags = Object.assign({}, chSt().chFlags || {}), f = Object.assign({}, flags[me] || {});
+  const running = Object.keys(st).filter(id => !done.some(d => d[0].id === id) && (!st[id].by || st[id].by === me || (chById(id) || {}).duo)).length;
+  let patch = null;
+  if (done.length) {
+    const nst = Object.assign({}, st), log = (chSt().chLog || []).slice();
+    for (const [ch, s, x] of done) {
+      delete nst[ch.id]; const k = ch.id + '@' + s.start; if (log.some(l => l.k === k)) continue;
+      const end = ch.ck ? (x.s === 'won' ? today() : chAdd(s.start, ch.days - 1)) : x.s === 'won' ? chAdd(s.start, ch.days - 1) : x.by.d;
+      log.push({k, id: ch.id, e: ch.e, t: ch.t, lv: ch.lv, duo: ch.duo ? 1 : 0, s: x.s, start: s.start, end: end < s.start ? s.start : end, by: s.by || '', xp: x.s === 'won' ? CH_XP[ch.lv] || 50 : 0, saved: x.s === 'won' ? r2(s.est || 0) : 0, why: x.s === 'lost' ? chWhy(ch, s, x) : '', ts: Date.now()});
+    }
+    patch = {challenges: nst, chLog: log.slice(-300)};
+  }
+  if (running >= 3 && !f.multi) { f.multi = 1; flags[me] = f; patch = Object.assign(patch || {}, {chFlags: flags}); }
+  const sk = chStats().streak; if (sk > (+f.best || 0)) { f.best = sk; flags[me] = f; patch = Object.assign(patch || {}, {chFlags: flags}); }
+  if (patch) { saveStateField(patch); render(); return; }
+  if (S.tab === 'home') chCelebrate();
+}
+// fuochi d’artificio (vittoria) o spiegazione (sconfitta): una volta sola per ogni sfida, su questo dispositivo
+let chSeenMem = null, chShowing = false;
+function chSeen() { if (chSeenMem) return chSeenMem; try { chSeenMem = JSON.parse(localStorage.getItem('fut-ch-seen') || '[]'); } catch (e) { chSeenMem = []; } return chSeenMem; }
+function chMarkSeen(k) { const s = chSeen(); if (!s.includes(k)) s.push(k); try { localStorage.setItem('fut-ch-seen', JSON.stringify(s.slice(-400))); } catch (e) {} }
+function chCelebrate() {
+  if (chShowing || $$('#sheets .wrap').length || document.querySelector('.fw')) return;
+  const seen = chSeen(), lim = chAdd(today(), -14);
+  const l = (chSt().chLog || []).find(x => chMine(x) && !seen.includes(x.k) && (x.end || '') >= lim);
+  if (!l) return;
+  chMarkSeen(l.k); chShowing = true;
+  const done = () => { chShowing = false; setTimeout(() => { if (S.tab === 'home') chCelebrate(); }, 500); };
+  if (l.s === 'won') {
+    const all = chSt().chLog || [], before = chStats(all.filter(x => x.k !== l.k)), now = chStats(all);
+    const newT = chTrophies(now).filter(t => !chTrophies(before).some(b => b[0] === t[0]));
+    const up = now.lv[0] !== before.lv[0];
+    buzz([30, 60, 30, 60, 90]);
+    chFireworks(`<div class="big">🏆</div><h2>Sfida vinta!</h2><div class="fw-t">${esc(l.e)} ${esc(l.t)}</div>
+      ${l.saved > 0.005 ? `<div class="fw-save">Hai risparmiato circa <b class="num">${eur(l.saved)}</b></div>` : ''}
+      <div class="fw-xp">+${l.xp} XP${up ? ` · nuovo livello: <b>${now.lv[2]} ${now.lv[1]}</b>` : ` · ${now.lv[2]} ${now.lv[1]}`}</div>
+      ${newT.length ? `<div class="fw-tr">${newT.map(t => `<span>${t[1]} ${esc(t[2])}</span>`).join('')}</div>` : ''}
+      <button class="btn primary" data-fw="close">Spettacolo! ✓</button>${chById(l.id) && !chState()[l.id] ? `<button class="btn ghost" data-fw="again">Rifalla subito</button>` : ''}`, a => { if (a === 'again') chStart(l.id); done(); });
+  } else {
+    const w = openSheet(`<h3 class="sh-title">😕 Sfida persa: ${esc(l.t)}</h3><p class="sh-sub">${esc(l.why || 'La sfida non è andata.')}</p>
+      <p class="muted" style="font-size:13px">Succede. Se quella spesa era sbagliata, correggila nei Movimenti e poi tocca «Era un errore».</p>
+      ${chById(l.id) && !chState()[l.id] ? `<button class="btn primary" data-c="again">Riprova da oggi</button>` : ''}<button class="btn" data-c="undo">Era un errore: riprendi la sfida</button><button class="btn ghost" data-c="ok">Ok</button>`);
+    w.addEventListener('click', async e => {
+      const b = e.target.closest('[data-c]'); if (!b) { if (e.target.closest('[data-act="close-sheet"]')) done(); return; }
+      closeSheet(w); if (b.dataset.c === 'again') chStart(l.id); if (b.dataset.c === 'undo') setTimeout(() => chUndo(l.k), 420); done();
+    });
+  }
+}
+function chFireworks(html, onClose) {
+  const o = document.createElement('div'); o.className = 'fw'; o.innerHTML = `<canvas></canvas><div class="fw-card">${html}</div>`;
+  document.body.appendChild(o);
+  const cv = $('canvas', o), cx = cv.getContext('2d'); let W = 0, H = 0, dpr = 1, alive = true;
+  const size = () => { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px'; };
+  size(); addEventListener('resize', size);
+  const cols = ['#2EE59D', '#F6C744', '#FF6B8A', '#5AA9FF', '#B57CFF', '#FF9F43', '#FFFFFF'], rk = [], pt = [];
+  const slow = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const t0 = performance.now(); let last = t0, nextL = 0;
+  const launch = () => rk.push({x: W * (0.12 + Math.random() * 0.76), y: H, vx: (Math.random() - 0.5) * 2 * dpr, vy: -Math.sqrt(2 * 0.06 * dpr * H * (0.6 + Math.random() * 0.3)), c: cols[Math.random() * cols.length | 0]});
+  const burst = r => { const n = 90 + (Math.random() * 60 | 0), sp = (3.4 + Math.random() * 3.2) * dpr; for (let i = 0; i < n; i++) { const a = Math.PI * 2 * i / n, v = sp * (0.45 + Math.random() * 0.75); pt.push({x: r.x, y: r.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, l: 1, c: Math.random() < 0.3 ? cols[Math.random() * cols.length | 0] : r.c}); } };
+  const frame = now => {
+    if (!alive) return; const dt = Math.min(2.5, (now - last) / 16.7); last = now;
+    cx.globalCompositeOperation = 'destination-out'; cx.fillStyle = 'rgba(0,0,0,.16)'; cx.fillRect(0, 0, W, H); cx.globalCompositeOperation = 'lighter';
+    if (now > nextL && now - t0 < 8000) { launch(); if (!slow && Math.random() < 0.4) launch(); nextL = now + (slow ? 900 : 350) + Math.random() * 400; }
+    for (let i = rk.length - 1; i >= 0; i--) { const r = rk[i]; r.x += r.vx * dt; r.y += r.vy * dt; r.vy += 0.06 * dpr * dt; cx.globalAlpha = 1; cx.fillStyle = r.c; cx.beginPath(); cx.arc(r.x, r.y, 2.4 * dpr, 0, 7); cx.fill(); if (r.vy >= -0.5) { burst(r); rk.splice(i, 1); } }
+    for (let i = pt.length - 1; i >= 0; i--) { const p = pt[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.04 * dpr * dt; p.vx *= 0.986; p.vy *= 0.986; p.l -= 0.0085 * dt; if (p.l <= 0) { pt.splice(i, 1); continue; } cx.globalAlpha = p.l; cx.fillStyle = p.c; cx.fillRect(p.x, p.y, 3 * dpr, 3 * dpr); }
+    cx.globalAlpha = 1;
+    if (now - t0 < 8000 || rk.length || pt.length) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  o.addEventListener('click', e => { const b = e.target.closest('[data-fw]'); if (!b) return; alive = false; removeEventListener('resize', size); o.classList.add('out'); setTimeout(() => o.remove(), 250); onClose && onClose(b.dataset.fw); });
+}
+async function chStart(id) {
+  const ch = chById(id); if (!ch) return;
+  const s = {start: today(), by: meNow()};
+  if (ch.cap) {
+    const cap = await new Promise(res => {
+      const def = chCapDefault(ch);
+      const w = openSheet(`<h3 class="sh-title">${esc(ch.e)} Qual è il tetto?</h3><p class="sh-sub">In ${ch.days} giorni le spese di questa sfida non devono superare questa cifra. Proposta: l’80% di quanto spendi di solito.</p>
+        <label class="fld"><span>Tetto in ${esc(curSym())}</span><input id="ch-cap" inputmode="decimal" value="${String(def).replace('.', ',')}"></label><button class="btn primary" data-c="1">Inizia la sfida</button><button class="btn ghost" data-c="0">Annulla</button>`);
+      w.addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (!b) { if (e.target.closest('[data-act="close-sheet"]')) res(null); return; } const v = r2(parseFloat(String($('#ch-cap', w).value).replace(/\./g, '').replace(',', '.'))); if (b.dataset.c === '1' && !(v > 0)) { toast('Scrivi un tetto maggiore di zero'); return; } res(b.dataset.c === '1' ? v : null); closeSheet(w); });
+    });
+    if (cap == null) return; s.cap = cap;
+  }
+  if (ch.ck) s.ck = [];
+  s.est = chEst(ch, s.cap);
+  saveStateField({challenges: Object.assign({}, chState(), {[id]: s})});
+  buzz(15); toast(`Sfida iniziata 🔥 ${ch.days === 1 ? 'Fino a stanotte' : ch.days + ' giorni'}`); render();
+}
+async function chUndo(k) {
+  const log = (chSt().chLog || []), l = log.find(x => x.k === k); if (!l) return;
+  if (chState()[l.id]) { toast('Questa sfida è già di nuovo in corso'); return; }
+  if (!(await confirmSheet('Riprendere la sfida?', `«${esc(l.t)}» torna in corso dal ${chDs(l.start)}. Se la spesa che l’ha fatta perdere è ancora nei Movimenti uguale a prima, la sfida si riperde subito.`, 'Riprendi'))) return;
+  const ch = chById(l.id), s = {start: l.start, by: l.by || meNow()}; if (ch && ch.ck) s.ck = [];
+  if (ch) s.est = chEst(ch, s.cap);
+  const seen = chSeen(); const i = seen.indexOf(k); if (i >= 0) seen.splice(i, 1);
+  saveStateField({challenges: Object.assign({}, chState(), {[l.id]: s}), chLog: log.filter(x => x.k !== k)}); toast('Sfida ripresa ✓'); render();
+}
+// riga di testo con cosa fa perdere la sfida
+function chRuleText(ch) {
+  const k = chKind(ch), voci = (ch.cats || []).map(c => (budgets().find(b => b.k === c) || {}).n).filter(Boolean);
+  if (k === 'ck') return ch.need === ch.days ? `Devi toccare «Fatto oggi» ogni giorno per ${ch.days} giorni.` : `Devi toccare «Fatto» ${ch.need} ${ch.need === 1 ? 'volta' : 'volte'} entro ${ch.days} giorni.`;
+  if (k === 'zero') return `Perdi se ${ch.duo ? 'uno di voi due registra' : 'registri'} a mano una qualsiasi spesa (i pagamenti ricorrenti non contano).`;
+  const parts = [];
+  if (ch.kw && ch.kw.length) parts.push(`una spesa con nella nota: ${ch.kw.join(', ')}`);
+  if (voci.length) parts.push(`una spesa nella voce ${voci.join(', ')}`);
+  if (k === 'cap') return `Perdi se le spese ${voci.length ? 'della voce ' + voci.join(', ') : 'con queste parole'} superano il tetto che scegli all’inizio.`;
+  return parts.length ? `Perdi se ${ch.duo ? 'uno di voi due registra' : 'registri'} ${parts.join(' oppure ')}.` : 'Nessuna regola impostata: cambiala in Impostazioni → Sfide.';
+}
+function chMeta(ch) { const est = chEst(ch, ch.cap ? chCapDefault(ch) : 0); return `${chStars(ch.lv)} · +${CH_XP[ch.lv]} XP${est > 0.5 ? ` · circa ${eur(est)}` : ''}`; }
+
 function challengesCardHTML() {
-  const st = chState(), wins = ((S.real.state || {}).chWins) || 0;
-  return `<div class="card goal"><div class="top"><div><div class="gt">🏆 Sfide</div><div class="gs">Piccole sfide per spendere meno. ${wins ? `Vinte finora: <b>${wins}</b>` : 'Prova la prima!'}</div></div></div>
-    ${CHALLENGES.map(ch => { const x = chStatus(ch, st[ch.id]);
-      if (!x) return `<div class="setrow" style="cursor:default"><span style="min-width:0"><span class="ell" style="display:block">${ch.e} ${esc(ch.t)}</span><small>${esc(ch.d)}</small></span><button class="btn sm" data-act="ch-start" data-id="${ch.id}">Inizia</button></div>`;
-      const pct = Math.min(1, x.days / ch.days), col = x.s === 'lost' ? '#FF6B8A' : x.s === 'won' ? '#2EE59D' : '#F6C744';
-      return `<div style="padding:8px 2px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${ch.e} <b>${esc(ch.t)}</b><br><small class="m">${x.s === 'won' ? 'Vinta! 🎉' : x.s === 'lost' ? `Persa al giorno ${x.days + 1}: ${esc(x.by.note || 'una spesa')} ${eur(x.by.a)}` : `Giorno ${x.days} di ${ch.days}`}</small></span>${x.s === 'run' ? `<button class="btn sm ghost" data-act="ch-stop" data-id="${ch.id}">Lascia</button>` : `<button class="btn sm ${x.s === 'won' ? 'primary' : ''}" data-act="ch-start" data-id="${ch.id}" data-won="${x.s === 'won' ? 1 : 0}">${x.s === 'won' ? 'Rifalla' : 'Riprova'}</button>`}</div>
-        <div style="height:6px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden"><div style="height:100%;width:${(pct * 100).toFixed(0)}%;background:${col};border-radius:6px;transition:width .6s"></div></div></div>`; }).join('')}</div>`;
+  if (S.preview) return '';
+  const st = chState(), s = chStats(), all = chAll(), g = S.chG || 'cibo';
+  const pct = s.next ? Math.min(1, (s.xp - s.lv[0]) / (s.next[0] - s.lv[0])) : 1;
+  const run = all.filter(ch => st[ch.id]).map(ch => [ch, chStatus(ch, st[ch.id])]).filter(([, x]) => x);
+  const groups = CH_GROUPS.filter(([k]) => k !== 'coppia' || hasPartner());
+  const avail = all.filter(ch => !st[ch.id] && (ch.g || 'mie') === g);
+  return `<div class="card goal chc"><div class="top"><div style="min-width:0"><div class="gt">🏆 Sfide</div><div class="gs">Vinci sfide, guadagna punti, sali di livello.</div></div><div class="chlv">${s.lv[2]} ${s.lv[1]}</div></div>
+    <div class="ch-xpl"><span>${s.xp} XP</span><span>${s.next ? `${s.next[0] - s.xp} XP a ${s.next[2]} ${s.next[1]}` : 'Livello massimo 👑'}</span></div><div class="ch-xp"><i style="width:${(pct * 100).toFixed(0)}%"></i></div>
+    <div class="ch-stats"><div class="ch-stat"><b>🔥 ${s.streak}</b><small>giorni di serie</small></div><div class="ch-stat"><b>🏆 ${s.wins}</b><small>vinte</small></div><div class="ch-stat"><b class="num">${eur(s.saved)}</b><small>risparmiati</small></div><div class="ch-stat"><b>🏅 ${chTrophies(s).length}/${CH_TROPHIES.length}</b><small>trofei</small></div></div>
+    ${run.length ? `<div class="h-label" style="margin-top:6px">In corso</div><div class="chgrid">${run.map(([ch, x]) => chRunRowHTML(ch, x, st[ch.id])).join('')}</div>` : ''}
+    <div class="h-label" style="margin-top:10px">Scegli una sfida</div>
+    <div class="ch-chips">${groups.map(([k, n]) => `<button class="chip ${k === g ? 'on' : ''}" data-act="ch-g" data-g="${k}">${n}</button>`).join('')}</div>
+    <div class="chgrid">${avail.length ? avail.map(ch => { const w = chWonCount(ch.id); return `<div class="setrow" data-act="ch-info" data-id="${esc(ch.id)}"><span style="min-width:0;flex:1"><span class="ell" style="display:block">${esc(ch.e)} ${esc(ch.t)}</span><small class="ell" style="display:block">${chMeta(ch)}${w ? ` · vinta ${w}×` : ''}</small></span><button class="btn sm" data-act="ch-start" data-id="${esc(ch.id)}">Inizia</button></div>`; }).join('')
+      : `<p class="muted" style="font-size:13px;margin:6px 2px">${g === 'mie' ? 'Non hai ancora sfide tue: creane una qui sotto.' : 'Le sfide di questo gruppo sono tutte in corso 💪'}</p>`}</div>
+    <div class="row2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn mt0" data-act="ch-board">🏅 Bacheca trofei</button><button class="btn mt0" data-act="ch-new">＋ Crea la tua</button></div></div>`;
+}
+const chWonCount = id => (chSt().chLog || []).filter(l => l.id === id && l.s === 'won' && chMine(l)).length;
+function chRunRowHTML(ch, x, st) {
+  const pct = ch.ck ? Math.min(1, x.n / ch.need) : Math.min(1, x.days / ch.days);
+  const sub = ch.ck ? `${x.n} di ${ch.need} fatti · ${Math.max(0, ch.days - x.days)} giorni rimasti` : ch.cap ? `Giorno ${x.days + 1} di ${ch.days} · ${eur(x.sum)} di ${eur(st.cap)}` : `Giorno ${x.days + 1} di ${ch.days}${ch.duo ? ' · in coppia' : ''}`;
+  const btn = ch.ck ? (x.tod ? `<button class="btn sm ghost" data-act="ch-ck" data-id="${esc(ch.id)}" data-off="1">✓ Fatto</button>` : `<button class="btn sm primary" data-act="ch-ck" data-id="${esc(ch.id)}">Fatto${ch.need === 1 ? '' : ' oggi'}</button>`) : `<button class="btn sm ghost" data-act="ch-stop" data-id="${esc(ch.id)}">Lascia</button>`;
+  return `<div style="padding:8px 2px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="min-width:0;flex:1" data-act="ch-info" data-id="${esc(ch.id)}"><b class="ell" style="display:block">${esc(ch.e)} ${esc(ch.t)}</b><small class="m ell" style="display:block">${sub}</small></span>${btn}</div>
+    <div class="ch-bar"><i style="width:${(pct * 100).toFixed(0)}%"></i></div></div>`;
 }
 function chHomeHTML() {
   if (S.preview || S.ym !== curYM()) return '';
-  const st = chState(), run = CHALLENGES.map(ch => [ch, chStatus(ch, st[ch.id])]).filter(([, x]) => x && x.s === 'run');
-  if (!run.length) return '';
-  return `<div class="card stag" data-act="tab" data-tab="goals" style="--i:0;cursor:pointer"><div class="h-label">🏆 Sfide in corso</div>${run.map(([ch, x]) => `<div style="display:flex;justify-content:space-between;font-size:14px;padding:3px 0"><span>${ch.e} ${esc(ch.t)}</span><b>${x.days}/${ch.days} 🔥</b></div>`).join('')}</div>`;
+  const st = chState(), run = chAll().filter(ch => st[ch.id]).map(ch => [ch, chStatus(ch, st[ch.id])]).filter(([, x]) => x && x.s === 'run');
+  const lim = chAdd(today(), -3), rec = (chSt().chLog || []).filter(l => chMine(l) && (l.end || '') >= lim).slice(-3).reverse();
+  if (!run.length && !rec.length) return '';
+  const s = chStats();
+  return `<div class="card stag" data-act="tab" data-tab="goals" style="--i:0;cursor:pointer"><div class="h-label" style="display:flex;justify-content:space-between;gap:8px"><span>🏆 Sfide</span><span class="ell">${s.lv[2]} ${s.lv[1]} · 🔥 ${s.streak}</span></div>
+    ${run.map(([ch, x]) => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;padding:3px 0"><span class="ell" style="min-width:0">${esc(ch.e)} ${esc(ch.t)}</span>${ch.ck && !x.tod ? `<button class="btn sm primary mt0" data-act="ch-ck" data-id="${esc(ch.id)}">Fatto${ch.need === 1 ? '' : ' oggi'}</button>` : `<b class="num" style="flex:none">${ch.ck ? `${x.n}/${ch.need}` : `${x.days + 1}/${ch.days}`} 🔥</b>`}</div>`).join('')}
+    ${rec.map(l => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:3px 0"><span class="ell" style="min-width:0">${l.s === 'won' ? '🏆 Vinta' : '😕 Persa'}: ${esc(l.t)}</span><b style="flex:none;color:${l.s === 'won' ? '#2EE59D' : '#FF6B8A'}">${l.s === 'won' ? '+' + l.xp + ' XP' : '0 XP'}</b></div>`).join('')}</div>`;
+}
+function chInfo(id) {
+  const ch = chById(id); if (!ch) return; const st = chState()[id], x = st ? chStatus(ch, st) : null;
+  const custom = chCustom().some(c => c.id === id), canRules = custom || !(ch.ck || ch.zero);
+  const w = openSheet(`<h3 class="sh-title">${esc(ch.e)} ${esc(ch.t)}</h3><p class="sh-sub">${esc(ch.d || '')}</p>
+    <div class="card tight" style="margin:0 0 10px"><div class="setrow" style="cursor:default"><span>Cosa fa perdere<br><small>${esc(chRuleText(ch))}</small></span></div>
+    <div class="setrow" style="cursor:default"><span>Difficoltà e punti<br><small>${chStars(ch.lv)} · ${ch.days} ${ch.days === 1 ? 'giorno' : 'giorni'} · +${CH_XP[ch.lv]} XP se vinci</small></span></div>
+    ${chEst(ch, st ? st.cap : chCapDefault(ch)) > 0.5 ? `<div class="setrow" style="cursor:default"><span>Quanto ti fa risparmiare<br><small>Circa ${eur(st && st.est != null ? st.est : chEst(ch, ch.cap ? chCapDefault(ch) : 0))}${ch.ck ? '' : ', calcolato su quanto hai speso così negli ultimi 90 giorni'}</small></span></div>` : ''}
+    ${x ? `<div class="setrow" style="cursor:default"><span>A che punto sei<br><small>${ch.ck ? `${x.n} di ${ch.need} fatti` : `Giorno ${x.days + 1} di ${ch.days}`}${ch.cap ? ` · ${eur(x.sum || 0)} di ${eur(st.cap)}` : ''}</small></span></div>` : ''}</div>
+    ${x ? `<button class="btn ghost" data-c="stop">Lascia la sfida</button>` : `<button class="btn primary" data-c="start">Inizia la sfida</button>`}
+    ${canRules ? `<button class="btn" data-c="rules">✏️ Cambia cosa conta</button>` : ''}${custom ? `<button class="btn danger" data-c="del">Elimina questa sfida</button>` : ''}<button class="btn ghost" data-c="x">Chiudi</button>`);
+  w.addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (!b) return; closeSheet(w); const c = b.dataset.c;
+    setTimeout(() => { if (c === 'start') chStart(id); if (c === 'stop') chStop(id); if (c === 'rules') chEdit(id); if (c === 'del') chDel(id); }, c === 'start' && !ch.cap ? 0 : 420); });
+}
+async function chStop(id) {
+  const ch = chById(id); if (!ch) return;
+  if (!(await confirmSheet(`Lasciare «${ch.t}»?`, 'La sfida si ferma: non conta come persa, ma non ti dà punti e la serie non va avanti con lei.', 'Lascia', true))) return;
+  const st = Object.assign({}, chState()); delete st[id]; saveStateField({challenges: st}); toast('Sfida lasciata'); render();
+}
+async function chCk(id, off) {
+  const ch = chById(id), st = chState()[id]; if (!ch || !st) return;
+  if (off) {
+    if (!(await confirmSheet('Togliere la spunta di oggi?', `«${esc(ch.t)}»: oggi torna da fare.`, 'Togli', true))) return;
+    saveStateField({challenges: Object.assign({}, chState(), {[id]: Object.assign({}, st, {ck: (st.ck || []).filter(d => d !== today())})})}); toast('Spunta tolta'); render(); return;
+  }
+  if (!(await confirmSheet(`${ch.e} Fatto oggi?`, `Confermi che oggi hai fatto: «${esc(ch.t)}». Se ti sbagli puoi togliere la spunta.`, 'Sì, fatto ✓'))) return;
+  const ck = (st.ck || []).filter(d => d !== today()).concat(today());
+  saveStateField({challenges: Object.assign({}, chState(), {[id]: Object.assign({}, st, {ck})})}); buzz(15);
+  const left = ch.need - ck.filter(d => d >= st.start).length; toast(left > 0 ? `✓ Mancano ${left}` : '✓ Fatto'); render();
+}
+// modifica di cosa conta (sfide dell’app) o della sfida intera (sfide tue); anche per crearne una nuova
+function chEdit(id) {
+  const base = id ? CHALLENGES.find(c => c.id === id) : null, cust = id ? chCustom().find(c => c.id === id) : null;
+  const isNew = !id, mine = isNew || !!cust, cur = isNew ? {e: '⭐', t: '', days: 7, type: 'kw', kw: [], cats: [], need: 7} : Object.assign({type: chKind(chById(id))}, chById(id));
+  const w = openSheet(`<h3 class="sh-title">${isNew ? '＋ Crea la tua sfida' : '✏️ ' + esc(cur.t)}</h3><p class="sh-sub">${mine ? 'Decidi tu nome, durata e cosa fa perdere.' : 'Decidi tu cosa fa perdere questa sfida. Il resto resta com’è.'}</p><div id="che-body"></div>`);
+  const t = Object.assign({}, cur, {kwS: (cur.kw || []).join(', '), cats: (cur.cats || []).slice()});
+  const draw = () => {
+    const ty = t.type;
+    $('#che-body', w).innerHTML = `${mine ? `<label class="fld"><span>Nome della sfida</span><input id="che-t" value="${esc(t.t)}" placeholder="Es. 10 giorni senza sigarette elettroniche" maxlength="60"></label>
+      <label class="fld"><span>Emoji</span><input id="che-e" value="${esc(t.e)}" maxlength="4"></label>
+      <label class="fld"><span>Quanti giorni dura</span><input id="che-d" inputmode="numeric" value="${t.days}"></label>
+      <div class="fld"><span>Come si vince</span><div class="ch-chips">${[['kw', 'Niente spese con certe parole'], ['cats', 'Niente spese da certe voci'], ['cap', 'Tetto di spesa'], ['ck', 'Spunta «Fatto oggi»']].map(([k, n]) => `<button class="chip ${ty === k ? 'on' : ''}" data-ty="${k}">${n}</button>`).join('')}</div></div>` : ''}
+      ${ty === 'kw' || ty === 'cats' || ty === 'cap' ? `<label class="fld"><span>Parole che fanno perdere</span><textarea id="che-kw" rows="2" style="font:inherit;min-height:0" placeholder="Separate da virgola, es. glovo, deliveroo">${esc(t.kwS)}</textarea></label>
+      <div class="fld"><span>Voci che fanno perdere</span><div class="ch-chips">${budgets().filter(b => !b.auto).map(b => `<button class="chip ${t.cats.includes(b.k) ? 'on' : ''}" data-cat="${esc(b.k)}">${esc(b.e)} ${esc(b.n)}</button>`).join('')}</div></div>` : ''}
+      ${ty === 'ck' && mine ? `<label class="fld"><span>Quante volte toccare «Fatto»</span><input id="che-n" inputmode="numeric" value="${t.need || t.days}"></label>` : ''}
+      <button class="btn primary" data-c="save">${isNew ? 'Crea la sfida' : 'Salva'}</button>${base && (chSt().chRules || {})[id] ? '<button class="btn" data-c="reset">Torna come all’inizio</button>' : ''}<button class="btn ghost" data-c="x">Annulla</button>`;
+  };
+  const read = () => { const v = s => { const i = $(s, w); return i ? i.value : null; };
+    if (v('#che-t') != null) t.t = v('#che-t').trim(); if (v('#che-e') != null) t.e = v('#che-e').trim() || '⭐'; if (v('#che-d') != null) t.days = Math.max(1, Math.min(365, parseInt(v('#che-d'), 10) || 1)); if (v('#che-kw') != null) t.kwS = v('#che-kw'); if (v('#che-n') != null) t.need = Math.max(1, parseInt(v('#che-n'), 10) || 1); };
+  draw();
+  w.addEventListener('click', async e => {
+    const ty = e.target.closest('[data-ty]'), ca = e.target.closest('[data-cat]'), b = e.target.closest('[data-c]');
+    if (ty) { read(); t.type = ty.dataset.ty; draw(); return; }
+    if (ca) { read(); const k = ca.dataset.cat; t.cats = t.cats.includes(k) ? t.cats.filter(x => x !== k) : t.cats.concat(k); draw(); return; }
+    if (!b) return; read();
+    if (b.dataset.c === 'x') { closeSheet(w); return; }
+    if (b.dataset.c === 'reset') { if (!(await confirmSheet('Tornare alle regole di partenza?', 'Le parole e le voci che avevi scelto per questa sfida vengono tolte.', 'Torna all’inizio', true))) return; const r = Object.assign({}, chSt().chRules || {}); delete r[id]; saveStateField({chRules: r}); closeSheet(w); toast('Regole di partenza ✓'); render(); return; }
+    const kw = t.kwS.split(',').map(x => x.trim()).filter(Boolean);
+    if (mine && !t.t) { toast('Scrivi il nome della sfida'); return; }
+    if (t.type !== 'ck' && !kw.length && !t.cats.length) { toast('Scegli almeno una parola o una voce'); return; }
+    if (t.type === 'ck' && t.need > t.days) { toast(`Al massimo ${t.days} volte in ${t.days} giorni`); return; }
+    if (mine) {
+      const c = {id: cust ? cust.id : 'c' + Date.now().toString(36), g: 'mie', e: t.e, t: t.t, d: 'Sfida creata da te.', days: t.days, lv: t.days <= 7 ? 1 : t.days <= 14 ? 2 : 3};
+      if (t.type === 'ck') Object.assign(c, {ck: 1, need: t.need || t.days}); else Object.assign(c, {kw, cats: t.cats}, t.type === 'cap' ? {cap: 1} : {});
+      const list = chCustom().filter(x => x.id !== c.id).concat(c); saveStateField({chCustom: list}); S.chG = 'mie';
+      closeSheet(w); toast(isNew ? 'Sfida creata ✓' : 'Sfida salvata ✓'); render();
+    } else { saveStateField({chRules: Object.assign({}, chSt().chRules || {}, {[id]: {kw, cats: t.cats}})}); closeSheet(w); toast('Regole salvate ✓'); render(); }
+  });
+}
+async function chDel(id) {
+  const c = chCustom().find(x => x.id === id); if (!c) return;
+  if (!(await confirmSheet(`Eliminare «${c.t}»?`, chState()[id] ? 'È in corso: si ferma e sparisce dall’elenco. Le vittorie già fatte restano nella bacheca.' : 'Sparisce dall’elenco. Le vittorie già fatte restano nella bacheca.', 'Elimina', true))) return;
+  const st = Object.assign({}, chState()); delete st[id];
+  saveStateField({chCustom: chCustom().filter(x => x.id !== id), challenges: st}); toast('Sfida eliminata'); render();
+}
+function chBoard() {
+  const s = chStats(), got = chTrophies(s).map(t => t[0]), log = (chSt().chLog || []).slice().reverse().slice(0, 40);
+  const pn = hasPartner() ? apprName() : '';
+  openSheet(`<h3 class="sh-title">🏅 Bacheca trofei</h3><p class="sh-sub">${s.lv[2]} <b>${s.lv[1]}</b> · ${s.xp} XP${s.next ? ` · ${s.next[0] - s.xp} XP a ${s.next[2]} ${s.next[1]}` : ''}</p>
+    <div class="ch-stats"><div class="ch-stat"><b>🏆 ${s.wins}</b><small>vinte</small></div><div class="ch-stat"><b>😕 ${s.lost}</b><small>perse</small></div><div class="ch-stat"><b>🔥 ${s.best}</b><small>serie migliore</small></div><div class="ch-stat"><b class="num">${eur(s.saved)}</b><small>risparmiati</small></div></div>
+    <div class="h-label" style="margin-top:10px">Trofei · ${got.length} di ${CH_TROPHIES.length}</div>
+    <div class="trophies">${CH_TROPHIES.map(t => `<div class="trophy ${got.includes(t[0]) ? '' : 'off'}"><div class="te">${t[1]}</div><b>${esc(t[2])}</b><small>${esc(t[3])}</small></div>`).join('')}</div>
+    <div class="h-label" style="margin-top:14px">Storico</div>
+    ${log.length ? `<div class="card tight" style="margin:0">${log.map(l => `<div class="setrow" style="cursor:default"><span style="min-width:0;flex:1"><span class="ell" style="display:block">${l.s === 'won' ? '🏆' : '😕'} ${esc(l.t)}${pn && l.by && l.by !== meNow() && !l.duo ? ` · ${esc(l.by)}` : ''}</span><small style="display:block">${chDs(l.start)} → ${chDs(l.end)} · ${l.s === 'won' ? `+${l.xp} XP${l.saved > 0.005 ? ' · circa ' + eur(l.saved) : ''}` : esc(l.why || 'persa')}</small></span></div>`).join('')}</div>` : '<p class="muted" style="font-size:13px">Qui compariranno le sfide vinte e perse.</p>'}
+    <button class="btn ghost" data-act="close-sheet">Chiudi</button>`);
+}
+function chSettings() {
+  const w = openSheet(`<h3 class="sh-title">🏆 Sfide</h3><p class="sh-sub">Tocca una sfida per decidere cosa la fa perdere. Le sfide con la spunta «Fatto oggi» e quelle a spesa zero non hanno regole da cambiare.</p>
+    ${CH_GROUPS.filter(([k]) => k !== 'coppia' || hasPartner()).map(([k, n]) => { const list = chAll().filter(ch => (ch.g || 'mie') === k && (chCustom().some(c => c.id === ch.id) || !(ch.ck || ch.zero))); return list.length ? `<div class="h-label" style="margin-top:8px">${n}</div><div class="card tight" style="margin:0">${list.map(ch => `<div class="setrow" data-che="${esc(ch.id)}"><span style="min-width:0;flex:1"><span class="ell" style="display:block">${esc(ch.e)} ${esc(ch.t)}${(chSt().chRules || {})[ch.id] ? ' · cambiata' : ''}</span><small class="ell" style="display:block">${esc(chRuleText(ch))}</small></span><span class="chev">›</span></div>`).join('')}</div>` : ''; }).join('')}
+    <button class="btn" data-che="new">＋ Crea la tua sfida</button><button class="btn ghost" data-act="close-sheet">Chiudi</button>`);
+  w.addEventListener('click', e => { const b = e.target.closest('[data-che]'); if (!b) return; closeSheet(w); const id = b.dataset.che; setTimeout(() => chEdit(id === 'new' ? null : id), 420); });
 }
 
 /* ---------- dove vanno i soldi ---------- */
